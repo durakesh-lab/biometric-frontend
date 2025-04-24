@@ -80,13 +80,13 @@ console.log({createdDepartmentData,select2},"678")
                        dispatch(getDepartmentList());
                       },[])
   useEffect(() => {
-    if (Object.keys(createdDepartmentData).length && formikRef.current) {
+    if (createdDepartmentData!=null && Object.keys(createdDepartmentData).length && formikRef.current) {
       console.log({createdDepartmentData})
       setLoading(false)
       setOpen("adddepartment");
       formikRef.current.resetForm();
     }
-  }, [Object.keys(createdDepartmentData).length ]);
+  }, [createdDepartmentData!=null ? Object.keys(createdDepartmentData).length:"" ]);
 
 
 

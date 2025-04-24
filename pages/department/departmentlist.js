@@ -882,7 +882,7 @@ setTimeout(() => {
                 <Divider />
               </Grid>
               
-              <Grid item xs={12} md={6}>
+              {/* <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
                   label="Department Code*"
@@ -893,7 +893,7 @@ setTimeout(() => {
                   helperText={touched.dept_code && errors.dept_code}
                   variant="outlined"
                 />
-              </Grid>
+              </Grid> */}
               
               <Grid item xs={12} md={6}>
                 <TextField
