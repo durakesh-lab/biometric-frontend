@@ -202,7 +202,7 @@ const EmployeeForm = () => {
   const handleSubmit = async (values) => {
    for(let i in values){
     if(values[i]==""){
-       delete[i]
+       delete values[i]
     }
    }
     setLoading(true)
