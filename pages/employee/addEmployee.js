@@ -200,7 +200,11 @@ const EmployeeForm = () => {
   };
   const dispatch = useDispatch();
   const handleSubmit = async (values) => {
-
+   for(let i in values){
+    if(values[i]==""){
+       delete[i]
+    }
+   }
     setLoading(true)
     dispatch(createEmployee({ obj: values }));
   };

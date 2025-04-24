@@ -439,7 +439,7 @@ const authSlice = createSlice({
       state.error = null;
     });
     builder.addCase(loginUser.fulfilled, (state, action) => {
-      state.loading = false;
+      state.loading = true;
       state.token = action.payload; // token from userLogin
       state.error = null;
     });
