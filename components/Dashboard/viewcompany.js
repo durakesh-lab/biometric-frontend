@@ -9,16 +9,23 @@ import {
   Button,
   Avatar,
   Paper,
-  Stack
+  Stack,
+  Link
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
-  Business as DepartmentIcon,
-  AccountTree as ParentDepartmentIcon,
-  Code as CodeIcon,
-  Settings as SettingsIcon,
-  Info as InfoIcon
+  Business as CompanyIcon,
+  Person as OwnerIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as AddressIcon,
+  AttachMoney as CapitalIcon,
+  Category as IndustryIcon,
+  Language as WebsiteIcon,
+  Description as DescriptionIcon,
+  Settings as SettingsIcon
 } from "@mui/icons-material";
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 
 const theme = createTheme({
   palette: {
@@ -38,14 +45,17 @@ const theme = createTheme({
   },
 });
 
-const ViewDepartmentModal = ({ department, open, onClose }) => {
-  if (!department) return null;
+const ViewCompanyModal = ({ company, open, onClose }) => {
+  if (!company) return null;
 
   // Helper functions
-  const formatDate = (dateString) => {
-    if (!dateString) return "--";
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+  const formatWebsite = (url) => {
+    if (!url) return "--";
+    return (
+      <Link href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener">
+        {url}
+      </Link>
+    );
   };
 
   // Reusable components
@@ -112,12 +122,12 @@ const ViewDepartmentModal = ({ department, open, onClose }) => {
             borderTopLeftRadius: 2,
             borderTopRightRadius: 2
           }}>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>Department Details</Typography>
-            {/* <Chip 
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>Company Details</Typography>
+            <Chip 
               label="Active" 
               color="success"
               sx={{ color: 'white', fontWeight: 600 }}
-            /> */}
+            />
           </Box>
           
           {/* Main Content */}
@@ -138,62 +148,93 @@ const ViewDepartmentModal = ({ department, open, onClose }) => {
                 fontSize: '2rem',
                 mr: 3
               }}>
-                <DepartmentIcon fontSize="large" />
+                <CompanyIcon fontSize="large" />
               </Avatar>
               <Box>
                 <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                  {department.name || "Department"}
+                  {company.name || "Company"}
                 </Typography>
                 <Typography variant="subtitle1" color="text.secondary">
-                  {department.dept_code || "No code"}
+                  {company.industry || "No industry specified"}
                 </Typography>
               </Box>
             </Box>
 
-            {/* Department Information */}
+            {/* Company Information */}
             <Grid container spacing={3}>
               <Grid item xs={12}>
-                <Section title="Basic Information" icon={<InfoIcon color="primary" />}>
+                <Section title="Basic Information" icon={<CompanyIcon color="primary" />}>
                   <FieldRow 
-                    label="Department ID" 
-                    value={department._id} 
-                    icon={<CodeIcon fontSize="small" />}
+                    label="Company Name" 
+                    value={company.name} 
+                    icon={<CompanyIcon fontSize="small" />}
                   />
                   <FieldRow 
-                    label="Department Code" 
-                    value={department.dept_code} 
-                    icon={<CodeIcon fontSize="small" />}
+                    label="Owner" 
+                    value={company.owner} 
+                    icon={<OwnerIcon fontSize="small" />}
                   />
                   <FieldRow 
-                    label="Department Name" 
-                    value={department.name} 
-                    icon={<DepartmentIcon fontSize="small" />}
+                    label="Email" 
+                    value={company.email} 
+                    icon={<EmailIcon fontSize="small" />}
+                  />
+                  <FieldRow 
+                    label="Phone Number" 
+                    value={company.phoneNumber} 
+                    icon={<PhoneIcon fontSize="small" />}
                   />
                 </Section>
 
-                <Section title="Branch Information" icon={<DepartmentIcon color="primary" />}>
+                <Section title="Business Details" icon={<BusinessCenterIcon color="primary" />}>
                   <FieldRow 
-                    label="Branch ID" 
-                    value={department.branchId} 
-                    icon={<CodeIcon fontSize="small" />}
+                    label="Industry" 
+                    value={company.industry} 
+                    icon={<IndustryIcon fontSize="small" />}
                   />
+                  <FieldRow 
+                    label="Nominal Capital" 
+                    value={company.nominalCapital} 
+                    icon={<CapitalIcon fontSize="small" />}
+                  />
+                  <FieldRow 
+                    label="Website" 
+                    value={formatWebsite(company.website)} 
+                    icon={<WebsiteIcon fontSize="small" />}
+                  />
+                </Section>
+
+                <Section title="Address Information" icon={<AddressIcon color="primary" />}>
+                  <FieldRow 
+                    label="Mailing Address" 
+                    value={company.mailingAddress} 
+                    icon={<AddressIcon fontSize="small" />}
+                  />
+                </Section>
+
+                <Section title="Description" icon={<DescriptionIcon color="primary" />}>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                      <Box sx={{ mr: 1, color: 'text.secondary', mt: 0.5 }}>
+                        <DescriptionIcon fontSize="small" />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                          Company Description
+                        </Typography>
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                          {company.companyDescription || "No description available"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
                 </Section>
 
                 {/* Additional Information Section */}
-                <Section title="Additional Details" icon={<SettingsIcon color="primary" />}>
+                <Section title="Additional Information" icon={<SettingsIcon color="primary" />}>
                   <FieldRow 
-                    label="Other Details" 
-                    value={department.otherDetails} 
-                    icon={<InfoIcon fontSize="small" />}
-                  />
-                  <FieldRow 
-                    label="Created At" 
-                    value={formatDate(department.createdAt)} 
-                    icon={<SettingsIcon fontSize="small" />}
-                  />
-                  <FieldRow 
-                    label="Updated At" 
-                    value={formatDate(department.updatedAt)} 
+                    label="Branches" 
+                    value={company.branches?.length || "0"} 
                     icon={<SettingsIcon fontSize="small" />}
                   />
                 </Section>
@@ -222,4 +263,4 @@ const ViewDepartmentModal = ({ department, open, onClose }) => {
   );
 };
 
-export default ViewDepartmentModal;
+export default ViewCompanyModal;

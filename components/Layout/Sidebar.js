@@ -37,12 +37,30 @@ const menuGroups = [
         icon: <HomeIcon />,
         link: "/dashboard",
       },
+      // {
+      //   label: "Payroll",
+      //   icon: <CreditCardIcon />,
+      //   subItems: [
+      //     { label: "Payslips", link: "/payroll/payslips" },
+      //     { label: "Reports", link: "/payroll/reports" },
+      //   ],
+      // },
+      
       {
-        label: "Payroll",
-        icon: <CreditCardIcon />,
+        label: "Company",
+        icon: <GroupIcon />,
         subItems: [
-          { label: "Payslips", link: "/payroll/payslips" },
-          { label: "Reports", link: "/payroll/reports" },
+          { label: "All Company", link: "/company/companylist" }
+          // { label: "Add Company", link: "/company/addcompany" },
+        ],
+      },
+,
+      {
+        label: "Branch",
+        icon: <GroupIcon />,
+        subItems: [
+          { label: "All Branch", link: "/Branch/branchlist" },
+          // { label: "Add Branch", link: "/Branch/addbranch" },
         ],
       },
       {
@@ -50,70 +68,72 @@ const menuGroups = [
         icon: <GroupIcon />,
         subItems: [
           { label: "All Departments", link: "/department/departmentlist" },
-          { label: "Add Department", link: "/department/adddepartment" },
+          // { label: "Add Department", link: "/department/adddepartment" },
         ],
       },
+      // {
+      //   label: "Employee",
+      //   icon: <GroupIcon />,
+      //   subItems: [
+      //     { label: "All Employees", link: "/employee/employeelist" },
+      //     // { label: "Add Employee", link: "/employee/addEmployee" },
+      //   ],
+      // },
       {
-        label: "Position",
+        label: "Staff",
         icon: <GroupIcon />,
         subItems: [
-          { label: "All Position", link: "/Position/Positionlist" },
-          { label: "Add Position", link: "/Position/addPosition" },
+          { label: "All Staff", link: "/staff" },
+          // { label: "All employees", link: "/employee/employeelist" },
+          // { label: "All Employees", link: "/employee/employeelist" },
+          // { label: "Add Employee", link: "/employee/addEmployee" },
         ],
       },
-      {
-        label: "Branch",
-        icon: <GroupIcon />,
-        subItems: [
-          { label: "All Branch", link: "/Branch/branchlist" },
-          { label: "Add Branch", link: "/Branch/addbranch" },
-        ],
-      },
-      {
-        label: "Employee",
-        icon: <GroupIcon />,
-        subItems: [
-          { label: "All Employees", link: "/employee/employeelist" },
-          { label: "Add Employee", link: "/employee/addEmployee" },
-        ],
-      },
-      {
-        label: "Attendance",
-        icon: <CalendarMonthIcon />,
-        subItems: [
-          { label: "Daily Attendance", link: "/attendance/daily" },
-          { label: "Monthly Attendance", link: "/attendance/monthly" },
-        ],
-      },
+      // {
+      //   label: "Position",
+      //   icon: <GroupIcon />,
+      //   subItems: [
+      //     { label: "All Position", link: "/Position/Positionlist" },
+      //     { label: "Add Position", link: "/Position/addPosition" },
+      //   ],
+      // },
+      // {
+      //   label: "Attendance",
+      //   icon: <CalendarMonthIcon />,
+      //   subItems: [
+      //     { label: "Daily Attendance", link: "/attendance/daily" },
+      //     { label: "Monthly Attendance", link: "/attendance/monthly" },
+      //   ],
+      // },
     ],
   },
   {
     heading: "MANAGEMENT",
     items: [
-      {
-        label: "Jobs",
-        icon: <WorkOutlineIcon />,
-        subItems: [
-          { label: "All Jobs", link: "/jobs/all" },
-          { label: "Post New Job", link: "/jobs/new" },
-        ],
-      },
-      {
-        label: "Candidate",
-        icon: <PersonSearchIcon />,
-        subItems: [
-          { label: "All Candidates", link: "/candidates/all" },
-          { label: "Shortlisted", link: "/candidates/shortlisted" },
-        ],
-      },
-      {
-        label: "Calendar",
-        icon: <CalendarMonthIcon />,
-        subItems: [
-          { label: "Events", link: "/calendar/events" },
-          { label: "Reminders", link: "/calendar/reminders" },
-        ],
-      },
+      // {
+      //   label: "Jobs",
+      //   icon: <WorkOutlineIcon />,
+      //   subItems: [
+      //     { label: "All Jobs", link: "/jobs/all" },
+      //     { label: "Post New Job", link: "/jobs/new" },
+      //   ],
+      // },
+      // {
+      //   label: "Candidate",
+      //   icon: <PersonSearchIcon />,
+      //   subItems: [
+      //     { label: "All Candidates", link: "/candidates/all" },
+      //     { label: "Shortlisted", link: "/candidates/shortlisted" },
+      //   ],
+      // },
+      // {
+      //   label: "Calendar",
+      //   icon: <CalendarMonthIcon />,
+      //   subItems: [
+      //     { label: "Events", link: "/calendar/events" },
+      //     { label: "Reminders", link: "/calendar/reminders" },
+      //   ],
+      // },
     ],
   },
   {

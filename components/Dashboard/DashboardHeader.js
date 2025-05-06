@@ -7,7 +7,7 @@ import { Box, Typography, Button } from "@mui/material";
  * Replicates a card design with a green wave top,
  * a centered illustration, greeting text, and a CTA button.
  */
-export default function DashboardHeader() {
+export default function DashboardHeader({userdata}) {
   return (
     <Box
       sx={{
@@ -30,7 +30,7 @@ export default function DashboardHeader() {
         textAlign: "center" 
       }}>
         <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
-          HELLO SCARLETTE!
+          HELLO {userdata?.username}!
         </Typography>
 
         <Typography variant="body2" sx={{ 

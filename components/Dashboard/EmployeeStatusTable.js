@@ -156,7 +156,7 @@ let deletepopup=useSelector((state)=>{return (state.auth)})
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      
+  
       // Construct query params
       const params = {
         page: pagination.page,
@@ -165,34 +165,50 @@ let deletepopup=useSelector((state)=>{return (state.auth)})
         ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field,
         ...filters
       };
-
+  
       // Remove empty filters
       Object.keys(params).forEach(key => {
         if (params[key] === '' || params[key] === null) {
           delete params[key];
         }
       });
-
+  
       let token = localStorage.getItem("token");
+  
       const response = await axios.get(
-        `http://localhost:7000/employee/wer`, {
+        `http://localhost:7000/employee/wer`, 
+        {
           headers: { Authorization: token },
-          params: {page:pagination.page,page_size:pagination.page_size}
+          params
         }
       );
-
-      setEmployees(response.data.data);
-      setPagination({
-        ...pagination,
-        total_pages: Math.ceil(response.data.count / pagination.page_size),
-        count: response.data.count
-      });
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
+  
+      // Safely check response
+      if (response?.data?.data && Array.isArray(response.data.data)) {
+        setEmployees(response.data.data);
+  
+        setPagination(prev => ({
+          ...prev,
+          total_pages: Math.ceil((response.data.count || 0) / prev.page_size),
+          count: response.data.count || 0
+        }));
+      } else {
+        console.error('Unexpected API response structure:', response.data);
+        setEmployees([]); // Set empty employees list on unexpected response
+      }
+  
+    }catch (error) {
+      if (error.code === 'ERR_NETWORK') {
+        console.error('Network error occurred. Please check your internet connection.');
+      } else {
+        console.error('Error fetching employees:', error);
+      }
+      setEmployees([]);
+    } finally {
       setLoading(false);
     }
   };
+  
 
   useEffect(() => {
     fetchEmployees();

@@ -32,13 +32,14 @@ export default function Birthdays() {
       };
 
       const token = localStorage.getItem("token");
-      const responseForPosition = await axios.get(
-        `http://localhost:7000/employee/wer`, {
-          headers: { Authorization: token },
-          params
-        }
-      );
-      setEmployeesPosition(responseForPosition.data.data);
+      // const responseForPosition =[]  await axios.get(
+      //   `http://localhost:7000/employee/wer`, {
+      //     headers: { Authorization: token },
+      //     params
+      //   }
+      // );
+      const responseForPosition =await {}
+      setEmployeesPosition(responseForPosition?.data?.data ||[]);
       setLoading(false);
     } catch (error) {
       setLoading(false);

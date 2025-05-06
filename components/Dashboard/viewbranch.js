@@ -5,18 +5,21 @@ import {
   Typography,
   Divider,
   Grid,
-  Chip,
   Button,
   Avatar,
   Paper,
-  Stack
+  Stack,
+  Chip
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
   Business as BranchIcon,
-  LocationCity as ParentBranchIcon,
-  Code as CodeIcon,
-  Settings as SettingsIcon
+  Person as ManagerIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as AddressIcon,
+  Settings as SettingsIcon,
+  CalendarToday as DateIcon
 } from "@mui/icons-material";
 
 const theme = createTheme({
@@ -37,13 +40,14 @@ const theme = createTheme({
   },
 });
 
-const ViewBranchModal = ({ employee: branch, open, onClose }) => {
+const ViewBranchModal = ({ branch, open, onClose }) => {
   if (!branch) return null;
 
-  // Helper functions
-  const formatBoolean = (value) => {
-    if (value === null || value === undefined) return "--";
-    return value ? "Yes" : "No";
+  // Helper function to format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return "--";
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
   };
 
   // Reusable components
@@ -111,11 +115,11 @@ const ViewBranchModal = ({ employee: branch, open, onClose }) => {
             borderTopRightRadius: 2
           }}>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>Branch Details</Typography>
-            {/* <Chip 
+            <Chip 
               label="Active" 
               color="success"
               sx={{ color: 'white', fontWeight: 600 }}
-            /> */}
+            />
           </Box>
           
           {/* Main Content */}
@@ -140,10 +144,10 @@ const ViewBranchModal = ({ employee: branch, open, onClose }) => {
               </Avatar>
               <Box>
                 <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                  {branch.area_name || "Branch"}
+                  {branch.name || "Branch"}
                 </Typography>
                 <Typography variant="subtitle1" color="text.secondary">
-                  {branch.area_code || "No code"}
+                  {branch.phoneNumber || "No phone number"}
                 </Typography>
               </Box>
             </Box>
@@ -151,40 +155,53 @@ const ViewBranchModal = ({ employee: branch, open, onClose }) => {
             {/* Branch Information */}
             <Grid container spacing={3}>
               <Grid item xs={12}>
-                <Section title="Branch Information" icon={<BranchIcon color="primary" />}>
-                  <FieldRow 
-                    label="Branch Code" 
-                    value={branch.area_code} 
-                    icon={<CodeIcon fontSize="small" />}
-                  />
+                <Section title="Basic Information" icon={<BranchIcon color="primary" />}>
                   <FieldRow 
                     label="Branch Name" 
-                    value={branch.area_name} 
+                    value={branch.name} 
                     icon={<BranchIcon fontSize="small" />}
                   />
                   <FieldRow 
-                    label="Parent Branch Code" 
-                    value={branch.parent_area?.area_code || "--"} 
-                    icon={<ParentBranchIcon fontSize="small" />}
+                    label="Manager" 
+                    value={branch.manager} 
+                    icon={<ManagerIcon fontSize="small" />}
                   />
                   <FieldRow 
-                    label="Parent Branch Name" 
-                    value={branch.parent_area?.area_name || "--"} 
-                    icon={<ParentBranchIcon fontSize="small" />}
+                    label="Address" 
+                    value={branch.address} 
+                    icon={<AddressIcon fontSize="small" />}
                   />
                 </Section>
 
-                {/* Additional Settings Section */}
+                <Section title="Contact Information" icon={<PhoneIcon color="primary" />}>
+                  <FieldRow 
+                    label="Phone Number" 
+                    value={branch.phoneNumber} 
+                    icon={<PhoneIcon fontSize="small" />}
+                  />
+                  <FieldRow 
+                    label="Email" 
+                    value={branch.email} 
+                    icon={<EmailIcon fontSize="small" />}
+                  />
+                </Section>
+
+                {/* Additional Information Section */}
                 <Section title="Additional Information" icon={<SettingsIcon color="primary" />}>
                   <FieldRow 
-                    label="Created At" 
-                    value={new Date(branch.created_at).toLocaleString()} 
+                    label="Company ID" 
+                    value={branch.companyId} 
                     icon={<SettingsIcon fontSize="small" />}
                   />
                   <FieldRow 
+                    label="Created At" 
+                    value={formatDate(branch.createdAt)} 
+                    icon={<DateIcon fontSize="small" />}
+                  />
+                  <FieldRow 
                     label="Updated At" 
-                    value={new Date(branch.updated_at).toLocaleString()} 
-                    icon={<SettingsIcon fontSize="small" />}
+                    value={formatDate(branch.updatedAt)} 
+                    icon={<DateIcon fontSize="small" />}
                   />
                 </Section>
               </Grid>

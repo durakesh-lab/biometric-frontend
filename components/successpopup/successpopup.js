@@ -49,6 +49,16 @@ const SuccessSnackbar = ({ open,openEdit, handleClose ,deleteemployee}) => {
         dataToShow="Success! Branch Edited"
         check=true
        break; 
+       case "addcompany":
+        dataToShow="Success! Company Added"
+        check=true
+       break; 
+       case "editcompany":
+        dataToShow="Success! Company Edited"
+        check=true
+       break;
+       
+       
        
 
        

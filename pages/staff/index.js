@@ -42,18 +42,21 @@ import {
   MoreVert as MoreVertIcon,
   Add as AddIcon,
   Business as BusinessIcon,
-  AccountTree as BranchIcon
+  AccountTree as BranchIcon,
+  Person as PersonIcon,
+  Badge as RoleIcon,
+  Work as DepartmentIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
-import { confirnDeleteAction, editDepartmentAction, getDepartmentList } from '@/store/authSlice';
+import { confirnDeleteAction, editStaffAction, getStaffList } from '@/store/authSlice';
 import Layout from '../../components/Layout/Layout';
 import MyComponent from '../../components/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import ViewDepartmentModal from '../../components/Dashboard/viewDepartment';
+// import ViewStaffModal from '../../components/Dashboard/viewStaff';
 
-const DepartmentlistPage = () => {
+const StaffListPage = () => {
   // State for companies
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -64,14 +67,18 @@ const DepartmentlistPage = () => {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [loadingBranches, setLoadingBranches] = useState(false);
 
-  // State for table data and UI
+  // State for departments
   const [departments, setDepartments] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+
+  // State for table data and UI
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState([]);
   const [showDelete, setShowDelete] = useState(false);
   const dispatch = useDispatch();
   const deletepopup = useSelector((state) => state.auth);
-  const { getDepartmentListData } = useSelector(state => state.auth);
+  const { getStaffListData } = useSelector(state => state.auth);
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
   // Pagination state
@@ -94,40 +101,60 @@ const DepartmentlistPage = () => {
   // Filter modal state
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
-    name: '',
-    dept_code: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: '',
+    department: '',
+    active_status: '',
     ordering: ""
   });
 
-  // Add department modal state
+  // Add staff modal state
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [newDepartment, setNewDepartment] = useState({
-    name: '',
-    dept_code: '',
+  const [newStaff, setNewStaff] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    username: '',
+    password: '',
+    role: '',
+    active_status: 'Active',
+    joining_date: '',
+    date_of_birth: '',
     branchId: '',
-    otherDetails: ''
+    companyId: '',
+    department: ''
   });
 
   // Menu state for actions
   const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [selectedStaff, setSelectedStaff] = useState(null);
   const openMenu = Boolean(anchorEl);
 
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
-  let [currentDepartment, setCurrentDepartment] = useState({});
+  let [currentStaff, setCurrentStaff] = useState({});
 
   // View modal state
   const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedDepartmentView, setSelectedDepartmentView] = useState({});
+  const [selectedStaffView, setSelectedStaffView] = useState({});
+
+  // Role types
+  const roleTypes = ['Super Admin', 'HR Admin', 'Manager', 'Employee', 'Guest'];
+
+  // Status types
+  const statusTypes = ['Active', 'Inactive'];
 
   // Columns configuration
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
-    { id: 'name', label: 'Department Name', sortable: true },
-    { id: 'dept_code', label: 'Department Code', sortable: true },
-    { id: 'otherDetails', label: 'Details', sortable: true },
+    { id: 'firstName', label: 'First Name', sortable: true },
+    { id: 'lastName', label: 'Last Name', sortable: true },
+    { id: 'email', label: 'Email', sortable: true },
+    { id: 'role', label: 'Role', sortable: true },
+    { id: 'active_status', label: 'Status', sortable: true },
     { id: 'view', label: 'View', sortable: false },
     { id: 'actions', label: 'Actions', sortable: false }
   ];
@@ -175,8 +202,30 @@ const DepartmentlistPage = () => {
   };
 
   // Fetch departments data
-  const fetchDepartments = async () => {
-    if (!selectedBranch) return;
+  const fetchDepartments = async (branchId) => {
+    if (!branchId) return;
+    
+    try {
+      setLoadingDepartments(true);
+      let token = localStorage.getItem("token");
+      
+      const response = await axios.get(
+        `http://localhost:3001/department/${branchId}`, {
+          headers: { Authorization: token }
+        }
+      );
+      
+      setDepartments(response.data);
+      setLoadingDepartments(false);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      setLoadingDepartments(false);
+    }
+  };
+
+  // Fetch staff data
+  const fetchStaff = async () => {
+    if (!selectedBranch || !selectedCompany) return;
     
     try {
       setLoading(true);
@@ -198,13 +247,16 @@ const DepartmentlistPage = () => {
       });
 
       let token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:3001/department/${selectedBranch}`, {
+      const response = await axios.post(
+        `http://localhost:3001/users/allusers`,
+        { branchId: selectedBranch, companyId: selectedCompany },
+        {
           headers: { Authorization: token },
           params
         }
       );
-      setDepartments(response.data);
+      
+      setStaff(response.data);
       setPagination({
         ...pagination,
         total_pages: Math.ceil(response.data.count / pagination.page_size),
@@ -212,7 +264,7 @@ const DepartmentlistPage = () => {
       });
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching departments:', error);
+      console.error('Error fetching staff:', error);
       setLoading(false);
     }
   };
@@ -225,20 +277,22 @@ const DepartmentlistPage = () => {
     if (selectedCompany) {
       fetchBranches(selectedCompany);
       setSelectedBranch(null); // Reset branch selection when company changes
+      setNewStaff(prev => ({ ...prev, companyId: selectedCompany }));
     }
   }, [selectedCompany]);
 
   useEffect(() => {
     if (selectedBranch) {
-      fetchDepartments();
-      setNewDepartment(prev => ({ ...prev, branchId: selectedBranch }));
+      fetchDepartments(selectedBranch);
+      fetchStaff();
+      setNewStaff(prev => ({ ...prev, branchId: selectedBranch }));
     }
-  }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, filters, deletepopup.editDepartmentData]);
+  }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, filters, deletepopup.editStaffData]);
 
   // Handle select all
   const handleSelectAll = (event) => {
     if (event.target.checked) {
-      setSelected(departments.map(dept => dept.id));
+      setSelected(staff.map(staff => staff.id));
       setShowDelete(true);
     } else {
       setSelected([]);
@@ -299,22 +353,26 @@ const DepartmentlistPage = () => {
   const applyFilters = () => {
     setFilterOpen(false);
     setPagination({ ...pagination, page: 1 });
-    fetchDepartments();
+    fetchStaff();
   };
 
   // Reset filters
   const resetFilters = () => {
     setFilters({
-      name: '',
-      dept_code: '',
+      firstName: '',
+      lastName: '',
+      email: '',
+      role: '',
+      department: '',
+      active_status: '',
       ordering: ""
     });
   };
 
   // Handle menu click
-  const handleMenuClick = (event, department) => {
+  const handleMenuClick = (event, staff) => {
     setAnchorEl(event.currentTarget);
-    setSelectedDepartment(department);
+    setSelectedStaff(staff);
   };
 
   // Handle menu close
@@ -333,22 +391,22 @@ const DepartmentlistPage = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("token");
-      const response = await axios.delete(`http://localhost:3001/department/${id}`, {
+      const response = await axios.delete(`http://localhost:3001/users/${id}`, {
         headers: { Authorization: token }
       });
       
       if(response?.data.detail) {
         setOpenSnackbar(response?.data.detail);
       } else {
-        setOpenSnackbar({status: true, message: 'Department deleted successfully'});
+        setOpenSnackbar({status: true, message: 'Staff deleted successfully'});
         setSelected([]);
         setShowDelete(false);
         dispatch(confirnDeleteAction(false));
-        fetchDepartments();
+        fetchStaff();
       }
     } catch (error) {
-      console.error('Error deleting department:', error);
-      setOpenSnackbar(error.response?.data?.detail || 'Error deleting department');
+      console.error('Error deleting staff:', error);
+      setOpenSnackbar(error.response?.data?.detail || 'Error deleting staff');
     }
     handleMenuClose();
   };
@@ -366,8 +424,8 @@ const DepartmentlistPage = () => {
 
   // Handle edit
   const handleEdit = () => {
-    if (selectedDepartment) {
-      setCurrentDepartment(selectedDepartment);
+    if (selectedStaff) {
+      setCurrentStaff(selectedStaff);
       setEditModalOpen(true);
     }
     handleMenuClose();
@@ -375,34 +433,34 @@ const DepartmentlistPage = () => {
 
   const handleEditSubmit = async (values) => {
     try {
-      values={...values,id:values._id}
-      dispatch(editDepartmentAction(values));
+      values = {...values, id: values._id};
+      dispatch(editStaffAction(values));
       setEditModalOpen(false);
     } catch (error) {
-      console.error('Error updating department:', error);
+      console.error('Error updating staff:', error);
     }
   };
 
-  // Handle add department
-  const handleAddDepartment = async (values) => {
+  // Handle add staff
+  const handleAddStaff = async (values) => {
     try {
       let token = localStorage.getItem("token");
-      const response = await axios.post('http://localhost:3001/department', values, {
+      const response = await axios.post('http://localhost:3001/auth/register', values, {
         headers: { Authorization: token }
       });
       
-      setOpenSnackbar({status: true, message: 'Department added successfully'});
+      setOpenSnackbar({status: true, message: 'Staff added successfully'});
       setAddModalOpen(false);
-      fetchDepartments();
+      fetchStaff();
     } catch (error) {
-      console.error('Error adding department:', error);
-      setOpenSnackbar(error.response?.data?.detail || 'Error adding department');
+      console.error('Error adding staff:', error);
+      setOpenSnackbar(error.response?.data?.detail || 'Error adding staff');
     }
   };
 
   // Handle view click
-  const handleViewClick = (department) => {
-    setSelectedDepartmentView(department);
+  const handleViewClick = (staff) => {
+    setSelectedStaffView(staff);
     setViewModalOpen(true);
   };
 
@@ -414,8 +472,13 @@ const DepartmentlistPage = () => {
 
   // Validation schema
   const validationSchema = Yup.object({
-    name: Yup.string().required("Required"),
-    dept_code: Yup.string().required("Required"),
+    firstName: Yup.string().required("Required"),
+    lastName: Yup.string().required("Required"),
+    email: Yup.string().email("Invalid email").required("Required"),
+    username: Yup.string().required("Required"),
+    password: Yup.string().required("Required"),
+    role: Yup.string().required("Required"),
+    active_status: Yup.string().required("Required"),
   });
 
   useEffect(() => {
@@ -425,9 +488,9 @@ const DepartmentlistPage = () => {
     }, 3000);
   }, []);
 
-  useEffect(() => {
-    dispatch(getDepartmentList());
-  }, [dispatch]);
+//   useEffect(() => {
+//     dispatch(getStaffList());
+//   }, [dispatch]);
 
   return (
     <>
@@ -437,7 +500,7 @@ const DepartmentlistPage = () => {
           <Grid item xs={12}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={0} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
               <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>
-                Department List
+                Staff List
               </Typography>
               
               <Box display="flex" alignItems="center" gap={1}>
@@ -468,6 +531,53 @@ const DepartmentlistPage = () => {
                 >
                   <Typography variant="body2">Sort & Filter</Typography>
                 </Button>
+                
+                {/* Role Filter Dropdown */}
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={filters.role || ''}
+                    label="Role"
+                    onChange={(e) => handleFilterChange('role', e.target.value)}
+                    sx={{ color: 'text.secondary' }}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <RoleIcon fontSize="small" />
+                      </InputAdornment>
+                    }
+                  >
+                    <MenuItem value="">All Roles</MenuItem>
+                    {roleTypes.map((role) => (
+                      <MenuItem key={role} value={role}>
+                        {role}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                {/* Department Filter Dropdown */}
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    value={filters.department || ''}
+                    label="Department"
+                    onChange={(e) => handleFilterChange('department', e.target.value)}
+                    sx={{ color: 'text.secondary' }}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <DepartmentIcon fontSize="small" />
+                      </InputAdornment>
+                    }
+                    disabled={loadingDepartments || !selectedBranch}
+                  >
+                    <MenuItem value="">All Departments</MenuItem>
+                    {departments.map((dept) => (
+                      <MenuItem key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 
                 <TextField
                   variant="outlined"
@@ -558,7 +668,7 @@ const DepartmentlistPage = () => {
             </Grid>
           )}
 
-          {/* Department Table - Only show if branch is selected */}
+          {/* Staff Table - Only show if branch is selected */}
           {selectedBranch ? (
             <>
               <Grid item xs={12}>
@@ -603,8 +713,8 @@ const DepartmentlistPage = () => {
                               </Box>
                             ) : column.id === 'checkbox' ? (
                               <Checkbox
-                                indeterminate={selected.length > 0 && selected.length < departments.length}
-                                checked={departments.length > 0 && selected.length === departments.length}
+                                indeterminate={selected.length > 0 && selected.length < staff.length}
+                                checked={staff.length > 0 && selected.length === staff.length}
                                 onChange={handleSelectAll}
                                 sx={{ 
                                   padding: '8px',
@@ -638,18 +748,18 @@ const DepartmentlistPage = () => {
                             />
                           </TableCell>
                         </TableRow>
-                      ) : departments.length === 0 ? (
+                      ) : staff.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={columns.length} align="center">
-                            No departments found for selected branch
+                            No staff found for selected branch
                           </TableCell>
                         </TableRow>
                       ) : (
-                        departments.map((department, index) => {
-                          const isSelected = selected.indexOf(department.id) !== -1;
+                        staff.map((staffMember, index) => {
+                          const isSelected = selected.indexOf(staffMember.id) !== -1;
                           return (
                             <TableRow
-                              key={department.id}
+                              key={staffMember.id}
                               hover
                               selected={isSelected}
                               sx={{
@@ -662,20 +772,34 @@ const DepartmentlistPage = () => {
                               <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
                                 <Checkbox
                                   checked={isSelected}
-                                  onChange={(event) => handleSelect(event, department.id)}
+                                  onChange={(event) => handleSelect(event, staffMember.id)}
                                   sx={{ padding: '4px' }}
                                 />
                               </TableCell>
                               
                               <TableCell>{getSerialNumber(index)}</TableCell>
-                              <TableCell>{department.name}</TableCell>
-                              <TableCell>{department.dept_code}</TableCell>
-                              <TableCell>{department.otherDetails}</TableCell>
+                              <TableCell>{staffMember.firstName}</TableCell>
+                              <TableCell>{staffMember.lastName}</TableCell>
+                              <TableCell>{staffMember.email}</TableCell>
+                              <TableCell>{staffMember.role}</TableCell>
+                              <TableCell>
+                                <Box 
+                                  sx={{
+                                    display: 'inline-block',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    backgroundColor: staffMember.active_status === 'Active' ? '#e6f7ee' : '#ffebee',
+                                    color: staffMember.active_status === 'Active' ? '#00a65a' : '#f44336'
+                                  }}
+                                >
+                                  {staffMember.active_status}
+                                </Box>
+                              </TableCell>
                               
                               <TableCell>
                                 <IconButton 
                                   sx={{ color: 'text.secondary' }}
-                                  onClick={() => handleViewClick(department)}
+                                  onClick={() => handleViewClick(staffMember)}
                                 >
                                   <ViewIcon />
                                 </IconButton>
@@ -686,7 +810,7 @@ const DepartmentlistPage = () => {
                                   aria-label="more"
                                   aria-controls="long-menu"
                                   aria-haspopup="true"
-                                  onClick={(e) => handleMenuClick(e, department)}
+                                  onClick={(e) => handleMenuClick(e, staffMember)}
                                   sx={{ color: 'text.secondary' }}
                                 >
                                   <MoreVertIcon />
@@ -695,7 +819,7 @@ const DepartmentlistPage = () => {
                                   id="long-menu"
                                   anchorEl={anchorEl}
                                   keepMounted
-                                  open={openMenu && selectedDepartment?.id === department.id}
+                                  open={openMenu && selectedStaff?.id === staffMember.id}
                                   onClose={handleMenuClose}
                                   PaperProps={{
                                     style: {
@@ -706,7 +830,7 @@ const DepartmentlistPage = () => {
                                   }}
                                 >
                                   <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                                  <MenuItem onClick={() => handleConfirmDelete(selectedDepartment)}>Delete</MenuItem>
+                                  <MenuItem onClick={() => handleConfirmDelete(selectedStaff)}>Delete</MenuItem>
                                 </Menu>
                               </TableCell>
                             </TableRow>
@@ -795,7 +919,7 @@ const DepartmentlistPage = () => {
               >
                 <Typography variant="h6" color="textSecondary">
                   {selectedCompany 
-                    ? (loadingBranches ? 'Loading branches...' : 'Please select a branch to view departments')
+                    ? (loadingBranches ? 'Loading branches...' : 'Please select a branch to view staff')
                     : 'Please select a company first'}
                 </Typography>
               </Box>
@@ -812,19 +936,83 @@ const DepartmentlistPage = () => {
               <Grid item xs={12} sm={6} md={4}>
                 <TextField
                   fullWidth
-                  label="Department Name"
-                  value={filters.name}
-                  onChange={(e) => handleFilterChange('name', e.target.value)}
+                  label="First Name"
+                  value={filters.firstName}
+                  onChange={(e) => handleFilterChange('firstName', e.target.value)}
                 />
               </Grid>
               
               <Grid item xs={12} sm={6} md={4}>
                 <TextField
                   fullWidth
-                  label="Department Code"
-                  value={filters.dept_code}
-                  onChange={(e) => handleFilterChange('dept_code', e.target.value)}
+                  label="Last Name"
+                  value={filters.lastName}
+                  onChange={(e) => handleFilterChange('lastName', e.target.value)}
                 />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  value={filters.email}
+                  onChange={(e) => handleFilterChange('email', e.target.value)}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={filters.role}
+                    label="Role"
+                    onChange={(e) => handleFilterChange('role', e.target.value)}
+                  >
+                    <MenuItem value="">All Roles</MenuItem>
+                    {roleTypes.map((role) => (
+                      <MenuItem key={role} value={role}>
+                        {role}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    value={filters.department}
+                    label="Department"
+                    onChange={(e) => handleFilterChange('department', e.target.value)}
+                    disabled={loadingDepartments || !selectedBranch}
+                  >
+                    <MenuItem value="">All Departments</MenuItem>
+                    {departments.map((dept) => (
+                      <MenuItem key={dept._id} value={dept._id}>
+                        {dept.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filters.active_status}
+                    label="Status"
+                    onChange={(e) => handleFilterChange('active_status', e.target.value)}
+                  >
+                    <MenuItem value="">All Statuses</MenuItem>
+                    {statusTypes.map((status) => (
+                      <MenuItem key={status} value={status}>
+                        {status}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
             </Grid>
           </DialogContent>
@@ -836,22 +1024,22 @@ const DepartmentlistPage = () => {
           </DialogActions>
         </Dialog>
 
-        {/* View Department Modal */}
-        <ViewDepartmentModal 
-          department={selectedDepartmentView}
+        {/* View Staff Modal */}
+        {/* <ViewStaffModal 
+          staff={selectedStaffView}
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-        />
+        /> */}
 
         {/* Delete Confirmation Popup */}
         <MyComponent />
 
-        {/* Edit Department Modal */}
+        {/* Edit Staff Modal */}
         <Modal
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
-          aria-labelledby="edit-department-modal"
-          aria-describedby="edit-department-form"
+          aria-labelledby="edit-staff-modal"
+          aria-describedby="edit-staff-form"
         >
           <Box sx={{
             position: 'absolute',
@@ -882,10 +1070,10 @@ const DepartmentlistPage = () => {
             scrollbarWidth: 'thin',
             scrollbarColor: '#888 #f1f1f1',
           }}>
-            <Typography variant="h5" gutterBottom>Edit Department</Typography>
+            <Typography variant="h5" gutterBottom>Edit Staff</Typography>
             <Divider sx={{ mb: 3 }} />
             <Formik
-              initialValues={currentDepartment}
+              initialValues={currentStaff}
               validationSchema={validationSchema}
               onSubmit={handleEditSubmit}
               enableReinitialize
@@ -894,19 +1082,19 @@ const DepartmentlistPage = () => {
                 <Form>
                   <Grid container spacing={3}>
                     <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Department Information</Typography>
+                      <Typography variant="h6" gutterBottom>Basic Information</Typography>
                       <Divider />
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Department Name*"
-                        name="name"
-                        value={values.name}
+                        label="First Name*"
+                        name="firstName"
+                        value={values.firstName}
                         onChange={handleChange}
-                        error={touched.name && Boolean(errors.name)}
-                        helperText={touched.name && errors.name}
+                        error={touched.firstName && Boolean(errors.firstName)}
+                        helperText={touched.firstName && errors.firstName}
                         variant="outlined"
                       />
                     </Grid>
@@ -914,12 +1102,12 @@ const DepartmentlistPage = () => {
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Department Code*"
-                        name="dept_code"
-                        value={values.dept_code}
+                        label="Last Name*"
+                        name="lastName"
+                        value={values.lastName}
                         onChange={handleChange}
-                        error={touched.dept_code && Boolean(errors.dept_code)}
-                        helperText={touched.dept_code && errors.dept_code}
+                        error={touched.lastName && Boolean(errors.lastName)}
+                        helperText={touched.lastName && errors.lastName}
                         variant="outlined"
                       />
                     </Grid>
@@ -927,14 +1115,133 @@ const DepartmentlistPage = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Other Details"
-                        name="otherDetails"
-                        value={values.otherDetails}
+                        label="Email*"
+                        name="email"
+                        value={values.email}
                         onChange={handleChange}
+                        error={touched.email && Boolean(errors.email)}
+                        helperText={touched.email && errors.email}
                         variant="outlined"
-                        multiline
-                        rows={3}
                       />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Username*"
+                        name="username"
+                        value={values.username}
+                        onChange={handleChange}
+                        error={touched.username && Boolean(errors.username)}
+                        helperText={touched.username && errors.username}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Password*"
+                        name="password"
+                        type="password"
+                        value={values.password}
+                        onChange={handleChange}
+                        error={touched.password && Boolean(errors.password)}
+                        helperText={touched.password && errors.password}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Typography variant="h6" gutterBottom>Employment Details</Typography>
+                      <Divider />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Role*</InputLabel>
+                        <Select
+                          name="role"
+                          value={values.role}
+                          label="Role*"
+                          onChange={handleChange}
+                          error={touched.role && Boolean(errors.role)}
+                        >
+                          {roleTypes.map((role) => (
+                            <MenuItem key={role} value={role}>
+                              {role}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Status*</InputLabel>
+                        <Select
+                          name="active_status"
+                          value={values.active_status}
+                          label="Status*"
+                          onChange={handleChange}
+                          error={touched.active_status && Boolean(errors.active_status)}
+                        >
+                          {statusTypes.map((status) => (
+                            <MenuItem key={status} value={status}>
+                              {status}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Joining Date"
+                        name="joining_date"
+                        type="date"
+                        value={values.joining_date}
+                        onChange={handleChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Date of Birth"
+                        name="date_of_birth"
+                        type="date"
+                        value={values.date_of_birth}
+                        onChange={handleChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <InputLabel>Department</InputLabel>
+                        <Select
+                          name="department"
+                          value={values.department}
+                          label="Department"
+                          onChange={handleChange}
+                          disabled={loadingDepartments}
+                        >
+                          {departments.map((dept) => (
+                            <MenuItem key={dept._id} value={dept._id}>
+                              {dept.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
 
                     <Grid item xs={12}>
@@ -946,7 +1253,7 @@ const DepartmentlistPage = () => {
                         size="large"
                         sx={{ mt: 3 }}
                       >
-                        UPDATE DEPARTMENT
+                        UPDATE STAFF
                       </Button>
                     </Grid>
                   </Grid>
@@ -956,12 +1263,12 @@ const DepartmentlistPage = () => {
           </Box>
         </Modal>
 
-        {/* Add Department Modal */}
+        {/* Add Staff Modal */}
         <Modal
           open={addModalOpen}
           onClose={() => setAddModalOpen(false)}
-          aria-labelledby="add-department-modal"
-          aria-describedby="add-department-form"
+          aria-labelledby="add-staff-modal"
+          aria-describedby="add-staff-form"
         >
           <Box sx={{
             position: 'absolute',
@@ -992,30 +1299,30 @@ const DepartmentlistPage = () => {
             scrollbarWidth: 'thin',
             scrollbarColor: '#888 #f1f1f1',
           }}>
-            <Typography variant="h5" gutterBottom>Add New Department</Typography>
+            <Typography variant="h5" gutterBottom>Add New Staff</Typography>
             <Divider sx={{ mb: 3 }} />
             <Formik
-              initialValues={newDepartment}
+              initialValues={newStaff}
               validationSchema={validationSchema}
-              onSubmit={handleAddDepartment}
+              onSubmit={handleAddStaff}
             >
               {({ values, errors, touched, handleChange }) => (
                 <Form>
                   <Grid container spacing={3}>
                     <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Department Information</Typography>
+                      <Typography variant="h6" gutterBottom>Basic Information</Typography>
                       <Divider />
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Department Name*"
-                        name="name"
-                        value={values.name}
+                        label="First Name*"
+                        name="firstName"
+                        value={values.firstName}
                         onChange={handleChange}
-                        error={touched.name && Boolean(errors.name)}
-                        helperText={touched.name && errors.name}
+                        error={touched.firstName && Boolean(errors.firstName)}
+                        helperText={touched.firstName && errors.firstName}
                         variant="outlined"
                       />
                     </Grid>
@@ -1023,12 +1330,12 @@ const DepartmentlistPage = () => {
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Department Code*"
-                        name="dept_code"
-                        value={values.dept_code}
+                        label="Last Name*"
+                        name="lastName"
+                        value={values.lastName}
                         onChange={handleChange}
-                        error={touched.dept_code && Boolean(errors.dept_code)}
-                        helperText={touched.dept_code && errors.dept_code}
+                        error={touched.lastName && Boolean(errors.lastName)}
+                        helperText={touched.lastName && errors.lastName}
                         variant="outlined"
                       />
                     </Grid>
@@ -1036,14 +1343,133 @@ const DepartmentlistPage = () => {
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Other Details"
-                        name="otherDetails"
-                        value={values.otherDetails}
+                        label="Email*"
+                        name="email"
+                        value={values.email}
                         onChange={handleChange}
+                        error={touched.email && Boolean(errors.email)}
+                        helperText={touched.email && errors.email}
                         variant="outlined"
-                        multiline
-                        rows={3}
                       />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Username*"
+                        name="username"
+                        value={values.username}
+                        onChange={handleChange}
+                        error={touched.username && Boolean(errors.username)}
+                        helperText={touched.username && errors.username}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Password*"
+                        name="password"
+                        type="password"
+                        value={values.password}
+                        onChange={handleChange}
+                        error={touched.password && Boolean(errors.password)}
+                        helperText={touched.password && errors.password}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <Typography variant="h6" gutterBottom>Employment Details</Typography>
+                      <Divider />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Role*</InputLabel>
+                        <Select
+                          name="role"
+                          value={values.role}
+                          label="Role*"
+                          onChange={handleChange}
+                          error={touched.role && Boolean(errors.role)}
+                        >
+                          {roleTypes.map((role) => (
+                            <MenuItem key={role} value={role}>
+                              {role}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Status*</InputLabel>
+                        <Select
+                          name="active_status"
+                          value={values.active_status}
+                          label="Status*"
+                          onChange={handleChange}
+                          error={touched.active_status && Boolean(errors.active_status)}
+                        >
+                          {statusTypes.map((status) => (
+                            <MenuItem key={status} value={status}>
+                              {status}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Joining Date"
+                        name="joining_date"
+                        type="date"
+                        value={values.joining_date}
+                        onChange={handleChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Date of Birth"
+                        name="date_of_birth"
+                        type="date"
+                        value={values.date_of_birth}
+                        onChange={handleChange}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                      <FormControl fullWidth>
+                        <InputLabel>Department</InputLabel>
+                        <Select
+                          name="department"
+                          value={values.department}
+                          label="Department"
+                          onChange={handleChange}
+                          disabled={loadingDepartments}
+                        >
+                          {departments.map((dept) => (
+                            <MenuItem key={dept._id} value={dept._id}>
+                              {dept.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
 
                     <Grid item xs={12}>
@@ -1055,7 +1481,7 @@ const DepartmentlistPage = () => {
                         size="large"
                         sx={{ mt: 3 }}
                       >
-                        ADD DEPARTMENT
+                        ADD STAFF
                       </Button>
                     </Grid>
                   </Grid>
@@ -1114,4 +1540,4 @@ const DepartmentlistPage = () => {
   );
 };
 
-export default DepartmentlistPage;
+export default StaffListPage;

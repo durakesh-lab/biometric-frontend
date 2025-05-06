@@ -8,33 +8,24 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:7000/graphql', {
+      const response = await fetch('http://localhost:3001/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          operationName: 'UserLogin',
-          query: `
-            mutation UserLogin($email: String!, $password: String!) {
-              userLogin(authLoginDto: { email: $email, password: $password }) {
-              access,refresh
-        
-              }
-            }
-          `,
-          variables: { email, password },
+          username:email, password
         }),
       });
 
       const data = await response.json();
-
+      
       // Handle GraphQL errors
       if (data.errors) {
         return rejectWithValue(data.errors[0].message);
       }
       // data.data.userLogin should be { token: "..." }
-      return data.data.userLogin
+      return data
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -214,6 +205,31 @@ export const createbranch = createAsyncThunk(
     }
   }
 );
+export const createcompany = createAsyncThunk(
+  "auth/createcompany",
+  async ({ obj }, { rejectWithValue }) => {
+    let token=localStorage.getItem("token")
+    try {
+      const response = await fetch('http://localhost:3001/company', {
+        method: 'POST',
+        headers:{
+          Authorization:token,
+          'Content-Type':"application/json"
+        },
+        body: JSON.stringify(obj),
+        
+      });
+      const data = await response.json();
+      if (data.errors) {
+        return rejectWithValue(data.errors[0].message);
+      }
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 export const editEmployeeAction = createAsyncThunk(
   "auth/editEmployee",
   async (obj , { rejectWithValue }) => {
@@ -248,8 +264,8 @@ export const editDepartmentAction = createAsyncThunk(
     let token=localStorage.getItem("token")
 
     try {
-      const response = await fetch('http://localhost:7000/department/editdepartment/'+obj.id, {
-        method: 'POST',
+      const response = await fetch('http://localhost:3001/department/'+obj.id, {
+        method: 'PUT',
         headers:{
           Authorization:token,
           'Content-Type':"application/json"
@@ -296,14 +312,39 @@ export const editPositionAction = createAsyncThunk(
     }
   }
 );
+export const editCompanyAction = createAsyncThunk(
+  "auth/editCompanyAction",
+  async (obj , { rejectWithValue }) => {
+    let token=localStorage.getItem("token")
+    try {
+      const response = await fetch('http://localhost:3001/company/'+obj.id, {
+        method: 'PUT',
+        headers:{
+          Authorization:token,
+          'Content-Type':"application/json"
+        },
+        body: JSON.stringify(obj),
+        
+      });
+      const data = await response.json();
+      if (data.errors) {
+        return rejectWithValue(data.errors[0].message);
+      }
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 export const editBranchAction = createAsyncThunk(
   "auth/editBranchAction",
   async (obj , { rejectWithValue }) => {
     let token=localStorage.getItem("token")
 
     try {
-      const response = await fetch('http://localhost:7000/area/editArea/'+obj.id, {
-        method: 'POST',
+      const response = await fetch('http://localhost:3001/branch/'+obj.id, {
+        method: 'PUT',
         headers:{
           Authorization:token,
           'Content-Type':"application/json"
@@ -414,6 +455,7 @@ const authSlice = createSlice({
     createdDepartmentData:{},
     createdPositionData:{},
     createdbranchData:{},
+    createdcompanyData:{},
     getBranchListData:[],
     
   },
@@ -439,11 +481,21 @@ const authSlice = createSlice({
       state.error = null;
     });
     builder.addCase(loginUser.fulfilled, (state, action) => {
-      state.loading = true;
-      state.token = action.payload; // token from userLogin
-      state.error = null;
+      console.log(action,"@@@@@@@@@@@@@@@@111")
+      if(action.payload.error){
+        state.loading = false;
+        state.error = action.payload.message;
+      }
+      else{
+        state.loading = true;
+        state.token = action.payload; // token from userLogin
+        state.error = null;
+      }
+  
     });
     builder.addCase(loginUser.rejected, (state, action) => {
+      console.log(action,"@@@rejected")
+
       state.loading = false;
       state.error = action.payload || action.error.message;
     });
@@ -612,6 +664,22 @@ const authSlice = createSlice({
                   state.createdbranchData=null
                   state.error = action.payload || action.error.message;
                 });
+                builder.addCase(createcompany.pending, (state) => {
+                  state.loading = true;
+                  state.error = null;
+                  state.createdcompanyData=null
+                });
+                builder.addCase(createcompany.fulfilled, (state, action) => {
+                  console.log({state, action},"#####")
+                  state.loading = false;
+                  state.createdcompanyData = action.payload // token from userRegister
+                  state.error = null;
+                });
+                builder.addCase(createcompany.rejected, (state, action) => {
+                  state.loading = false;
+                  state.createdcompanyData=null
+                  state.error = action.payload || action.error.message;
+                });
                 builder.addCase(editPositionAction.pending, (state) => {
                   state.loading = true;
                   state.error = null;
@@ -644,7 +712,21 @@ const authSlice = createSlice({
                   state.editBranchData=null
                   state.error = action.payload || action.error.message;
                 });
-
+                builder.addCase(editCompanyAction.pending, (state) => {
+                  state.loading = true;
+                  state.error = null;
+                  state.editCompanyData=null
+                });
+                builder.addCase(editCompanyAction.fulfilled, (state, action) => {
+                  state.loading = false;
+                  state.editCompanyData = action.payload // token from userRegister
+                  state.error = null;
+                });
+                builder.addCase(editCompanyAction.rejected, (state, action) => {
+                  state.loading = false;
+                  state.editCompanyData=null
+                  state.error = action.payload || action.error.message;
+                });
                 
         
   }

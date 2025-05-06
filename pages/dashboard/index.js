@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Grid, Paper, Typography, Box, Snackbar, Alert } from "@mui/material";
 import Layout from "../../components/Layout/Layout";
 // Dashboard components
@@ -15,19 +15,23 @@ import { getPositionList } from "@/store/authSlice";
 import { jwtDecode } from "jwt-decode";
 
 export default function Dashboard() {
+
   let dispatch=useDispatch()
   const searchParams = useSearchParams();
   const showSuccess = searchParams.get('from') === 'login';
   const pathname = usePathname();
 let router=useRouter()
 let selector=useSelector((state)=>{return (state.auth)})
-
-
- useEffect(()=>{
-if(!localStorage.getItem("token")){
-  router.push("/login")
-}
-  },[])
+let [userdata,setuserdata]=useState({})
+let data={}
+//  useEffect(()=>{
+//    data=jwtDecode(localStorage.getItem("token"))
+//    setuserdata(data)
+//   console.log(userdata,"userdatauserdatauserdatauserdata")
+// if(!localStorage.getItem("token")){
+//   router.push("/login")
+// }
+//   },[])
   const from = searchParams.get('from');
 useEffect(()=>{
   dispatch(getPositionList({page:1,page_size:10}))
@@ -60,7 +64,7 @@ const handleCloseSnackbar = (event, reason) => {
         <Grid container spacing={2}>
           {/* Greeting Card (left) */}
           <Grid item xs={12} md={3}>
-    <DashboardHeader />
+    <DashboardHeader userdata={userdata} />
   </Grid>
 
           {/* Quick Stats (middle) */}

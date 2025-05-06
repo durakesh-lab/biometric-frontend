@@ -38,7 +38,6 @@ export default function Login() {
     "Real-time Attendance Analytics",
     "Automated Workforce Management"
   ];
-
   // Show snackbar when error occurs
   useEffect(() => {
     if (error) {
@@ -78,8 +77,8 @@ export default function Login() {
 
   // Store token and redirect after successful login
   useEffect(() => {
-    if (token?.access) {
-      localStorage.setItem("token", token.access);
+    if (token?.access_token) {
+      localStorage.setItem("token", token.access_token);
       router.push({
         pathname: '/dashboard',
         query: { from: "login" }
