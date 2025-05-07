@@ -54,7 +54,7 @@ import Layout from '../../components/Layout/Layout';
 import MyComponent from '../../components/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-// import ViewStaffModal from '../../components/Dashboard/viewStaff';
+import ViewStaffModal from '../../components/Dashboard/viewstaff';
 
 const StaffListPage = () => {
   // State for companies
@@ -77,7 +77,9 @@ const StaffListPage = () => {
   const [selected, setSelected] = useState([]);
   const [showDelete, setShowDelete] = useState(false);
   const dispatch = useDispatch();
-  const deletepopup = useSelector((state) => state.auth);
+  const deletepopup = useSelector((state) =>{return  state.users});
+  const checkdelete = useSelector((state) =>{return  state.auth});
+
   const { getStaffListData } = useSelector(state => state.auth);
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
@@ -141,7 +143,8 @@ const StaffListPage = () => {
   const [selectedStaffView, setSelectedStaffView] = useState({});
 
   // Role types
-  const roleTypes = ['Super Admin', 'HR Admin', 'Manager', 'Employee', 'Guest'];
+  // const roleTypes = ['Super Admin', 'HR Admin', 'Manager', 'Employee', 'Guest'];
+  const roleTypes = ['HR Admin', 'Manager', 'Employee', 'Guest'];
 
   // Status types
   const statusTypes = ['Active', 'Inactive'];
@@ -246,6 +249,11 @@ const StaffListPage = () => {
         }
       });
 
+// console.log(params,"paramsparamsparams###########")
+      // const queryString = new URLSearchParams({
+       
+      //   // Add any other query params here if needed
+      // }).toString();
       let token = localStorage.getItem("token");
       const response = await axios.post(
         `http://localhost:3001/users/allusers`,
@@ -287,7 +295,7 @@ const StaffListPage = () => {
       fetchStaff();
       setNewStaff(prev => ({ ...prev, branchId: selectedBranch }));
     }
-  }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, filters, deletepopup.editStaffData]);
+  }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, filters, deletepopup?.edituserdata]);
 
   // Handle select all
   const handleSelectAll = (event) => {
@@ -391,7 +399,7 @@ const StaffListPage = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("token");
-      const response = await axios.delete(`http://localhost:3001/users/${id}`, {
+      const response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
         headers: { Authorization: token }
       });
       
@@ -412,10 +420,10 @@ const StaffListPage = () => {
   };
 
   useEffect(() => {
-    if (deletepopup?.confirnDelete === true) {
+    if (checkdelete?.confirnDelete === true) {
       handleDelete();
     }
-  }, [deletepopup?.confirnDelete]);
+  }, [checkdelete?.confirnDelete]);
 
   // Get serial number
   const getSerialNumber = (index) => {
@@ -1025,11 +1033,11 @@ const StaffListPage = () => {
         </Dialog>
 
         {/* View Staff Modal */}
-        {/* <ViewStaffModal 
+        <ViewStaffModal 
           staff={selectedStaffView}
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-        /> */}
+        />
 
         {/* Delete Confirmation Popup */}
         <MyComponent />

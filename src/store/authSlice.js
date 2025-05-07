@@ -285,6 +285,33 @@ export const editDepartmentAction = createAsyncThunk(
     }
   }
 );
+export const editStaffAction = createAsyncThunk(
+  "auth/editStaffAction",
+  async (obj , { rejectWithValue }) => {
+    let token=localStorage.getItem("token")
+
+    try {
+      const response = await fetch('http://localhost:3001/users/edituser/'+obj.id, {
+        method: 'POST',
+        headers:{
+          Authorization:token,
+          'Content-Type':"application/json"
+        },
+        body: JSON.stringify(obj),
+        
+      });
+      
+      const data = await response.json();
+      if (data.errors) {
+        return rejectWithValue(data.errors[0].message);
+      }
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 export const editPositionAction = createAsyncThunk(
   "auth/editPosition",
   async (obj , { rejectWithValue }) => {
@@ -481,7 +508,6 @@ const authSlice = createSlice({
       state.error = null;
     });
     builder.addCase(loginUser.fulfilled, (state, action) => {
-      console.log(action,"@@@@@@@@@@@@@@@@111")
       if(action.payload.error){
         state.loading = false;
         state.error = action.payload.message;
@@ -732,5 +758,32 @@ const authSlice = createSlice({
   }
 });
 
+let userSlice=createSlice({
+  name:"users",
+  initialState:{
+   edituserdata:{}
+  },
+  reducers:{},
+  extraReducers:(builder)=>{
+    builder.addCase(editStaffAction.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.edituserdata=null
+    });
+    builder.addCase(editStaffAction.fulfilled, (state, action) => {
+      state.loading = false;
+      state.edituserdata = action.payload // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(editStaffAction.rejected, (state, action) => {
+      state.loading = false;
+      state.edituserdata=null
+      state.error = action.payload || action.error.message;
+    });
+
+  }
+})
 export const { logout,onLogout ,confirnDeleteAction} = authSlice.actions;
 export default authSlice.reducer;
+const userSliceReducer=userSlice.reducer
+export  {userSliceReducer}
