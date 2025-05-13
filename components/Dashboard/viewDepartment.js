@@ -154,11 +154,11 @@ const ViewDepartmentModal = ({ department, open, onClose }) => {
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <Section title="Basic Information" icon={<InfoIcon color="primary" />}>
-                  <FieldRow 
+                  {/* <FieldRow 
                     label="Department ID" 
                     value={department._id} 
                     icon={<CodeIcon fontSize="small" />}
-                  />
+                  /> */}
                   <FieldRow 
                     label="Department Code" 
                     value={department.dept_code} 

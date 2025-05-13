@@ -1089,6 +1089,7 @@ const StaffListPage = () => {
               {({ values, errors, touched, handleChange }) => (
                 <Form>
                   <Grid container spacing={3}>
+                    {console.log({values, errors, touched})}
                     <Grid item xs={12}>
                       <Typography variant="h6" gutterBottom>Basic Information</Typography>
                       <Divider />

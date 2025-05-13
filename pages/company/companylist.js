@@ -374,7 +374,7 @@ const handleSelect = (event, id) => {
   };
 
   const validationSchema = Yup.object({
-    companyId:Yup.string().required('Company Id is required'),
+    // companyId:Yup.string().required('Company Id is required'),
     name: Yup.string().required("Required"),
     owner: Yup.string().required("Required"),
     email: Yup.string().email("Invalid email").required("Required"),
@@ -871,6 +871,7 @@ const industries = [
                 {({ values, errors, touched, handleChange, setFieldValue }) => (
                   <Form>
                     <Grid container spacing={3}>
+                      {console.log({values, errors, touched})}
                       {/* Company Information Section */}
                       <Grid item xs={12}>
                         <Typography variant="h6" gutterBottom>Company Information</Typography>
