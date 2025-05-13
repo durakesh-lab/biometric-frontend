@@ -45,7 +45,8 @@ import {
   AccountTree as BranchIcon,
   Person as PersonIcon,
   Badge as RoleIcon,
-  Work as DepartmentIcon
+  Work as DepartmentIcon,
+  VisibilityOff
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
@@ -484,7 +485,7 @@ const StaffListPage = () => {
     lastName: Yup.string().required("Required"),
     email: Yup.string().email("Invalid email").required("Required"),
     username: Yup.string().required("Required"),
-    password: Yup.string().required("Required"),
+    // password: Yup.string().required("Required"),
     role: Yup.string().required("Required"),
     active_status: Yup.string().required("Required"),
   });
@@ -499,6 +500,20 @@ const StaffListPage = () => {
 //   useEffect(() => {
 //     dispatch(getStaffList());
 //   }, [dispatch]);
+
+
+// Helper functions for date validation
+const getTodayDate = () => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
+
+const getMinBirthDate = () => {
+  const today = new Date();
+  const minBirthDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  return minBirthDate.toISOString().split('T')[0];
+};
+const [showPassword, setShowPassword] = useState(false);
 
   return (
     <>
@@ -1147,19 +1162,35 @@ const StaffListPage = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Password*"
-                        name="password"
-                        type="password"
-                        value={values.password}
-                        onChange={handleChange}
-                        error={touched.password && Boolean(errors.password)}
-                        helperText={touched.password && errors.password}
-                        variant="outlined"
-                      />
-                    </Grid>
+                   {/* <Grid item xs={12} md={6}>
+  <TextField
+    fullWidth
+    label="Password*"
+    name="password"
+    type={showPassword ? "text" : "password"}
+    value={values.password}
+    onChange={handleChange}
+    error={touched.password && Boolean(errors.password)}
+    helperText={touched.password && errors.password}
+    variant="outlined"
+    InputProps={{
+      endAdornment: (
+        <InputAdornment position="end">
+          <IconButton
+            aria-label="toggle password visibility"
+            onClick={() => setShowPassword(!showPassword)}
+            edge="end"
+          >
+            {showPassword ? <VisibilityOff /> : <ViewIcon />}
+          </IconButton>
+        </InputAdornment>
+      ),
+    }}
+  />
+</Grid> */}
+
+
+                    
                     
                     <Grid item xs={12}>
                       <Typography variant="h6" gutterBottom>Employment Details</Typography>
@@ -1205,33 +1236,39 @@ const StaffListPage = () => {
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Joining Date"
-                        name="joining_date"
-                        type="date"
-                        value={values.joining_date}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        variant="outlined"
-                      />
+             <TextField
+  fullWidth
+  label="Joining Date"
+  name="joining_date"
+  type="date"
+  value={values.joining_date}
+  onChange={handleChange}
+  InputLabelProps={{
+    shrink: true,
+  }}
+  inputProps={{
+    max: getTodayDate() // Can't select dates after today
+  }}
+  variant="outlined"
+/>
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Date of Birth"
-                        name="date_of_birth"
-                        type="date"
-                        value={values.date_of_birth}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        variant="outlined"
-                      />
+                     <TextField
+  fullWidth
+  label="Date of Birth"
+  name="date_of_birth"
+  type="date"
+  value={values.date_of_birth}
+  onChange={handleChange}
+  InputLabelProps={{
+    shrink: true,
+  }}
+  inputProps={{
+    max: getMinBirthDate() // Must be at least 18 years ago
+  }}
+  variant="outlined"
+/>
                     </Grid>
                     
                     <Grid item xs={12}>
@@ -1244,11 +1281,16 @@ const StaffListPage = () => {
                           onChange={handleChange}
                           disabled={loadingDepartments}
                         >
-                          {departments.map((dept) => (
+                          {departments.length ? departments.map((dept) => (
                             <MenuItem key={dept._id} value={dept._id}>
                               {dept.name}
                             </MenuItem>
-                          ))}
+                          )) :   (
+                    <MenuItem disabled>
+                      No department available
+                    </MenuItem>
+                  ) 
+                           }
                         </Select>
                       </FormControl>
                     </Grid>
@@ -1375,19 +1417,32 @@ const StaffListPage = () => {
                       />
                     </Grid>
                     
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Password*"
-                        name="password"
-                        type="password"
-                        value={values.password}
-                        onChange={handleChange}
-                        error={touched.password && Boolean(errors.password)}
-                        helperText={touched.password && errors.password}
-                        variant="outlined"
-                      />
-                    </Grid>
+      <Grid item xs={12} md={6}>
+  <TextField
+    fullWidth
+    label="Password*"
+    name="password"
+    type={showPassword ? "text" : "password"}
+    value={values.password}
+    onChange={handleChange}
+    error={touched.password && Boolean(errors.password)}
+    helperText={touched.password && errors.password}
+    variant="outlined"
+    InputProps={{
+      endAdornment: (
+        <InputAdornment position="end">
+          <IconButton
+            aria-label="toggle password visibility"
+            onClick={() => setShowPassword(!showPassword)}
+            edge="end"
+          >
+            {showPassword ? <VisibilityOff /> : <ViewIcon />}
+          </IconButton>
+        </InputAdornment>
+      ),
+    }}
+  />
+</Grid>
                     
                     <Grid item xs={12}>
                       <Typography variant="h6" gutterBottom>Employment Details</Typography>
@@ -1433,33 +1488,39 @@ const StaffListPage = () => {
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Joining Date"
-                        name="joining_date"
-                        type="date"
-                        value={values.joining_date}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        variant="outlined"
-                      />
+                    <TextField
+  fullWidth
+  label="Joining Date"
+  name="joining_date"
+  type="date"
+  value={values.joining_date}
+  onChange={handleChange}
+  InputLabelProps={{
+    shrink: true,
+  }}
+  inputProps={{
+    max: getTodayDate() // Can't select dates after today
+  }}
+  variant="outlined"
+/>
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Date of Birth"
-                        name="date_of_birth"
-                        type="date"
-                        value={values.date_of_birth}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        variant="outlined"
-                      />
+         <TextField
+  fullWidth
+  label="Date of Birth"
+  name="date_of_birth"
+  type="date"
+  value={values.date_of_birth}
+  onChange={handleChange}
+  InputLabelProps={{
+    shrink: true,
+  }}
+  inputProps={{
+    max: getMinBirthDate() // Must be at least 18 years ago
+  }}
+  variant="outlined"
+/>
                     </Grid>
                     
                     <Grid item xs={12}>
@@ -1472,11 +1533,15 @@ const StaffListPage = () => {
                           onChange={handleChange}
                           disabled={loadingDepartments}
                         >
-                          {departments.map((dept) => (
+                          {departments.length ? departments.map((dept) => (
                             <MenuItem key={dept._id} value={dept._id}>
                               {dept.name}
                             </MenuItem>
-                          ))}
+                          )) :  (
+                    <MenuItem disabled>
+                      No department available
+                    </MenuItem>
+                  ) }
                         </Select>
                       </FormControl>
                     </Grid>
