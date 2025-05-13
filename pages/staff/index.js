@@ -228,55 +228,51 @@ const StaffListPage = () => {
   };
 
   // Fetch staff data
-  const fetchStaff = async () => {
-    if (!selectedBranch || !selectedCompany) return;
+// Fetch staff data
+const fetchStaff = async () => {
+  if (!selectedBranch || !selectedCompany) return;
+  
+  try {
+    setLoading(true);
     
-    try {
-      setLoading(true);
-      
-      // Construct query params
-      const params = {
-        page: pagination.page,
-        page_size: pagination.page_size,
-        search: search,
-        ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field,
-        ...filters
-      };
+    // Construct query params - use current pagination state
+    const params = {
+      page: pagination.page,
+      page_size: pagination.page_size,
+      search: search,
+      ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field,
+      ...filters
+    };
 
-      // Remove empty filters
-      Object.keys(params).forEach(key => {
-        if (params[key] === '' || params[key] === null) {
-          delete params[key];
-        }
-      });
+    // Remove empty filters
+    Object.keys(params).forEach(key => {
+      if (params[key] === '' || params[key] === null) {
+        delete params[key];
+      }
+    });
 
-// console.log(params,"paramsparamsparams###########")
-      // const queryString = new URLSearchParams({
-       
-      //   // Add any other query params here if needed
-      // }).toString();
-      let token = localStorage.getItem("token");
-      const response = await axios.post(
-        `http://localhost:3001/users/allusers`,
-        { branchId: selectedBranch, companyId: selectedCompany },
-        {
-          headers: { Authorization: token },
-          params
-        }
-      );
-      
-      setStaff(response.data?.data);
-      setPagination({
-        ...pagination,
-        total_pages: Math.ceil(response.data.count / pagination.page_size),
-        count: response.data.count
-      });
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching staff:', error);
-      setLoading(false);
-    }
-  };
+    let token = localStorage.getItem("token");
+    const response = await axios.post(
+      `http://localhost:3001/users/allusers`,
+      { branchId: selectedBranch, companyId: selectedCompany },
+      {
+        headers: { Authorization: token },
+        params
+      }
+    );
+    
+    setStaff(response.data?.data);
+    setPagination({
+      ...pagination,
+      total_pages: Math.ceil(response.data.count / pagination.page_size),
+      count: response.data.count
+    });
+    setLoading(false);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchCompanies();
@@ -359,12 +355,14 @@ const StaffListPage = () => {
   };
 
   // Apply filters
-  const applyFilters = () => {
-    setFilterOpen(false);
-    setPagination({ ...pagination, page: 1 });
-    fetchStaff();
-  };
-
+const applyFilters = () => {
+  setFilterOpen(false);
+  setPagination(prev => ({
+    ...prev,
+    page: 1  // Reset to page 1 when filters change
+  }));
+  fetchStaff();
+};
   // Reset filters
   const resetFilters = () => {
     setFilters({
@@ -558,17 +556,23 @@ const [showPassword, setShowPassword] = useState(false);
                 {/* Role Filter Dropdown */}
                 <FormControl size="small" sx={{ minWidth: 120 }}>
                   <InputLabel>Role</InputLabel>
-                  <Select
-                    value={filters.role || ''}
-                    label="Role"
-                    onChange={(e) => handleFilterChange('role', e.target.value)}
-                    sx={{ color: 'text.secondary' }}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <RoleIcon fontSize="small" />
-                      </InputAdornment>
-                    }
-                  >
+          <Select
+  value={filters.role || ''}
+  label="Role"
+  onChange={(e) => {
+    handleFilterChange('role', e.target.value);
+    setPagination(prev => ({
+      ...prev,
+      page: 1  // Reset to page 1 when role filter changes
+    }));
+  }}
+  sx={{ color: 'text.secondary' }}
+  startAdornment={
+    <InputAdornment position="start">
+      <RoleIcon fontSize="small" />
+    </InputAdornment>
+  }
+>
                     <MenuItem value="">All Roles</MenuItem>
                     {roleTypes.map((role) => (
                       <MenuItem key={role} value={role}>
@@ -602,21 +606,27 @@ const [showPassword, setShowPassword] = useState(false);
                   </Select>
                 </FormControl>
                 
-                <TextField
-                  variant="outlined"
-                  size="small"
-                  placeholder="Search..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon sx={{ color: 'text.secondary' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ width: 200 }}
-                />
+      <TextField
+  variant="outlined"
+  size="small"
+  placeholder="Search..."
+  value={search}
+  onChange={(e) => {
+    setSearch(e.target.value);
+    setPagination(prev => ({
+      ...prev,
+      page: 1  // Reset to page 1 when search changes
+    }));
+  }}
+  InputProps={{
+    startAdornment: (
+      <InputAdornment position="start">
+        <SearchIcon sx={{ color: 'text.secondary' }} />
+      </InputAdornment>
+    ),
+  }}
+  sx={{ width: 200 }}
+/>
               </Box>
             </Box>
           </Grid>
@@ -986,11 +996,23 @@ const [showPassword, setShowPassword] = useState(false);
               <Grid item xs={12} sm={6} md={4}>
                 <FormControl fullWidth>
                   <InputLabel>Role</InputLabel>
-                  <Select
-                    value={filters.role}
-                    label="Role"
-                    onChange={(e) => handleFilterChange('role', e.target.value)}
-                  >
+              <Select
+  value={filters.role || ''}
+  label="Role"
+  onChange={(e) => {
+    handleFilterChange('role', e.target.value);
+    setPagination(prev => ({
+      ...prev,
+      page: 1  // Reset to page 1 when role filter changes
+    }));
+  }}
+  sx={{ color: 'text.secondary' }}
+  startAdornment={
+    <InputAdornment position="start">
+      <RoleIcon fontSize="small" />
+    </InputAdornment>
+  }
+>
                     <MenuItem value="">All Roles</MenuItem>
                     {roleTypes.map((role) => (
                       <MenuItem key={role} value={role}>

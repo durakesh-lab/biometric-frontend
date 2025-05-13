@@ -137,14 +137,14 @@ const CompanyListPage = () => {
   ];
 
   // Fetch companies data
-  const fetchCompanies = async () => {
+  const fetchCompanies = async (page=1,page_size=10) => {
     try {
       setLoading(true);
       
       // Construct query params
       const params = {
-        page: pagination.page,
-        page_size: pagination.page_size,
+        page: page,
+        page_size:page_size,
         search: search,
         ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field,
         ...filters
@@ -193,8 +193,11 @@ const CompanyListPage = () => {
 // ]}, count:15}
 // response.data=response.data.slice(2)
       setCompanies(response.data?.data);
+
       setPagination({
         ...pagination,
+        page,
+        page_size,
         total_pages: Math.ceil(response?.data?.count / pagination?.page_size),
         count: response.data.count
       });
@@ -207,7 +210,7 @@ const CompanyListPage = () => {
 
   useEffect(() => {
     fetchCompanies();
-  }, [pagination.page, pagination.page_size, sorting, search, deletepopup.editCompanyData]);
+  }, [ sorting, search, deletepopup.editCompanyData]);
 
   // Handle select all
 const handleSelectAll = (event) => {
@@ -243,15 +246,17 @@ const handleSelect = (event, id) => {
       direction: isAsc ? 'desc' : 'asc'
     });
   };
-
+console.log(pagination.page,"??????mmmmmmmmmmmmmm")
   // Handle page change
   const handlePageChange = (newPage) => {
     setPagination({ ...pagination, page: newPage });
+    fetchCompanies(newPage,pagination.page_size)
   };
 
   // Handle page size change
   const handlePageSizeChange = (event) => {
     setPagination({ ...pagination, page_size: event.target.value, page: 1 });
+     fetchCompanies(pagination.page,event.target.value)
   };
 
   // Handle filter change
