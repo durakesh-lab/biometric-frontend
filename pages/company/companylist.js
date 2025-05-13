@@ -88,6 +88,7 @@ const CompanyListPage = () => {
   // Filter modal state
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
+    companyId:"",
     name: '',
     owner: '',
     email: '',
@@ -125,6 +126,7 @@ const CompanyListPage = () => {
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
+    { id: 'CompanyId', label: 'Company Id', sortable: true },
     { id: 'name', label: 'Company Name', sortable: true },
     { id: 'owner', label: 'Owner', sortable: true },
     { id: 'email', label: 'Email', sortable: true },
@@ -190,7 +192,7 @@ const CompanyListPage = () => {
 //     }
 // ]}, count:15}
 // response.data=response.data.slice(2)
-      setCompanies(response.data);
+      setCompanies(response.data?.data);
       setPagination({
         ...pagination,
         total_pages: Math.ceil(response?.data?.count / pagination?.page_size),
@@ -205,40 +207,33 @@ const CompanyListPage = () => {
 
   useEffect(() => {
     fetchCompanies();
-  }, [pagination.page, pagination.page_size, sorting, search, filters, deletepopup.editCompanyData]);
+  }, [pagination.page, pagination.page_size, sorting, search, deletepopup.editCompanyData]);
 
   // Handle select all
-  const handleSelectAll = (event) => {
-    if (event.target.checked) {
-      setSelected(companies.map(company => company.id));
-      setShowDelete(true);
-    } else {
-      setSelected([]);
-      setShowDelete(false);
-    }
-  };
+const handleSelectAll = (event) => {
+  if (event.target.checked) {
+    const newSelected = companies.map((company) => company._id); // Use _id instead of id if that's your key
+    setSelected(newSelected);
+  } else {
+    setSelected([]);
+  }
+  setShowDelete(event.target.checked);
+};
 
   // Handle single select
-  const handleSelect = (event, id) => {
-    const selectedIndex = selected.indexOf(id);
-    let newSelected = [];
+const handleSelect = (event, id) => {
+  const selectedIndex = selected.indexOf(id);
+  let newSelected = [];
 
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, id);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1),
-      );
-    }
+  if (selectedIndex === -1) {
+    newSelected = [...selected, id];
+  } else {
+    newSelected = selected.filter((item) => item !== id);
+  }
 
-    setSelected(newSelected);
-    setShowDelete(newSelected.length > 0);
-  };
+  setSelected(newSelected);
+  setShowDelete(newSelected.length > 0);
+};
 
   // Handle sort
   const handleSort = (field) => {
@@ -309,11 +304,19 @@ const CompanyListPage = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("token");
-
-      let data = { object_ids: Array.isArray(id) ? id : [id], action_type: "delete" };
-      let deleteresponse = await axios.delete(`http://localhost:3001/company/`+id, {id}, {
+     if(Array.isArray(id)){
+      
+         var data = { companyIds: id, action_type: "delete" };
+      var deleteresponse = await axios.post(`http://localhost:3001/company/delete-bulk`,data, {
         headers: { Authorization: token }
       });
+     }
+     else{
+  //  var data = { companyIds: Array.isArray(id) ? id : [id], action_type: "delete" };
+      var deleteresponse = await axios.delete(`http://localhost:3001/company/`+id, {id}, {
+        headers: { Authorization: token }
+      });
+     }
       if(deleteresponse?.data.detail) {
         setOpenSnackbar(deleteresponse?.data.detail)
       } else {
@@ -371,6 +374,7 @@ const CompanyListPage = () => {
   };
 
   const validationSchema = Yup.object({
+    companyId:Yup.string().required('Company Id is required'),
     name: Yup.string().required("Required"),
     owner: Yup.string().required("Required"),
     email: Yup.string().email("Invalid email").required("Required"),
@@ -523,15 +527,16 @@ const industries = [
                             )}
                           </Box>
                         ) : column.id === 'checkbox' ? (
-                          <Checkbox
-                            indeterminate={selected.length > 0 && selected.length < companies.length}
-                            checked={companies.length > 0 && selected.length === companies.length}
-                            onChange={handleSelectAll}
-                            sx={{ 
-                              padding: '8px',
-                              marginLeft: '-4px'
-                            }}
-                          />
+                          
+                         <Checkbox
+  indeterminate={selected.length > 0 && selected.length < companies.length}
+  checked={companies.length > 0 && selected.length === companies.length}
+  onChange={handleSelectAll}
+  sx={{ 
+    padding: '8px',
+    marginLeft: '-4px'
+  }}
+/>
                         ) : (
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             {column.label}
@@ -584,14 +589,16 @@ const industries = [
                             }}
                           >
                             <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
-                              <Checkbox
-                                checked={isSelected}
-                                onChange={(event) => handleSelect(event, company.id)}
-                                sx={{ padding: '4px' }}
-                              />
+                             <Checkbox
+  checked={selected.indexOf(company._id) !== -1}  // Make sure to use _id if that's your key
+  onChange={(event) => handleSelect(event, company._id)}  // Use _id if that's your key
+  sx={{ padding: '4px' }}
+/>
                             </TableCell>
                             
                             <TableCell>{getSerialNumber(index)}</TableCell>
+                            <TableCell>{company?.companyId}</TableCell>
+
                             <TableCell>{company?.name}</TableCell>
                             <TableCell>{company?.owner}</TableCell>
                             <TableCell>{company?.email}</TableCell>
@@ -632,7 +639,7 @@ const industries = [
                                 }}
                               >
                                 <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?.id)}>Delete</MenuItem>
+                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem>
                               </Menu>
                             </TableCell>
                           </TableRow>
@@ -715,6 +722,14 @@ const industries = [
           
           <DialogContent dividers>
             <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  label="Company Id"
+                  value={filters.companyId}
+                  onChange={(e) => handleFilterChange('companyId', e.target.value)}
+                />
+              </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <TextField
                   fullWidth
@@ -1093,6 +1108,7 @@ const industries = [
     <Divider sx={{ mb: 3 }} />
     <Formik
       initialValues={{
+        companyId:"",
         name: '',
         owner: '',
         email: '',
@@ -1128,6 +1144,18 @@ const industries = [
                           <Grid item xs={12} md={6}>
                             <TextField
                               fullWidth
+                              label="company Id*"
+                              name="companyId"
+                              value={values.companyId}
+                              onChange={handleChange}
+                              error={touched.companyId && Boolean(errors.companyId)}
+                              helperText={touched.companyId && errors.companyId}
+                              variant="outlined"
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
                               label="Company Name*"
                               name="name"
                               value={values.name}
@@ -1151,20 +1179,7 @@ const industries = [
                             />
                           </Grid>
                           
-                          <Grid item xs={12}>
-                            <TextField
-                              fullWidth
-                              label="Mailing Address*"
-                              name="mailingAddress"
-                              value={values.mailingAddress}
-                              onChange={handleChange}
-                              error={touched.mailingAddress && Boolean(errors.mailingAddress)}
-                              helperText={touched.mailingAddress && errors.mailingAddress}
-                              variant="outlined"
-                              multiline
-                              rows={3}
-                            />
-                          </Grid>
+ 
                           
                           <Grid item xs={12} md={6}>
                             <TextField
@@ -1237,7 +1252,20 @@ const industries = [
                               variant="outlined"
                             />
                           </Grid>
-                          
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              label="Mailing Address*"
+                              name="mailingAddress"
+                              value={values.mailingAddress}
+                              onChange={handleChange}
+                              error={touched.mailingAddress && Boolean(errors.mailingAddress)}
+                              helperText={touched.mailingAddress && errors.mailingAddress}
+                              variant="outlined"
+                              multiline
+                              rows={3}
+                            />
+                          </Grid>
                           <Grid item xs={12}>
                             <TextField
                               fullWidth

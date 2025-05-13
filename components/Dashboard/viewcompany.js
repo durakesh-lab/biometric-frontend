@@ -12,6 +12,8 @@ import {
   Stack,
   Link
 } from "@mui/material";
+import BadgeIcon from '@mui/icons-material/Badge';
+
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
   Business as CompanyIcon,
@@ -164,7 +166,13 @@ const ViewCompanyModal = ({ company, open, onClose }) => {
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <Section title="Basic Information" icon={<CompanyIcon color="primary" />}>
+                 
                   <FieldRow 
+                    label="Company Id" 
+                    value={company.companyId} 
+                    icon={<BadgeIcon fontSize="small" />}
+                  />
+                   <FieldRow 
                     label="Company Name" 
                     value={company.name} 
                     icon={<CompanyIcon fontSize="small" />}

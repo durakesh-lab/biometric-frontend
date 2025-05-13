@@ -156,6 +156,11 @@ const ViewBranchModal = ({ branch, open, onClose }) => {
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <Section title="Basic Information" icon={<BranchIcon color="primary" />}>
+                <FieldRow 
+                    label="Branch Code" 
+                    value={branch.branchCode} 
+                    icon={<BranchIcon fontSize="small" />}
+                  />
                   <FieldRow 
                     label="Branch Name" 
                     value={branch.name} 

@@ -144,7 +144,7 @@ const DepartmentlistPage = () => {
         }
       );
       
-      setCompanies(response.data);
+      setCompanies(response.data?.data);
       setLoadingCompanies(false);
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -166,7 +166,7 @@ const DepartmentlistPage = () => {
         }
       );
       
-      setBranches(response.data);
+      setBranches(response.data?.data);
       setLoadingBranches(false);
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -204,7 +204,7 @@ const DepartmentlistPage = () => {
           params
         }
       );
-      setDepartments(response.data);
+      setDepartments(response.data?.data);
       setPagination({
         ...pagination,
         total_pages: Math.ceil(response.data.count / pagination.page_size),

@@ -174,7 +174,7 @@ const StaffListPage = () => {
         }
       );
       
-      setCompanies(response.data);
+      setCompanies(response.data?.data);
       setLoadingCompanies(false);
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -196,7 +196,7 @@ const StaffListPage = () => {
         }
       );
       
-      setBranches(response.data);
+      setBranches(response.data?.data);
       setLoadingBranches(false);
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -218,7 +218,7 @@ const StaffListPage = () => {
         }
       );
       
-      setDepartments(response.data);
+      setDepartments(response.data?.data);
       setLoadingDepartments(false);
     } catch (error) {
       console.error('Error fetching departments:', error);
@@ -264,7 +264,7 @@ const StaffListPage = () => {
         }
       );
       
-      setStaff(response.data);
+      setStaff(response.data?.data);
       setPagination({
         ...pagination,
         total_pages: Math.ceil(response.data.count / pagination.page_size),
@@ -295,7 +295,7 @@ const StaffListPage = () => {
       fetchStaff();
       setNewStaff(prev => ({ ...prev, branchId: selectedBranch }));
     }
-  }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, filters, deletepopup?.edituserdata]);
+  }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, deletepopup?.edituserdata]);
 
   // Handle select all
   const handleSelectAll = (event) => {
@@ -628,7 +628,7 @@ const StaffListPage = () => {
                     <CircularProgress size={24} />
                   </MenuItem>
                 ) : (
-                  companies.map((company) => (
+                  companies?.map((company) => (
                     <MenuItem key={company._id} value={company._id}>
                       {company.name}
                     </MenuItem>

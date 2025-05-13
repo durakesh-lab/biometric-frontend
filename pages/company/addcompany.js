@@ -40,6 +40,7 @@ let positions = [
 
 
 const initialValues = {
+  companyId:"",
     name: '',
     owner: '',
     mailingAddress: '',
@@ -53,6 +54,7 @@ const initialValues = {
   
   // Validation schema using Yup
   const validationSchema = Yup.object().shape({
+    companyId:Yup.string().required('Company Id is required'),
     name: Yup.string().required('Company name is required'),
     owner: Yup.string().required('Owner name is required'),
     mailingAddress: Yup.string().required('Mailing address is required'),
@@ -169,6 +171,19 @@ return (
                 <Form>
                   <Grid container spacing={3}>
                     {/* Company Information Section */}
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Company Id*"
+                        name="name"
+                        value={values.companyId}
+                        onChange={handleChange}
+                        error={touched.companyId && Boolean(errors.companyId)}
+                        helperText={touched.companyId && errors.companyId}
+                        variant="outlined"
+                      />
+                    </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth

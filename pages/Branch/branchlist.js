@@ -1145,6 +1145,7 @@ const BranchlistPage = () => {
   // Filter modal state
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
+    branchCode:"",
     name: '',
     manager: '',
     email: '',
@@ -1155,6 +1156,7 @@ const BranchlistPage = () => {
   // Add branch modal state
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newBranch, setNewBranch] = useState({
+    branchCode:"",
     name: '',
     manager: '',
     address: '',
@@ -1180,6 +1182,8 @@ const BranchlistPage = () => {
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
+    { id: 'branchCode', label: 'branch code', sortable: false },
+
     { id: 'name', label: 'Branch Name', sortable: true },
     { id: 'manager', label: 'Manager', sortable: true },
     { id: 'address', label: 'Address', sortable: true },
@@ -1201,7 +1205,7 @@ const BranchlistPage = () => {
         }
       );
       
-      setCompanies(response.data);
+      setCompanies(response.data?.data);
       setLoadingCompanies(false);
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -1239,7 +1243,7 @@ const BranchlistPage = () => {
           params
         }
       );
-      setBranches(response.data);
+      setBranches(response.data?.data);
       setPagination({
         ...pagination,
         total_pages: Math.ceil(response.data.count / pagination.page_size),
@@ -1261,40 +1265,33 @@ const BranchlistPage = () => {
       fetchBranches();
       setNewBranch(prev => ({ ...prev, companyId: selectedCompany }));
     }
-  }, [selectedCompany, pagination.page, pagination.page_size, sorting, search, filters, deletepopup.editBranchData]);
+  }, [selectedCompany, pagination.page, pagination.page_size, sorting, search, deletepopup.editBranchData]);
 
   // Handle select all
-  const handleSelectAll = (event) => {
-    if (event.target.checked) {
-      setSelected(branches.map(branch => branch.id));
-      setShowDelete(true);
-    } else {
-      setSelected([]);
-      setShowDelete(false);
-    }
-  };
 
-  // Handle single select
-  const handleSelect = (event, id) => {
-    const selectedIndex = selected.indexOf(id);
-    let newSelected = [];
-
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, id);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1),
-      );
-    }
-
+const handleSelectAll = (event) => {
+  if (event.target.checked) {
+    const newSelected = branches.map((company) => company._id); // Use _id instead of id if that's your key
     setSelected(newSelected);
-    setShowDelete(newSelected.length > 0);
-  };
+  } else {
+    setSelected([]);
+  }
+  setShowDelete(event.target.checked);
+};
+  // Handle single select
+const handleSelect = (event, id) => {
+  const selectedIndex = selected.indexOf(id);
+  let newSelected = [];
+
+  if (selectedIndex === -1) {
+    newSelected = [...selected, id];
+  } else {
+    newSelected = selected.filter((item) => item !== id);
+  }
+
+  setSelected(newSelected);
+  setShowDelete(newSelected.length > 0);
+};
 
   // Handle sort
   const handleSort = (field) => {
@@ -1333,6 +1330,7 @@ const BranchlistPage = () => {
   // Reset filters
   const resetFilters = () => {
     setFilters({
+      branchCode:"",
       name: '',
       manager: '',
       email: '',
@@ -1355,7 +1353,7 @@ const BranchlistPage = () => {
   // Handle delete confirmation
   const handleConfirmDelete = (id) => {
     dispatch(confirnDeleteAction("sure"));
-    sessionStorage.setItem("deleteIds", JSON.stringify(id._id));
+    sessionStorage.setItem("deleteIds", JSON.stringify(id));
   };
 
   // Handle delete
@@ -1363,10 +1361,20 @@ const BranchlistPage = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("token");
-      const response = await axios.delete(`http://localhost:3001/branch/${id}`, {
+     if(Array.isArray(id)){
+      
+         var data = { Ids: id, action_type: "delete" };
+      var response = await axios.post(`http://localhost:3001/branch/delete-bulk`,data, {
         headers: { Authorization: token }
       });
-      
+     }
+     else{
+  //  var data = { companyIds: Array.isArray(id) ? id : [id], action_type: "delete" };
+            var response = await axios.delete(`http://localhost:3001/branch/${id}`, {
+        headers: { Authorization: token }
+      });
+     }
+
       if(response?.data.detail) {
         setOpenSnackbar(response?.data.detail);
       } else {
@@ -1406,7 +1414,6 @@ const BranchlistPage = () => {
 
   const handleEditSubmit = async (values) => {
     try {
-      console.log(values,"valuesvaluesvalues")
       values={...values,id:values._id}
       dispatch(editBranchAction(values));
       setEditModalOpen(false);
@@ -1446,6 +1453,7 @@ const BranchlistPage = () => {
 
   // Validation schema
   const validationSchema = Yup.object({
+    branchCode:Yup.string().required("Required"),
     name: Yup.string().required("Required"),
     manager: Yup.string().required("Required"),
     address: Yup.string().required("Required"),
@@ -1599,15 +1607,24 @@ const BranchlistPage = () => {
                                 )}
                               </Box>
                             ) : column.id === 'checkbox' ? (
+                              // <Checkbox
+                              //   indeterminate={selected.length > 0 && selected.length < branches.length}
+                              //   checked={branches.length > 0 && selected.length === branches.length}
+                              //   onChange={handleSelectAll}
+                              //   sx={{ 
+                              //     padding: '8px',
+                              //     marginLeft: '-4px'
+                              //   }}
+                              // />
                               <Checkbox
-                                indeterminate={selected.length > 0 && selected.length < branches.length}
-                                checked={branches.length > 0 && selected.length === branches.length}
-                                onChange={handleSelectAll}
-                                sx={{ 
-                                  padding: '8px',
-                                  marginLeft: '-4px'
-                                }}
-                              />
+  indeterminate={selected.length > 0 && selected.length < branches.length}
+  checked={branches.length > 0 && selected.length === branches.length}
+  onChange={handleSelectAll}
+  sx={{ 
+    padding: '8px',
+    marginLeft: '-4px'
+  }}
+/>
                             ) : (
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {column.label}
@@ -1657,14 +1674,20 @@ const BranchlistPage = () => {
                               }}
                             >
                               <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
-                                <Checkbox
+                                {/* <Checkbox
                                   checked={isSelected}
                                   onChange={(event) => handleSelect(event, branch.id)}
                                   sx={{ padding: '4px' }}
-                                />
+                                /> */}
+                                <Checkbox
+  checked={selected.indexOf(branch._id) !== -1}  // Make sure to use _id if that's your key
+  onChange={(event) => handleSelect(event, branch._id)}  // Use _id if that's your key
+  sx={{ padding: '4px' }}
+/>
                               </TableCell>
                               
                               <TableCell>{getSerialNumber(index)}</TableCell>
+                              <TableCell>{branch.branchCode}</TableCell>
                               <TableCell>{branch.name}</TableCell>
                               <TableCell>{branch.manager}</TableCell>
                               <TableCell>{branch.address}</TableCell>
@@ -1705,7 +1728,7 @@ const BranchlistPage = () => {
                                   }}
                                 >
                                   <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                                  <MenuItem onClick={() => handleConfirmDelete(selectedBranch)}>Delete</MenuItem>
+                                  <MenuItem onClick={() => handleConfirmDelete(selectedBranch._id)}>Delete</MenuItem>
                                 </Menu>
                               </TableCell>
                             </TableRow>
@@ -1806,6 +1829,15 @@ const BranchlistPage = () => {
           
           <DialogContent dividers>
             <Grid container spacing={3}>
+            
+            <Grid item xs={12} sm={6} md={4}>
+                <TextField
+                  fullWidth
+                  label="Branch Code"
+                  value={filters.branchCode}
+                  onChange={(e) => handleFilterChange('branchCode', e.target.value)}
+                />
+              </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <TextField
                   fullWidth
@@ -1913,7 +1945,18 @@ const BranchlistPage = () => {
                       <Typography variant="h6" gutterBottom>Branch Information</Typography>
                       <Divider />
                     </Grid>
-                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="branch Code*"
+                        name="branchCode"
+                        value={values.branchCode}
+                        onChange={handleChange}
+                        error={touched.branchCode && Boolean(errors.branchCode)}
+                        helperText={touched.branchCode && errors.branchCode}
+                        variant="outlined"
+                      />
+                    </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
@@ -2049,6 +2092,18 @@ const BranchlistPage = () => {
                       <Divider />
                     </Grid>
                     
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="branch Code*"
+                        name="branchCode"
+                        value={values.branchCode}
+                        onChange={handleChange}
+                        error={touched.branchCode && Boolean(errors.branchCode)}
+                        helperText={touched.branchCode && errors.branchCode}
+                        variant="outlined"
+                      />
+                    </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
