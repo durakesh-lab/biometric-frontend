@@ -25,6 +25,7 @@ import {
   Settings as SettingsIcon,
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
+    GroupWork as DepartmentIcon
 } from "@mui/icons-material";
 import { useRouter } from "next/router";
 
@@ -65,7 +66,7 @@ const menuGroups = [
       },
       {
         label: "Department",
-        icon: <GroupIcon />,
+        icon: <DepartmentIcon />,
         subItems: [
           { label: "All Departments", link: "/department/departmentlist" },
           // { label: "Add Department", link: "/department/adddepartment" },

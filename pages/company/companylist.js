@@ -57,8 +57,10 @@ import * as Yup from "yup";
 import ViewCompanyModal from '../../components/Dashboard/viewcompany';
 import { Fab } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import Router, { useRouter } from 'next/router';
 const CompanyListPage = () => {
   // State for table data and UI
+  let router=useRouter()
   const [companies, setCompanies] = useState([]);
   let [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState([]);
@@ -133,6 +135,7 @@ const CompanyListPage = () => {
     { id: 'phoneNumber', label: 'Phone Number', sortable: true },
     { id: 'industry', label: 'Industry', sortable: true },
     { id: 'view', label: 'View', sortable: false },
+    { id: 'managebranches', label: 'Manage', sortable: false },
     { id: 'actions', label: 'Actions', sortable: false }
   ];
 
@@ -431,6 +434,12 @@ const industries = [
   { label: 'Education', value: 'Education' },
   { label: 'Other', value: 'Other' }
 ];
+const handleManageBranches=(id)=>{
+router.push({
+  pathname: '/company/branches',
+  query: { id: id }
+});
+}
   return (
     <>
       <Layout>
@@ -618,7 +627,16 @@ const industries = [
                                 <ViewIcon />
                               </IconButton>
                             </TableCell>
-                            
+                            <TableCell>
+  <Button 
+    variant="contained" 
+    size="small" 
+    sx={{ textTransform: 'capitalize' }}
+    onClick={() => handleManageBranches(company._id)}
+  >
+     Branches 
+  </Button>
+</TableCell>
                             <TableCell>
                               <IconButton
                                 aria-label="more"
