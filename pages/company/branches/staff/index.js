@@ -31,7 +31,8 @@ import {
   Snackbar,
   Alert,
   Fab,
-  DialogContentText
+  DialogContentText,
+  Breadcrumbs
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -47,22 +48,27 @@ import {
   Person as PersonIcon,
   Badge as RoleIcon,
   Work as DepartmentIcon,
-  VisibilityOff
+  VisibilityOff,
+   ChevronRight as ChevronRightIcon,Group as GroupIcon
 } from '@mui/icons-material';
+import StoreIcon from '@mui/icons-material/Store';
+import ApartmentIcon from '@mui/icons-material/Apartment';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { confirnDeleteAction, editStaffAction, getStaffList } from '@/store/authSlice';
-import Layout from '../../components/Layout/Layout';
-import MyComponent from '../../components/deletepopup';
+import Layout from '../../../../components/Layout/Layout';
+import MyComponent from '../../../../components/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import ViewStaffModal from '../../components/Dashboard/viewstaff';
+import ViewStaffModal from '../../../../components/Dashboard/viewstaff';
 import { Download as DownloadIcon } from '@mui/icons-material';
 import { Upload as UploadIcon } from '@mui/icons-material';
+import { useRouter } from 'next/router';
 const genders = [ { label: "Male", value: "M" }, { label: "Female", value: "F" }];
 
 const StaffListPage = () => {
   // State for companies
+  let router=useRouter()
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
@@ -135,7 +141,6 @@ const StaffListPage = () => {
     companyId: '',
     department: ''
   });
-console.log(newStaff,"newStaffnewStaff#######")
   // Menu state for actions
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -151,6 +156,13 @@ console.log(newStaff,"newStaffnewStaff#######")
 
     const [exportModalOpen, setExportModalOpen] = useState(false);
   
+
+        useEffect(()=>{
+                  setSelectedBranch(router.query.id)
+                //   console.log(router.query)
+                  setSelectedCompany(router.query.companyId)
+        },[router.query.id])
+
   // Role types
   // const roleTypes = ['Super Admin', 'HR Admin', 'Manager', 'Employee', 'Guest'];
   const roleTypes = ['HR Admin', 'Manager', 'Employee', 'Guest'];
@@ -289,7 +301,7 @@ const fetchStaff = async () => {
   useEffect(() => {
     if (selectedCompany) {
       fetchBranches(selectedCompany);
-      setSelectedBranch(null); // Reset branch selection when company changes
+    //   setSelectedBranch(null); // Reset branch selection when company changes
       setNewStaff(prev => ({ ...prev, companyId: selectedCompany }));
     }
   }, [selectedCompany]);
@@ -300,41 +312,34 @@ const fetchStaff = async () => {
       fetchStaff();
       setNewStaff(prev => ({ ...prev, branchId: selectedBranch }));
     }
-  }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, deletepopup?.edituserdata]);
+  }, [selectedBranch, pagination.page,filters, pagination.page_size, sorting, search, deletepopup?.edituserdata]);
 
   // Handle select all
-  const handleSelectAll = (event) => {
-    if (event.target.checked) {
-      setSelected(staff.map(staff => staff.id));
-      setShowDelete(true);
-    } else {
-      setSelected([]);
-      setShowDelete(false);
-    }
-  };
-
-  // Handle single select
-  const handleSelect = (event, id) => {
-    const selectedIndex = selected.indexOf(id);
-    let newSelected = [];
-
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, id);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1),
-      );
-    }
-
+const handleSelectAll = (event) => {
+  if (event.target.checked) {
+    const newSelected = staff.map(staff => staff._id); // Use _id instead of id if that's your key
     setSelected(newSelected);
-    setShowDelete(newSelected.length > 0);
-  };
+    setShowDelete(true);
+  } else {
+    setSelected([]);
+    setShowDelete(false);
+  }
+};
 
+// Handle single select
+const handleSelect = (event, id) => {
+  const selectedIndex = selected.indexOf(id);
+  let newSelected = [];
+
+  if (selectedIndex === -1) {
+    newSelected = [...selected, id];
+  } else {
+    newSelected = selected.filter(item => item !== id);
+  }
+
+  setSelected(newSelected);
+  setShowDelete(newSelected.length > 0);
+};
   // Handle sort
   const handleSort = (field) => {
     const isAsc = sorting.field === field && sorting.direction === 'asc';
@@ -591,11 +596,65 @@ const [showPassword, setShowPassword] = useState(false);
         <Grid container spacing={3}>
           {/* Header Section */}
           <Grid item xs={12}>
+                     <Breadcrumbs
+                separator={<ChevronRightIcon fontSize="small" />}
+                aria-label="breadcrumb"
+                sx={{ '& .MuiBreadcrumbs-separator': { mx: 1 } }}
+              >
+                {/* Companies */}
+              <Box
+                component="a"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    textDecoration: 'underline'
+                  }
+                }}
+                onClick={() => router.push("/company/companylist")}
+              >
+                <BusinessIcon sx={{ mr: 0.5, fontSize: 20 }} />
+                Companies
+              </Box>
+              
+              
+                {/* Branches */}
+                {/* <NextLink href="/company/branches" passHref legacyBehavior> */}
+                  <Box 
+                    component="a" 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      textDecoration: 'none', 
+                          cursor: 'pointer',
+              
+                      color: 'inherit',
+                      '&:hover': {
+                        textDecoration: 'underline'
+                      }
+                    }}
+                      onClick={() => router.push({pathname:"/company/branches",query:{id:router.query.companyId}})}
+              
+                  >
+                    <StoreIcon sx={{ mr: 0.5, fontSize: 20 }} />
+                    Branches
+                  </Box>
+                {/* </NextLink> */}
+              
+                {/* Departments */}
+                <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+                  <GroupIcon sx={{ mr: 0.5, fontSize: 20 }} />
+                  Staff
+                </Typography>
+              </Breadcrumbs>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={0} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
               <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>
                 Staff List
               </Typography>
-              
+     
               <Box display="flex" alignItems="center" gap={1}>
                 {showDelete && (
                   <Tooltip title={`Delete selected (${selected.length})`}>
@@ -741,7 +800,7 @@ const [showPassword, setShowPassword] = useState(false);
           </Grid>
 
           {/* Company Selection */}
-          <Grid item xs={12} sm={6}>
+          {/* <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <InputLabel id="company-select-label">Select Company</InputLabel>
               <Select
@@ -770,11 +829,10 @@ const [showPassword, setShowPassword] = useState(false);
                 )}
               </Select>
             </FormControl>
-          </Grid>
-          {console.log(selectedBranch,"????????????###########")}
+          </Grid> */}
 
           {/* Branch Selection - Only show if company is selected */}
-          {selectedCompany && (
+          {/* {selectedCompany && (
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel id="branch-select-label">Select Branch</InputLabel>
@@ -809,8 +867,50 @@ const [showPassword, setShowPassword] = useState(false);
                 </Select>
               </FormControl>
             </Grid>
-          )}
+          )} */}
+          <Grid item xs={12} sm={6}>
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      border: '1px solid #ccc',
+      borderRadius: 1,
+      padding: '8px 12px',
+      minHeight: '56px',
+      backgroundColor: '#f9f9f9',
+    }}
+  >
+    <BusinessIcon sx={{ marginRight: 1 }} />
+    <Typography variant="body1">
+      {loadingCompanies
+        ? 'Loading company...'
+        : companies.find((c) => c._id === selectedCompany)?.name || 'No company selected'}
+    </Typography>
+  </Box>
+</Grid>
 
+{selectedCompany && (
+  <Grid item xs={12} sm={6}>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        border: '1px solid #ccc',
+        borderRadius: 1,
+        padding: '8px 12px',
+        minHeight: '56px',
+        backgroundColor: '#f9f9f9',
+      }}
+    >
+      <StoreIcon sx={{ marginRight: 1 }} />
+      <Typography variant="body1">
+        {loadingBranches
+          ? 'Loading branch...'
+          : branches.find((b) => b._id === selectedBranch)?.name || 'No branch selected'}
+      </Typography>
+    </Box>
+  </Grid>
+)}
           {/* Staff Table - Only show if branch is selected */}
           {selectedBranch ? (
             <>
@@ -855,15 +955,11 @@ const [showPassword, setShowPassword] = useState(false);
                                 )}
                               </Box>
                             ) : column.id === 'checkbox' ? (
-                              <Checkbox
-                                indeterminate={selected.length > 0 && selected.length < staff.length}
-                                checked={staff.length > 0 && selected.length === staff.length}
-                                onChange={handleSelectAll}
-                                sx={{ 
-                                  padding: '8px',
-                                  marginLeft: '-4px'
-                                }}
-                              />
+                  <Checkbox
+  indeterminate={selected.length > 0 && selected.length < staff.length}
+  checked={staff.length > 0 && selected.length === staff.length}
+  onChange={handleSelectAll}
+/>
                             ) : (
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {column.label}
@@ -899,7 +995,7 @@ const [showPassword, setShowPassword] = useState(false);
                         </TableRow>
                       ) : (
                         staff.map((staffMember, index) => {
-                          const isSelected = selected.indexOf(staffMember.id) !== -1;
+                         const isSelected = selected.includes(staffMember._id);
                           return (
                             <TableRow
                               key={staffMember.id}
@@ -913,11 +1009,10 @@ const [showPassword, setShowPassword] = useState(false);
                               }}
                             >
                               <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onChange={(event) => handleSelect(event, staffMember.id)}
-                                  sx={{ padding: '4px' }}
-                                />
+                               <Checkbox
+          checked={isSelected}
+          onChange={(event) => handleSelect(event, staffMember._id)} // Pass _id here
+        />
                               </TableCell>
                               
                               <TableCell>{getSerialNumber(index)}</TableCell>
@@ -1527,7 +1622,18 @@ const [showPassword, setShowPassword] = useState(false);
                       <Typography variant="h6" gutterBottom>Basic Information</Typography>
                       <Divider />
                     </Grid>
-                    
+                     <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Username*"
+                        name="username"
+                        value={values.username}
+                        onChange={handleChange}
+                        error={touched.username && Boolean(errors.username)}
+                        helperText={touched.username && errors.username}
+                        variant="outlined"
+                      />
+                    </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
@@ -1572,18 +1678,7 @@ const [showPassword, setShowPassword] = useState(false);
                                                          ))}
                                                        </TextField>
                                                      </Grid>
-                                                      <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Mobile*"
-                        name="mobile"
-                        value={values.mobile}
-                        onChange={handleChange}
-                        error={touched.mobile && Boolean(errors.mobile)}
-                        helperText={touched.mobile && errors.mobile}
-                        variant="outlined"
-                      />
-                    </Grid>
+                                                   
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
@@ -1600,12 +1695,12 @@ const [showPassword, setShowPassword] = useState(false);
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Username*"
-                        name="username"
-                        value={values.username}
+                        label="Mobile*"
+                        name="mobile"
+                        value={values.mobile}
                         onChange={handleChange}
-                        error={touched.username && Boolean(errors.username)}
-                        helperText={touched.username && errors.username}
+                        error={touched.mobile && Boolean(errors.mobile)}
+                        helperText={touched.mobile && errors.mobile}
                         variant="outlined"
                       />
                     </Grid>

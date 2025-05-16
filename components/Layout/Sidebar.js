@@ -25,9 +25,11 @@ import {
   Settings as SettingsIcon,
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
-    GroupWork as DepartmentIcon
+    GroupWork as DepartmentIcon,
+     Business as BusinessIcon
 } from "@mui/icons-material";
 import { useRouter } from "next/router";
+import StoreIcon from '@mui/icons-material/Store';
 
 const menuGroups = [
   {
@@ -49,7 +51,7 @@ const menuGroups = [
       
       {
         label: "Company",
-        icon: <GroupIcon />,
+        icon: <BusinessIcon />,
         subItems: [
           { label: "All Company", link: "/company/companylist" }
           // { label: "Add Company", link: "/company/addcompany" },
@@ -58,7 +60,7 @@ const menuGroups = [
 ,
       {
         label: "Branch",
-        icon: <GroupIcon />,
+        icon: <StoreIcon />,
         subItems: [
           { label: "All Branch", link: "/Branch/branchlist" },
           // { label: "Add Branch", link: "/Branch/addbranch" },
@@ -108,50 +110,50 @@ const menuGroups = [
       // },
     ],
   },
-  {
-    heading: "MANAGEMENT",
-    items: [
-      // {
-      //   label: "Jobs",
-      //   icon: <WorkOutlineIcon />,
-      //   subItems: [
-      //     { label: "All Jobs", link: "/jobs/all" },
-      //     { label: "Post New Job", link: "/jobs/new" },
-      //   ],
-      // },
-      // {
-      //   label: "Candidate",
-      //   icon: <PersonSearchIcon />,
-      //   subItems: [
-      //     { label: "All Candidates", link: "/candidates/all" },
-      //     { label: "Shortlisted", link: "/candidates/shortlisted" },
-      //   ],
-      // },
-      // {
-      //   label: "Calendar",
-      //   icon: <CalendarMonthIcon />,
-      //   subItems: [
-      //     { label: "Events", link: "/calendar/events" },
-      //     { label: "Reminders", link: "/calendar/reminders" },
-      //   ],
-      // },
-    ],
-  },
-  {
-    heading: "SUPPORT",
-    items: [
-      {
-        label: "Help center",
-        icon: <HelpOutlineIcon />,
-        link: "/help",
-      },
-      {
-        label: "Setting",
-        icon: <SettingsIcon />,
-        link: "/settings",
-      },
-    ],
-  },
+  // {
+  //   heading: "MANAGEMENT",
+  //   items: [
+  //     // {
+  //     //   label: "Jobs",
+  //     //   icon: <WorkOutlineIcon />,
+  //     //   subItems: [
+  //     //     { label: "All Jobs", link: "/jobs/all" },
+  //     //     { label: "Post New Job", link: "/jobs/new" },
+  //     //   ],
+  //     // },
+  //     // {
+  //     //   label: "Candidate",
+  //     //   icon: <PersonSearchIcon />,
+  //     //   subItems: [
+  //     //     { label: "All Candidates", link: "/candidates/all" },
+  //     //     { label: "Shortlisted", link: "/candidates/shortlisted" },
+  //     //   ],
+  //     // },
+  //     // {
+  //     //   label: "Calendar",
+  //     //   icon: <CalendarMonthIcon />,
+  //     //   subItems: [
+  //     //     { label: "Events", link: "/calendar/events" },
+  //     //     { label: "Reminders", link: "/calendar/reminders" },
+  //     //   ],
+  //     // },
+  //   ],
+  // },
+  // {
+  //   heading: "SUPPORT",
+  //   items: [
+  //     {
+  //       label: "Help center",
+  //       icon: <HelpOutlineIcon />,
+  //       link: "/help",
+  //     },
+  //     {
+  //       label: "Setting",
+  //       icon: <SettingsIcon />,
+  //       link: "/settings",
+  //     },
+  //   ],
+  // },
 ];
 
 export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerToggle }) {

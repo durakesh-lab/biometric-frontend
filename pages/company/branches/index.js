@@ -149,6 +149,11 @@ const BranchlistPage = () => {
     { id: 'email', label: 'Email', sortable: true },
     { id: 'view', label: 'View', sortable: false },
     { id: 'manage', label: 'Manage', sortable: false },
+      {
+    id: 'employees',
+    label: 'Employees',
+    sortable: false
+  },
     { id: 'actions', label: 'Actions', sortable: false }
   ];
 
@@ -448,6 +453,12 @@ router.push({
   query: { id: id ,companyId:router.query.id }
 });
 }
+const handleManageEmployees=(id)=>{
+router.push({
+  pathname: '/company/branches/staff',
+  query: { id: id ,companyId:router.query.id }
+});
+}
   return (
     <>
       <Layout>
@@ -729,6 +740,16 @@ router.push({
                                    Departments 
                                 </Button>
                               </TableCell>
+                              <TableCell>
+  <Button 
+    variant="contained" 
+    size="small" 
+    sx={{ textTransform: 'capitalize', ml: 1 }}
+    onClick={() => handleManageEmployees(branch._id)}
+  >
+    Employees
+  </Button>
+</TableCell>
                               {/* <TableCell>
                                 <Tooltip title="Manage Departments">
                                   <IconButton

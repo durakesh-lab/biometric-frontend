@@ -21,7 +21,9 @@ import {
   Cake as DobIcon,
   CalendarToday as JoinDateIcon,
   Info as InfoIcon,
-  Code as CodeIcon
+  Code as CodeIcon,
+  Phone as PhoneIcon,
+  Transgender as GenderIcon
 } from "@mui/icons-material";
 
 const theme = createTheme({
@@ -179,6 +181,11 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
                     icon={<EmailIcon fontSize="small" />}
                   />
                   <FieldRow 
+                    label="Mobile" 
+                    value={staff.mobile || "--"} 
+                    icon={<PhoneIcon fontSize="small" />}
+                  />
+                  <FieldRow 
                     label="Role" 
                     value={staff.role} 
                     icon={<RoleIcon fontSize="small" />}
@@ -197,6 +204,11 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
                     icon={<StaffIcon fontSize="small" />}
                   />
                   <FieldRow 
+                    label="Gender" 
+                    value={staff.gender || "--"} 
+                    icon={<GenderIcon fontSize="small" />}
+                  />
+                  <FieldRow 
                     label="Date of Birth" 
                     value={formatDate(staff.date_of_birth)} 
                     icon={<DobIcon fontSize="small" />}
@@ -204,17 +216,7 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
                 </Section>
 
                 <Section title="Employment Information" icon={<CompanyIcon color="primary" />}>
-                  {/* <FieldRow 
-                    label="Company ID" 
-                    value={staff.companyId} 
-                    icon={<CompanyIcon fontSize="small" />}
-                  />
                   <FieldRow 
-                    label="Branch ID" 
-                    value={staff.branchId} 
-                    icon={<BranchIcon fontSize="small" />}
-                  /> */}
-                   <FieldRow 
                     label="Date of Joining" 
                     value={formatDate(staff.joining_date)} 
                     icon={<DobIcon fontSize="small" />}
