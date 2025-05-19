@@ -289,13 +289,14 @@ console.log(pagination.page,"??????mmmmmmmmmmmmmm")
     });
   };
 
-  // Handle menu click
-  const handleMenuClick = (event, company) => {
-    console.log(event, company,"event, companyevent, companyevent, company")
-    setAnchorEl(event.currentTarget);
-    setSelectedCompany(company);
-  };
 
+  let [editcheckfield,seteditcheckfield]=useState({})
+  // Handle menu click
+  const handleMenuClick = (event, staff) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedCompany(staff);
+    seteditcheckfield({companyId:staff.companyId,email:staff.email})
+  };
   // Handle menu close
   const handleMenuClose = () => {
     setAnchorEl(null);
@@ -360,6 +361,8 @@ console.log(pagination.page,"??????mmmmmmmmmmmmmm")
   }, [editCompanyData]);
 
   const handleEdit = () => {
+    setCompanyIdError("")
+    setEmailError("")
     if (selectedCompany) {
       setCurrentCompany(selectedCompany);
       setEditModalOpen(true);
@@ -383,13 +386,27 @@ console.log(pagination.page,"??????mmmmmmmmmmmmmm")
 
   const validationSchema = Yup.object({
     // companyId:Yup.string().required('Company Id is required'),
-    name: Yup.string().required("Required"),
-    owner: Yup.string().required("Required"),
-    email: Yup.string().email("Invalid email").required("Required"),
-    phoneNumber: Yup.string().required("Required"),
-    industry: Yup.string().required("Required"),
-    mailingAddress: Yup.string().required("Required"),
-    nominalCapital: Yup.string().required("Required"),
+  companyId: Yup.string()
+    .required('Company Id is required')
+    .test(
+      'companyId-exists',
+      'Company ID already exists',
+      () => !companyIdError // This will be updated by our debounced function
+    ),
+  name: Yup.string().required("Required"),
+  owner: Yup.string().required("Required"),
+  email: Yup.string()
+    .email("Invalid email")
+    .required("Required")
+    .test(
+      'email-exists',
+      'Email already exists',
+      () => !emailError // This will be updated by our debounced function
+    ),
+  phoneNumber: Yup.string().required("Required"),
+  industry: Yup.string().required("Required"),
+  mailingAddress: Yup.string().required("Required"),
+  nominalCapital: Yup.string().required("Required"),
   });
 
   // Handle view click
@@ -440,6 +457,45 @@ router.push({
   query: { id: id }
 });
 }
+
+// utils/debounce.js
+const debounce = (func, delay) => {
+  let timeoutId;
+  return function(...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func.apply(this, args);
+    }, delay);
+  };
+};
+// Inside the add company modal form
+const [emailError, setEmailError] = useState('');
+const [companyIdError, setCompanyIdError] = useState('');
+
+// Debounced validation functions
+const checkCompanyIdExists = debounce(async (value,field) => {
+  if (!value){
+    setCompanyIdError("")
+     setEmailError("")
+     return 
+  }
+  try {
+    let token = localStorage.getItem("token");
+    const response = await axios.post(`http://localhost:3001/company/checkandverifyfields`,field=="companyId" ? { field:"companyId", companyId: value }:{ field:"company_email", email: value }, {
+      headers: { Authorization: token }
+    });
+    if(field=="companyId"){
+    setCompanyIdError(response.data.message ? 'Company ID already exists' : '');
+    }
+    else{
+          setEmailError(response.data.message ? 'Email already exists' : '');
+    }
+  } catch (error) {
+    console.error('Error checking company ID:', error);
+  }
+}, 1000);
+
+console.log(companyIdError,"companyIdError############")
   return (
     <>
       <Layout>
@@ -901,6 +957,23 @@ router.push({
                         <Divider />
                       </Grid>
                       
+                       <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Company I*"
+                          name="companyId"
+                          value={values.companyId}
+                           onChange={(e)=>{handleChange(e);if(editcheckfield.companyId!=e.target.value){ checkCompanyIdExists(e.target.value,"companyId")} } }
+
+                        error={(touched.companyId && Boolean(errors.companyId)) || Boolean(companyIdError)}
+    helperText={
+      (touched.email && errors.email) || 
+      companyIdError
+    }
+                        
+                          variant="outlined"
+                        />
+                      </Grid>
                       <Grid item xs={12} md={6}>
                         <TextField
                           fullWidth
@@ -933,9 +1006,14 @@ router.push({
                           label="Email*"
                           name="email"
                           value={values.email}
-                          onChange={handleChange}
-                          error={touched.email && Boolean(errors.email)}
-                          helperText={touched.email && errors.email}
+                            onChange={(e)=>{handleChange(e);if(editcheckfield.email!=e.target.value){ checkCompanyIdExists(e.target.value,"email")} } }
+
+                        error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
+    helperText={
+      (touched.email && errors.email) || 
+      emailError
+    }
+
                           variant="outlined"
                         />
                       </Grid>
@@ -1077,7 +1155,7 @@ router.push({
   <Fab 
     color="primary" 
     aria-label="add"
-    onClick={() => setAddModalOpen(true)}
+    onClick={() =>{setAddModalOpen(true); setCompanyIdError("");setEmailError("")}}
     sx={{
       backgroundColor: 'primary.main',
       color: 'white',
@@ -1087,7 +1165,7 @@ router.push({
       boxShadow: 3,
     }}
   >
-    <AddIcon />
+    <AddIcon  />
   </Fab>
 </Box>
 
@@ -1167,15 +1245,21 @@ router.push({
                           {/* Company Information Section */}
                           <Grid item xs={12} md={6}>
                             <TextField
-                              fullWidth
-                              label="company Id*"
-                              name="companyId"
-                              value={values.companyId}
-                              onChange={handleChange}
-                              error={touched.companyId && Boolean(errors.companyId)}
-                              helperText={touched.companyId && errors.companyId}
-                              variant="outlined"
-                            />
+    fullWidth
+    label="Company Id*"
+    name="companyId"
+    value={values.companyId}
+    onChange={(e) => {
+      handleChange(e);
+      checkCompanyIdExists(e.target.value,"companyId");
+    }}
+    error={(touched.companyId && Boolean(errors.companyId)) || Boolean(companyIdError)}
+    helperText={
+      (touched.companyId && errors.companyId) || 
+      companyIdError
+    }
+    variant="outlined"
+  />
                           </Grid>
                           <Grid item xs={12} md={6}>
                             <TextField
@@ -1206,16 +1290,22 @@ router.push({
  
                           
                           <Grid item xs={12} md={6}>
-                            <TextField
-                              fullWidth
-                              label="Email*"
-                              name="email"
-                              value={values.email}
-                              onChange={handleChange}
-                              error={touched.email && Boolean(errors.email)}
-                              helperText={touched.email && errors.email}
-                              variant="outlined"
-                            />
+                           <TextField
+    fullWidth
+    label="Email*"
+    name="email"
+    value={values.email}
+    onChange={(e) => {
+      handleChange(e);
+      checkCompanyIdExists(e.target.value,"company_email");
+    }}
+    error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
+    helperText={
+      (touched.email && errors.email) || 
+      emailError
+    }
+    variant="outlined"
+  />
                           </Grid>
                           
                           <Grid item xs={12} md={6}>

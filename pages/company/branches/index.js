@@ -315,11 +315,12 @@ const BranchlistPage = () => {
       ordering: ""
     });
   };
-
+ let [editcheckfield,seteditcheckfield]=useState({})
   // Handle menu click
   const handleMenuClick = (event, branch) => {
     setAnchorEl(event.currentTarget);
     setSelectedBranch(branch);
+        seteditcheckfield({branchCode:branch.branchCode})
   };
 
   // Handle menu close
@@ -380,6 +381,7 @@ const BranchlistPage = () => {
 
   // Handle edit
   const handleEdit = () => {
+    setbranchCodeError("")
     if (selectedBranch) {
       setCurrentBranch(selectedBranch);
       setEditModalOpen(true);
@@ -428,12 +430,18 @@ const BranchlistPage = () => {
 
   // Validation schema
   const validationSchema = Yup.object({
-    branchCode:Yup.string().required("Required"),
     name: Yup.string().required("Required"),
     manager: Yup.string().required("Required"),
     address: Yup.string().required("Required"),
     phoneNumber: Yup.string().required("Required"),
     email: Yup.string().email("Invalid email").required("Required"),
+     branchCode: Yup.string()
+                    .required("Required")
+                    .test(
+                      'username-exists',
+                      'username already exists',
+                      () => !branchCodeError // This will be updated by our debounced function
+                    ),
   });
 
   useEffect(() => {
@@ -459,6 +467,48 @@ router.push({
   query: { id: id ,companyId:router.query.id }
 });
 }
+
+
+
+
+
+
+
+
+
+
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return function(...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func.apply(this, args);
+      }, delay);
+    };
+  };
+    const [branchCodeError, setbranchCodeError] = useState('');
+    
+    // Debounced validation functions
+    const checkFieldsExists = debounce(async (value,field,id) => {
+      if (!value){
+        setbranchCodeError("")
+         return 
+      }
+      try {
+        let token = localStorage.getItem("token");
+        const response = await axios.post(`http://localhost:3001/branch/checkandverifyfields`, { field:"branch_code", branchCode: value }, {
+          headers: { Authorization: token }
+        });
+        if(field=="branch_code"){
+        setbranchCodeError(response.data.message ? 'branch code already exists' : '');
+        }
+        else{
+              // setEmailError(response.data.message ? 'Email already exists' : '');
+        }
+      } catch (error) {
+        console.error('Error checking company ID:', error);
+      }
+    }, 1000);
   return (
     <>
       <Layout>
@@ -1008,9 +1058,14 @@ router.push({
                         label="branch Code*"
                         name="branchCode"
                         value={values.branchCode}
-                        onChange={handleChange}
-                        error={touched.branchCode && Boolean(errors.branchCode)}
-                        helperText={touched.branchCode && errors.branchCode}
+                         onChange={(e)=>{handleChange(e); ;if(editcheckfield.branchCode!=e.target.value){ checkFieldsExists(e.target.value,"branch_code")} } }
+
+                         error={(touched.branchCode && Boolean(errors.branchCode)) || Boolean(branchCodeError)}
+    helperText={
+      (touched.branchCode && errors.branchCode) || 
+      branchCodeError
+    }
+   
                         variant="outlined"
                       />
                     </Grid>
@@ -1155,9 +1210,14 @@ router.push({
                         label="branch Code*"
                         name="branchCode"
                         value={values.branchCode}
-                        onChange={handleChange}
-                        error={touched.branchCode && Boolean(errors.branchCode)}
-                        helperText={touched.branchCode && errors.branchCode}
+                         onChange={(e)=>{handleChange(e); checkFieldsExists(e.target.value,"branch_code") } }
+
+                         error={(touched.branchCode && Boolean(errors.branchCode)) || Boolean(branchCodeError)}
+    helperText={
+      (touched.branchCode && errors.branchCode) || 
+      branchCodeError
+    }
+
                         variant="outlined"
                       />
                     </Grid>
@@ -1258,7 +1318,7 @@ router.push({
             <Fab 
               color="primary" 
               aria-label="add"
-              onClick={() => setAddModalOpen(true)}
+              onClick={() =>{ setAddModalOpen(true);setbranchCodeError("")} }
               sx={{
                 backgroundColor: 'primary.main',
                 color: 'white',

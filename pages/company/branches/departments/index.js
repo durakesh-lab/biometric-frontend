@@ -258,38 +258,31 @@ const DepartmentlistPage = () => {
   }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, filters, deletepopup.editDepartmentData]);
 
   // Handle select all
-  const handleSelectAll = (event) => {
-    if (event.target.checked) {
-      setSelected(departments.map(dept => dept.id));
-      setShowDelete(true);
-    } else {
-      setSelected([]);
-      setShowDelete(false);
-    }
-  };
-
-  // Handle single select
-  const handleSelect = (event, id) => {
-    const selectedIndex = selected.indexOf(id);
-    let newSelected = [];
-
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, id);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(
-        selected.slice(0, selectedIndex),
-        selected.slice(selectedIndex + 1),
-      );
-    }
-
+const handleSelectAll = (event) => {
+  if (event.target.checked) {
+    const newSelected = departments.map(staff => staff._id); // Use _id instead of id if that's your key
     setSelected(newSelected);
-    setShowDelete(newSelected.length > 0);
-  };
+    setShowDelete(true);
+  } else {
+    setSelected([]);
+    setShowDelete(false);
+  }
+};
 
+// Handle single select
+const handleSelect = (event, id) => {
+  const selectedIndex = selected.indexOf(id);
+  let newSelected = [];
+
+  if (selectedIndex === -1) {
+    newSelected = [...selected, id];
+  } else {
+    newSelected = selected.filter(item => item !== id);
+  }
+
+  setSelected(newSelected);
+  setShowDelete(newSelected.length > 0);
+};
   // Handle sort
   const handleSort = (field) => {
     const isAsc = sorting.field === field && sorting.direction === 'asc';
@@ -334,9 +327,13 @@ const DepartmentlistPage = () => {
   };
 
   // Handle menu click
+   let [editcheckfield,seteditcheckfield]=useState({})
+
   const handleMenuClick = (event, department) => {
     setAnchorEl(event.currentTarget);
     setSelectedDepartment(department);
+    seteditcheckfield({dept_code:staff.dept_code})
+      setdeptCodeError("")
   };
 
   // Handle menu close
@@ -347,7 +344,7 @@ const DepartmentlistPage = () => {
   // Handle delete confirmation
   const handleConfirmDelete = (id) => {
     dispatch(confirnDeleteAction("sure"));
-    sessionStorage.setItem("deleteIds", JSON.stringify(id._id));
+    sessionStorage.setItem("deleteIds", JSON.stringify(id));
   };
 
   // Handle delete
@@ -355,9 +352,21 @@ const DepartmentlistPage = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("token");
-      const response = await axios.delete(`http://localhost:3001/department/${id}`, {
-        headers: { Authorization: token }
-      });
+             if(Array.isArray(id)){
+                  
+                     var data = { Ids: id, action_type: "delete" };
+                  var response = await axios.post(`http://localhost:3001/department/delete-bulk`,data, {
+                    headers: { Authorization: token }
+                  });
+                 }
+                 else{
+                            var response = await axios.get(`http://localhost:3001/department/deleteUser/${id}`, {
+              headers: { Authorization: token }
+            });
+                 }
+      // const response = await axios.delete(`http://localhost:3001/department/${id}`, {
+      //   headers: { Authorization: token }
+      // });
       
       if(response?.data.detail) {
         setOpenSnackbar(response?.data.detail);
@@ -388,6 +397,7 @@ const DepartmentlistPage = () => {
 
   // Handle edit
   const handleEdit = () => {
+    setdeptCodeError("")
     if (selectedDepartment) {
       setCurrentDepartment(selectedDepartment);
       setEditModalOpen(true);
@@ -451,6 +461,40 @@ const DepartmentlistPage = () => {
     dispatch(getDepartmentList());
   }, [dispatch]);
 
+
+  
+    const debounce = (func, delay) => {
+      let timeoutId;
+      return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          func.apply(this, args);
+        }, delay);
+      };
+    };
+      const [deptCodeError, setdeptCodeError] = useState('');
+      
+      // Debounced validation functions
+      const checkFieldsExists = debounce(async (value,field,id) => {
+        if (!value){
+          setdeptCodeError("")
+           return 
+        }
+        try {
+          let token = localStorage.getItem("token");
+          const response = await axios.post(`http://localhost:3001/department/checkandverifyfields`, { field:"dept_code", dept_code: value }, {
+            headers: { Authorization: token }
+          });
+          if(field=="dept_code"){
+          setdeptCodeError(response.data.message ? 'dept code already exists' : '');
+          }
+          else{
+                // setEmailError(response.data.message ? 'Email already exists' : '');
+          }
+        } catch (error) {
+          console.error('Error checking company ID:', error);
+        }
+      }, 1000);
   return (
     <>
  <Layout>
@@ -728,15 +772,11 @@ const DepartmentlistPage = () => {
                                 )}
                               </Box>
                             ) : column.id === 'checkbox' ? (
-                              <Checkbox
-                                indeterminate={selected.length > 0 && selected.length < departments.length}
-                                checked={departments.length > 0 && selected.length === departments.length}
-                                onChange={handleSelectAll}
-                                sx={{ 
-                                  padding: '8px',
-                                  marginLeft: '-4px'
-                                }}
-                              />
+                 <Checkbox
+                 indeterminate={selected.length > 0 && selected.length < departments.length}
+                 checked={departments.length > 0 && selected.length === departments.length}
+                 onChange={handleSelectAll}
+               />
                             ) : (
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {column.label}
@@ -772,7 +812,7 @@ const DepartmentlistPage = () => {
                         </TableRow>
                       ) : (
                         departments.map((department, index) => {
-                          const isSelected = selected.indexOf(department.id) !== -1;
+                          const isSelected = selected.includes(department._id);
                           return (
                             <TableRow
                               key={department.id}
@@ -786,11 +826,10 @@ const DepartmentlistPage = () => {
                               }}
                             >
                               <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onChange={(event) => handleSelect(event, department.id)}
-                                  sx={{ padding: '4px' }}
-                                />
+                                 <Checkbox
+                                         checked={isSelected}
+                                         onChange={(event) => handleSelect(event, department._id)} // Pass _id here
+                                       />
                               </TableCell>
                               
                               <TableCell>{getSerialNumber(index)}</TableCell>
@@ -832,7 +871,7 @@ const DepartmentlistPage = () => {
                                   }}
                                 >
                                   <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                                  <MenuItem onClick={() => handleConfirmDelete(selectedDepartment)}>Delete</MenuItem>
+                                  <MenuItem onClick={() => handleConfirmDelete(selectedDepartment._id)}>Delete</MenuItem>
                                 </Menu>
                               </TableCell>
                             </TableRow>
@@ -1043,9 +1082,14 @@ const DepartmentlistPage = () => {
                         label="Department Code*"
                         name="dept_code"
                         value={values.dept_code}
-                        onChange={handleChange}
-                        error={touched.dept_code && Boolean(errors.dept_code)}
-                        helperText={touched.dept_code && errors.dept_code}
+                         onChange={(e)=>{handleChange(e); ;if(editcheckfield.dept_code!=e.target.value){ checkFieldsExists(e.target.value,"dept_code")} } }
+
+                         error={(touched.dept_code && Boolean(errors.dept_code)) || Boolean(deptCodeError)}
+    helperText={
+      (touched.dept_code && errors.dept_code) || 
+      deptCodeError
+    }
+                      
                         variant="outlined"
                       />
                     </Grid>
@@ -1152,9 +1196,15 @@ const DepartmentlistPage = () => {
                         label="Department Code*"
                         name="dept_code"
                         value={values.dept_code}
-                        onChange={handleChange}
-                        error={touched.dept_code && Boolean(errors.dept_code)}
-                        helperText={touched.dept_code && errors.dept_code}
+                  
+                         onChange={(e)=>{handleChange(e); checkFieldsExists(e.target.value,"dept_code") } }
+
+                         error={(touched.dept_code && Boolean(errors.dept_code)) || Boolean(deptCodeError)}
+    helperText={
+      (touched.dept_code && errors.dept_code) || 
+      deptCodeError
+    }
+   
                         variant="outlined"
                       />
                     </Grid>

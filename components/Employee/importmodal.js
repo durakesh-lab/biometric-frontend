@@ -306,42 +306,42 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
 
   const templateData = [
     {
-      'Employee Id': '',
-      'First Name': '',
-      'Last Name': '',
-      'Department Id': '',
-      'Department Name': '',
-      'Position Code': '',
-      'Position Name': '',
-      'Date of Joining': '',
-      'Card No.': '',
-      'Area Code': '',
-      'Gender': '',
-      'Mobile': '',
-      'Birthday': '',
-      'Email': '',
-      'Aadhaar No.': ''
+      "username":"" ,
+      'firstName': '',
+      'lastName': '',
+      'email': '',
+      'joining_date': '',
+      'date_of_birth': '',
+      'mobile': '',
+      'gender': '',
+      'active_status': '',
+      'dept_code': '',
+      'dept_name': '',
+      'company_Id': '',
+      'branchCode': '',
     }
   ];
 
   const headers = [
-    { label: 'Employee Id', key: 'Employee Id' },
-    { label: 'First Name', key: 'First Name' },
-    { label: 'Last Name', key: 'Last Name' },
-    { label: 'Department Id', key: 'Department Id' },
-    { label: 'Department Name', key: 'Department Name' },
-    { label: 'Position Code', key: 'Position Code' },
-    { label: 'Position Name', key: 'Position Name' },
-    { label: 'Date of Joining', key: 'Date of Joining' },
-    { label: 'Card No.', key: 'Card No.' },
-    { label: 'Area Code', key: 'Area Code' },
-    { label: 'Gender', key: 'Gender' },
-    { label: 'Mobile', key: 'Mobile' },
-    { label: 'Birthday', key: 'Birthday' },
-    { label: 'Email', key: 'Email' },
-    { label: 'Aadhaar No.', key: 'Aadhaar No.' }
-  ];
+     { label: 'username', key: 'username' },
+         { label: 'First Name', key: 'firstName' },
+            { label: 'Last Name', key: 'lastName' },
+           { label: 'Email', key: 'email' },
+   { label: 'Date of Joining', key: 'joining_date' },
+    { label: 'date of birth', key: 'date_of_birth' },
+    { label: 'Mobile', key: 'mobile' },
+  { label: 'Gender', key: 'gender' },
+    { label: 'active status', key: 'active_status.' },
+    { label: 'Department Code', key: 'dept_code' },
+    { label: 'Department Name', key: 'dept_name' },
 
+    { label: 'Company Id', key: 'company_Id' },
+
+    { label: 'Branch Code', key: 'branchCode' },
+    { label: 'Position Name', key: 'Position Name' },
+ 
+  ];
+  
   const handleImport = () => {
     if (!file) {
       alert('Please select a file first');
@@ -358,8 +358,13 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Import Employee</DialogTitle>
-      <DialogContent dividers>
+      <DialogTitle>Import Staff</DialogTitle>
+      <DialogContent sx={{   overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '6px',
+            },
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#888 #f1f1f1'}} dividers>
         <Box mb={3}>
           <Typography variant="subtitle1" gutterBottom>
             Import File: 
@@ -386,9 +391,9 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
           </Typography>
         </Box>
 
-        <Divider sx={{ my: 2 }} />
+        {/* <Divider sx={{ my: 2 }} /> */}
 
-        <Box mb={3}>
+        {/* <Box mb={3}>
           <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
             <InputLabel>Existing Data</InputLabel>
             <Select
@@ -400,93 +405,122 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
               <MenuItem value="overwrite">Overwrite existing employee</MenuItem>
             </Select>
           </FormControl>
-        </Box>
+        </Box> */}
 
         <Divider sx={{ my: 2 }} />
 
-        <Box mb={3}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="subtitle1" gutterBottom>
-              Sample Template:
-            </Typography>
-            <CSVLink
-              data={templateData}
-              headers={headers}
-              filename="Employee_Import_Template.csv"
-            >
-              <Button 
-                startIcon={<DownloadIcon />}
-                variant="outlined"
-                size="small"
-              >
-                Download Template
-              </Button>
-            </CSVLink>
-          </Stack>
-          <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell>A</TableCell>
-                  <TableCell>B</TableCell>
-                  <TableCell>C</TableCell>
-                  <TableCell>D</TableCell>
-                  <TableCell>E</TableCell>
-                  <TableCell>F</TableCell>
-                  <TableCell>G</TableCell>
-                  <TableCell>H</TableCell>
-                  <TableCell>I</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow>
-                  <TableCell>S.No</TableCell>
-                  <TableCell>Employee Id</TableCell>
-                  <TableCell>First Na...</TableCell>
-                  <TableCell>Department Id</TableCell>
-                  <TableCell>Department Na...</TableCell>
-                  <TableCell>Position Code</TableCell>
-                  <TableCell>Position Name</TableCell>
-                  <TableCell>Gender</TableCell>
-                  <TableCell>Date of Joint...</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>1</TableCell>
-                  <TableCell>10001</TableCell>
-                  <TableCell>Koi</TableCell>
-                  <TableCell>1</TableCell>
-                  <TableCell>HR</TableCell>
-                  <TableCell>1</TableCell>
-                  <TableCell>Director</TableCell>
-                  <TableCell>Male / Female</TableCell>
-                  <TableCell>2016-10-14</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>2</TableCell>
-                  <TableCell>10002</TableCell>
-                  <TableCell>Koe</TableCell>
-                  <TableCell>1</TableCell>
-                  <TableCell>HR</TableCell>
-                  <TableCell>1</TableCell>
-                  <TableCell>Director</TableCell>
-                  <TableCell>Male / Female</TableCell>
-                  <TableCell>2016-10-14</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>3</TableCell>
-                  <TableCell>10003</TableCell>
-                  <TableCell>Kosan</TableCell>
-                  <TableCell>1</TableCell>
-                  <TableCell>HR</TableCell>
-                  <TableCell>2</TableCell>
-                  <TableCell>Manager Assis...</TableCell>
-                  <TableCell>Male / Female</TableCell>
-                  <TableCell>2016-10-14</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
+    <Box mb={3}>
+  <Stack direction="row" justifyContent="space-between" alignItems="center">
+    <Typography variant="subtitle1" gutterBottom>
+      Sample Template:
+    </Typography>
+    <CSVLink
+      data={templateData}
+      headers={headers}
+      filename="Employee_Import_Template.csv"
+    >
+      <Button 
+        startIcon={<DownloadIcon />}
+        variant="outlined"
+        size="small"
+      >
+        Download Template
+      </Button>
+    </CSVLink>
+  </Stack>
+  <TableContainer component={Paper}  sx={{
+
+        
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '6px',
+            },
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#888 #f1f1f1',maxHeight: 300
+          }} >
+    <Table size="small" stickyHeader>
+      <TableHead>
+        <TableRow>
+          <TableCell>A</TableCell>
+          <TableCell>B</TableCell>
+          <TableCell>C</TableCell>
+          <TableCell>D</TableCell>
+          <TableCell>E</TableCell>
+          <TableCell>F</TableCell>
+          <TableCell>G</TableCell>
+          <TableCell>H</TableCell>
+          <TableCell>I</TableCell>
+          <TableCell>J</TableCell>
+          <TableCell>K</TableCell>
+          <TableCell>L</TableCell>
+          <TableCell>M</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        <TableRow>
+          <TableCell>Username</TableCell>
+          <TableCell>First Name</TableCell>
+          <TableCell>Last Name</TableCell>
+          <TableCell>Email</TableCell>
+          <TableCell>Date of Joining</TableCell>
+          <TableCell>Date of Birth</TableCell>
+          <TableCell>Mobile</TableCell>
+          <TableCell>Gender</TableCell>
+          <TableCell>Active Status</TableCell>
+          <TableCell>Department Code</TableCell>
+          <TableCell>Department Name</TableCell>
+          <TableCell>Company Id</TableCell>
+          <TableCell>Branch Code</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>10001</TableCell>
+          <TableCell>Koi</TableCell>
+          <TableCell>Smith</TableCell>
+          <TableCell>koi.smith@example.com</TableCell>
+          <TableCell>14-10-2016</TableCell>
+          <TableCell>02-07-1988</TableCell>
+          <TableCell>+1234567890</TableCell>
+          <TableCell>M</TableCell>
+          <TableCell>Active</TableCell>
+          <TableCell>1</TableCell>
+          <TableCell>HR</TableCell>
+          <TableCell>COMP001</TableCell>
+          <TableCell>BR001</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>10002</TableCell>
+          <TableCell>Koe</TableCell>
+          <TableCell>Johnson</TableCell>
+          <TableCell>koe.johnson@example.com</TableCell>
+          <TableCell>14-10-2016</TableCell>
+          <TableCell>02-07-1988</TableCell>
+          <TableCell>+1234567891</TableCell>
+          <TableCell>F</TableCell>
+          <TableCell>Active</TableCell>
+          <TableCell>1</TableCell>
+          <TableCell>HR</TableCell>
+          <TableCell>COMP001</TableCell>
+          <TableCell>BR001</TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell>10003</TableCell>
+          <TableCell>Kosan</TableCell>
+          <TableCell>Williams</TableCell>
+          <TableCell>kosan.williams@example.com</TableCell>
+          <TableCell>14-10-2016</TableCell>
+          <TableCell>30-11-1990</TableCell>
+          <TableCell>+1234567892</TableCell>
+          <TableCell>M</TableCell>
+          <TableCell>Active</TableCell>
+          <TableCell>1</TableCell>
+          <TableCell>HR</TableCell>
+          <TableCell>COMP001</TableCell>
+          <TableCell>BR001</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  </TableContainer>
+</Box>
 
         <Box>
           <Typography variant="subtitle2" gutterBottom>
@@ -496,10 +530,10 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
             1. The header in file template are required
           </Typography>
           <Typography variant="body2" paragraph>
-            2. The Employee ID, First Name, Department ID, Area Code are Required fields
+            2. The Username, Employee ID,  Department code, Branch Code are Required fields
           </Typography>
           <Typography variant="body2" paragraph>
-            3. The Card Number must be unique
+            3. The Username, Employee ID,  Department code, Branch Code must be unique
           </Typography>
           <Typography variant="caption" color="textSecondary">
             Note: Only 'txt' and 'csv' formats are supported

@@ -64,6 +64,7 @@ import ViewStaffModal from '../../../../components/Dashboard/viewstaff';
 import { Download as DownloadIcon } from '@mui/icons-material';
 import { Upload as UploadIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
+import ImportEmployeeModal from '../../../../components/Employee/importmodal';
 const genders = [ { label: "Male", value: "M" }, { label: "Female", value: "F" }];
 
 const StaffListPage = () => {
@@ -389,10 +390,12 @@ const applyFilters = () => {
     });
   };
 
+  let [editcheckfield,seteditcheckfield]=useState({})
   // Handle menu click
   const handleMenuClick = (event, staff) => {
     setAnchorEl(event.currentTarget);
     setSelectedStaff(staff);
+    seteditcheckfield({username:staff.username,email:staff.email})
   };
 
   // Handle menu close
@@ -403,7 +406,7 @@ const applyFilters = () => {
   // Handle delete confirmation
   const handleConfirmDelete = (id) => {
     dispatch(confirnDeleteAction("sure"));
-    sessionStorage.setItem("deleteIds", JSON.stringify(id._id));
+    sessionStorage.setItem("deleteIds", JSON.stringify(id));
   };
 
   // Handle delete
@@ -411,9 +414,21 @@ const applyFilters = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("token");
-      const response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
+         if(Array.isArray(id)){
+            
+               var data = { Ids: id, action_type: "delete" };
+            var response = await axios.post(`http://localhost:3001/users/delete-bulk`,data, {
+              headers: { Authorization: token }
+            });
+           }
+           else{
+                      var response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
         headers: { Authorization: token }
       });
+           }
+    //   const response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
+    //     headers: { Authorization: token }
+    //   });
       
       if(response?.data.detail) {
         setOpenSnackbar(response?.data.detail);
@@ -444,6 +459,8 @@ const applyFilters = () => {
 
   // Handle edit
   const handleEdit = () => {
+ setUsernameError("");
+ setEmailError("")
     if (selectedStaff) {
       setCurrentStaff(selectedStaff);
       setEditModalOpen(true);
@@ -496,9 +513,22 @@ const applyFilters = () => {
     lastName: Yup.string().required("Required"),
         gender: Yup.string().required("Required"),
     mobile: Yup.string().required("Required"),
-        
-    email: Yup.string().email("Invalid email").required("Required"),
-    username: Yup.string().required("Required"),
+          email: Yup.string()
+            .email("Invalid email")
+            .required("Required")
+            .test(
+              'email-exists',
+              'Email already exists',
+              () => !emailError // This will be updated by our debounced function
+            ),
+              username: Yup.string()
+                .required("Required")
+                .test(
+                  'username-exists',
+                  'username already exists',
+                  () => !usernameError // This will be updated by our debounced function
+                ),
+    // username: Yup.string().required("Required"),
     password: Yup.string().required("Required"),
     role: Yup.string().required("Required"),
     active_status: Yup.string().required("Required"),
@@ -547,7 +577,7 @@ const [showPassword, setShowPassword] = useState(false);
       const headers = [
         "username", "First Name", "Last Name","email", "Date of Joining", "Date OF Birth", 
         "Mobile", "Gender", 'active_status', "Department Code", 
-        "Department Name",  "Company Id","branch Id",
+        "Department Name",  "Company Id","branch Code",
        
       ].join(",");
       
@@ -590,6 +620,67 @@ const [showPassword, setShowPassword] = useState(false);
       console.error('Error exporting employees:', error);
     }
   };
+
+
+
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return function(...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func.apply(this, args);
+      }, delay);
+    };
+  };
+    const [emailError, setEmailError] = useState('');
+    const [usernameError, setUsernameError] = useState('');
+    
+    // Debounced validation functions
+    const checkFieldsExists = debounce(async (value,field,id) => {
+      if (!value){
+        setUsernameError("")
+         setEmailError("")
+         return 
+      }
+      try {
+        let token = localStorage.getItem("token");
+        const response = await axios.post(`http://localhost:3001/users/checkandverifyfields`,field=="username" ? { field:"username", username: value,id }:{ field:"email", email: value ,id}, {
+          headers: { Authorization: token }
+        });
+        if(field=="username"){
+        setUsernameError(response.data.message ? 'username already exists' : '');
+        }
+        else{
+              setEmailError(response.data.message ? 'Email already exists' : '');
+        }
+      } catch (error) {
+        console.error('Error checking company ID:', error);
+      }
+    }, 1000);
+
+
+
+      const [importModalOpen, setImportModalOpen] = useState(false);
+      const handleImportEmployees = async (formData) => {
+        try {
+          let token = localStorage.getItem("token");
+          const response = await axios.post(
+            `http://localhost:7000/employee/importImployeeByFile`, 
+            formData,
+            {
+              headers: { 
+                Authorization: token,
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          );
+          // setOpen("importsuccess");
+          setOpenSnackbar({status: true, message: 'Staff imported successfully'});
+          fetchStaff();
+        } catch (error) {
+          console.error('Error importing employees:', error);
+        }
+      };
   return (
     <>
       <Layout>
@@ -696,7 +787,15 @@ const [showPassword, setShowPassword] = useState(false);
                   >
                     Export
                   </Button>
-                  
+                      <Button
+                        startIcon={<DownloadIcon />}
+                        onClick={() => setImportModalOpen(true)}
+                        variant="outlined"
+                        color="primary"
+                        sx={{ mr: 1 }}
+                      >
+                        Import
+                      </Button>
                 
                     {/* <Button
                       startIcon={<DownloadIcon />}
@@ -1068,7 +1167,7 @@ const [showPassword, setShowPassword] = useState(false);
                                   }}
                                 >
                                   <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                                  <MenuItem onClick={() => handleConfirmDelete(selectedStaff)}>Delete</MenuItem>
+                                  <MenuItem onClick={() => handleConfirmDelete(selectedStaff._id)}>Delete</MenuItem>
                                 </Menu>
                               </TableCell>
                             </TableRow>
@@ -1399,22 +1498,29 @@ const [showPassword, setShowPassword] = useState(false);
                         label="Email*"
                         name="email"
                         value={values.email}
-                        onChange={handleChange}
-                        error={touched.email && Boolean(errors.email)}
-                        helperText={touched.email && errors.email}
+                         onChange={(e)=>{handleChange(e);if(editcheckfield.email!=e.target.value){ checkFieldsExists(e.target.value,"email")} } }
+
+                        error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
+    helperText={
+      (touched.email && errors.email) || 
+      emailError
+    }
                         variant="outlined"
                       />
                     </Grid>
-                    
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
                         label="Username*"
                         name="username"
                         value={values.username}
-                        onChange={handleChange}
-                        error={touched.username && Boolean(errors.username)}
-                        helperText={touched.username && errors.username}
+                       onChange={(e)=>{handleChange(e);if(editcheckfield.username!=e.target.value){ checkFieldsExists(e.target.value,"username")} } }
+
+                          error={(touched.username && Boolean(errors.username)) || Boolean(usernameError)}
+    helperText={
+      (touched.username && errors.username) || 
+      usernameError
+    }
                         variant="outlined"
                       />
                     </Grid>
@@ -1617,6 +1723,7 @@ const [showPassword, setShowPassword] = useState(false);
               {({ values, errors, touched, handleChange }) => (
                 <Form>
                   {console.log({values, errors, touched})}
+                  {console.log(usernameError,"????usernameErrorrr")}
                   <Grid container spacing={3}>
                     <Grid item xs={12}>
                       <Typography variant="h6" gutterBottom>Basic Information</Typography>
@@ -1628,9 +1735,13 @@ const [showPassword, setShowPassword] = useState(false);
                         label="Username*"
                         name="username"
                         value={values.username}
-                        onChange={handleChange}
-                        error={touched.username && Boolean(errors.username)}
-                        helperText={touched.username && errors.username}
+                        onChange={(e)=>{handleChange(e); checkFieldsExists(e.target.value,"username") } }
+
+                         error={(touched.username && Boolean(errors.username)) || Boolean(usernameError)}
+    helperText={
+      (touched.username && errors.username) || 
+      usernameError
+    }
                         variant="outlined"
                       />
                     </Grid>
@@ -1685,9 +1796,12 @@ const [showPassword, setShowPassword] = useState(false);
                         label="Email*"
                         name="email"
                         value={values.email}
-                        onChange={handleChange}
-                        error={touched.email && Boolean(errors.email)}
-                        helperText={touched.email && errors.email}
+                      onChange={(e)=>{handleChange(e); checkFieldsExists(e.target.value,"email") } }
+                          error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
+    helperText={
+      (touched.email && errors.email) || 
+      emailError
+    }
                         variant="outlined"
                       />
                     </Grid>
@@ -1866,7 +1980,7 @@ const [showPassword, setShowPassword] = useState(false);
             <Fab 
               color="primary" 
               aria-label="add"
-              onClick={() => setAddModalOpen(true)}
+                  onClick={() =>{setAddModalOpen(true); setUsernameError("");setEmailError("")}}
               sx={{
                 backgroundColor: 'primary.main',
                 color: 'white',
@@ -1880,6 +1994,16 @@ const [showPassword, setShowPassword] = useState(false);
             </Fab>
           </Box>
         )}
+
+{/* import staff files */}
+ 
+<ImportEmployeeModal 
+  open={importModalOpen}
+  onClose={() => setImportModalOpen(false)}
+  onImport={handleImportEmployees}
+/>
+   
+
 
         {/* Snackbar for notifications */}
         <Snackbar
