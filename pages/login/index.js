@@ -25,7 +25,7 @@ import LoadingButtons from '../../components/login/signin_loading';
 
 export default function Login() {
   const dispatch = useDispatch();
-  const { loading, error, token } = useSelector((state) => state.auth);
+  const { loading, errorlogin, token } = useSelector((state) => state.auth);
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,10 +40,10 @@ export default function Login() {
   ];
   // Show snackbar when error occurs
   useEffect(() => {
-    if (error) {
+    if (errorlogin) {
       setOpenSnackbar(true);
     }
-  }, [error]);
+  }, [errorlogin]);
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
@@ -69,7 +69,6 @@ export default function Login() {
       // });
     }
   }, []);
-
   const handleLogin = (e) => {
     e.preventDefault();
     dispatch(loginUser({ email, password }));
@@ -358,7 +357,7 @@ export default function Login() {
           variant="filled"
           sx={{ width: '100%' }}
         >
-          {error}
+          {errorlogin}
         </Alert>
       </Snackbar>
     </Grid>

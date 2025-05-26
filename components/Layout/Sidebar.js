@@ -36,7 +36,7 @@ const menuGroups = [
     heading: "GENERAL",
     items: [
       {
-        label: "Overview",
+        label: "Dashboard",
         icon: <HomeIcon />,
         link: "/dashboard",
       },
@@ -110,35 +110,35 @@ const menuGroups = [
       // },
     ],
   },
-  // {
-  //   heading: "MANAGEMENT",
-  //   items: [
-  //     // {
-  //     //   label: "Jobs",
-  //     //   icon: <WorkOutlineIcon />,
-  //     //   subItems: [
-  //     //     { label: "All Jobs", link: "/jobs/all" },
-  //     //     { label: "Post New Job", link: "/jobs/new" },
-  //     //   ],
-  //     // },
-  //     // {
-  //     //   label: "Candidate",
-  //     //   icon: <PersonSearchIcon />,
-  //     //   subItems: [
-  //     //     { label: "All Candidates", link: "/candidates/all" },
-  //     //     { label: "Shortlisted", link: "/candidates/shortlisted" },
-  //     //   ],
-  //     // },
-  //     // {
-  //     //   label: "Calendar",
-  //     //   icon: <CalendarMonthIcon />,
-  //     //   subItems: [
-  //     //     { label: "Events", link: "/calendar/events" },
-  //     //     { label: "Reminders", link: "/calendar/reminders" },
-  //     //   ],
-  //     // },
-  //   ],
-  // },
+  {
+    heading: "USER MANAGEMENT",
+    items: [
+      {
+        label: "Manage Users",
+        icon: <WorkOutlineIcon />,
+        subItems: [
+          { label: "manage Group", link: "/managegroup" },
+          // { label: "Post New Job", link: "/jobs/new" },
+        ],
+      },
+      // {
+      //   label: "Candidate",
+      //   icon: <PersonSearchIcon />,
+      //   subItems: [
+      //     { label: "All Candidates", link: "/candidates/all" },
+      //     { label: "Shortlisted", link: "/candidates/shortlisted" },
+      //   ],
+      // },
+      // {
+      //   label: "Calendar",
+      //   icon: <CalendarMonthIcon />,
+      //   subItems: [
+      //     { label: "Events", link: "/calendar/events" },
+      //     { label: "Reminders", link: "/calendar/reminders" },
+      //   ],
+      // },
+    ],
+  },
   // {
   //   heading: "SUPPORT",
   //   items: [
@@ -215,13 +215,13 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
         >
         <Box sx={{ display: "flex", alignItems: "center",marginTop:"40%" }}>
           <img
-            src="/images/logo.png"
-            alt="StaffX Logo"
+            src="/images/biometric_logo.png"
+            alt="StaffX Logos"
             style={{ width: 30, height: "auto", marginRight: 8 }}
           />
-          <Typography variant="h6" noWrap sx={{ fontWeight: "bold" }}>
+          {/* <Typography variant="h6" noWrap sx={{ fontWeight: "bold" }}>
             StaffX
-          </Typography>
+          </Typography> */}
         </Box>
       </Toolbar>
 
@@ -419,12 +419,12 @@ open
         >
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <img
-            src="/images/logo.png"
+            src="/images/biometric_logo.png"
             alt="StaffX Logo"
             style={{ width: 30, height: "auto", marginRight: 8 }}
           />
           <Typography variant="h6" noWrap sx={{ fontWeight: "bold" }}>
-            StaffX
+            Biometric
           </Typography>
         </Box>
       </Toolbar>

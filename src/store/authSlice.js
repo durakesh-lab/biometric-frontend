@@ -505,17 +505,17 @@ const authSlice = createSlice({
     // Login
     builder.addCase(loginUser.pending, (state) => {
       state.loading = true;
-      state.error = null;
+      state.errorlogin = null;
     });
     builder.addCase(loginUser.fulfilled, (state, action) => {
       if(action.payload.error){
         state.loading = false;
-        state.error = action.payload.message;
+        state.errorlogin = action.payload.message;
       }
       else{
         state.loading = true;
         state.token = action.payload; // token from userLogin
-        state.error = null;
+        state.errorlogin = null;
       }
   
     });
@@ -523,7 +523,7 @@ const authSlice = createSlice({
       console.log(action,"@@@rejected")
 
       state.loading = false;
-      state.error = action.payload || action.error.message;
+      state.errorlogin = action.payload || action.error.message;
     });
 
     // Register

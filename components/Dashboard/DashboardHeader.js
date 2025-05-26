@@ -42,16 +42,20 @@ export default function DashboardHeader({userdata}) {
           It's a lot of work for today! So let's get started.
         </Typography>
 
-        <Button 
-          variant="contained" 
-          color="success"
-          size="small" // Smaller button on mobile
-          sx={{
-            width: { xs: '100%', sm: 'auto' } // Full width on mobile
-          }}
-        >
-          Review it
-        </Button>
+       <Button 
+  variant="contained" 
+  size="small"
+  sx={{
+    width: { xs: '100%', sm: 'auto' }, // Full width on mobile
+    textTransform: 'capitalize',
+    boxShadow: 'none', // Removes button shadow
+    '&:hover': {
+      boxShadow: 'none', // Prevents shadow on hover too
+    }
+  }}
+>
+  Review it
+</Button>
       </Box>
     </Box>
   );

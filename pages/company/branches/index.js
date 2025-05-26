@@ -141,6 +141,7 @@ const BranchlistPage = () => {
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
+        { id: 'Id', label: 'Id', sortable: false },
     { id: 'branchCode', label: 'branch code', sortable: false },
     { id: 'name', label: 'Branch Name', sortable: true },
     { id: 'manager', label: 'Manager', sortable: true },
@@ -765,6 +766,7 @@ router.push({
                               </TableCell>
                               
                               <TableCell>{getSerialNumber(index)}</TableCell>
+                              <TableCell>{branch._id}</TableCell>
                               <TableCell>{branch.branchCode}</TableCell>
                               <TableCell>{branch.name}</TableCell>
                               <TableCell>{branch.manager}</TableCell>
@@ -784,7 +786,10 @@ router.push({
                                 <Button 
                                   variant="contained" 
                                   size="small" 
-                                  sx={{ textTransform: 'capitalize' }}
+                                  sx={{ textTransform: 'capitalize',   boxShadow: 'none', // Removes button shadow
+    '&:hover': {
+      boxShadow: 'none', // Prevents shadow on hover too
+    } }}
                                   onClick={() => handleManageBranches(branch._id)}
                                 >
                                    Departments 
@@ -794,7 +799,10 @@ router.push({
   <Button 
     variant="contained" 
     size="small" 
-    sx={{ textTransform: 'capitalize', ml: 1 }}
+    sx={{ textTransform: 'capitalize', ml: 1,   boxShadow: 'none', // Removes button shadow
+    '&:hover': {
+      boxShadow: 'none', // Prevents shadow on hover too
+    } }}
     onClick={() => handleManageEmployees(branch._id)}
   >
     Employees

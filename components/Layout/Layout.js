@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { Box, Toolbar, useMediaQuery } from "@mui/material";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { createTheme, ThemeProvider, CssBaseline } from "@mui/material";
+import "@fontsource/roboto";
+import "@fontsource/poppins";
+
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
 const drawerWidth = 220;
 
+// Custom theme: Roboto (body) + Poppins (headings)
 const theme = createTheme({
   palette: {
     primary: {
@@ -21,9 +25,15 @@ const theme = createTheme({
     },
   },
   typography: {
+    fontFamily: "Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    h1: { fontFamily: "Poppins, sans-serif" },
+    h2: { fontFamily: "Poppins, sans-serif" },
+    h3: { fontFamily: "Poppins, sans-serif" },
+    h4: { fontFamily: "Poppins, sans-serif" },
+    h5: { fontFamily: "Poppins, sans-serif" },
+    h6: { fontFamily: "Poppins, sans-serif" },
     fontSize: 10,
     body2: { color: "black" },
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
 });
 
@@ -37,36 +47,39 @@ export default function Layout({ children }) {
 
   return (
     <ThemeProvider theme={theme}>
-    <Box sx={{ display: "flex" }}>
-      <Sidebar 
-        drawerWidth={drawerWidth} 
-        mobileOpen={mobileOpen} 
-        handleDrawerToggle={handleDrawerToggle} 
-      />
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-          overflowX: 'hidden' // Prevent horizontal scroll
-        }}
-      >
-        <Header 
+      <CssBaseline />
+      <Box sx={{ display: "flex" }}>
+        <Sidebar 
           drawerWidth={drawerWidth} 
-          onDrawerToggle={handleDrawerToggle}
+          mobileOpen={mobileOpen} 
+          handleDrawerToggle={handleDrawerToggle} 
         />
-        <Toolbar /> {/* This creates space below the AppBar */}
-        <Box sx={{ 
-          p: { xs: 1, sm: 3 },
-          width: '100%',
-          overflow: 'hidden'
-        }}>
-          {children}
+
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            width: { sm: `calc(100% - ${drawerWidth}px)` },
+            ml: { sm: `${drawerWidth}px` },
+            overflowX: "hidden",
+          }}
+        >
+          <Header 
+            drawerWidth={drawerWidth} 
+            onDrawerToggle={handleDrawerToggle} 
+          />
+          <Toolbar />
+          <Box
+            sx={{
+              p: { xs: 1, sm: 3 },
+              width: "100%",
+              overflow: "hidden",
+            }}
+          >
+            {children}
+          </Box>
         </Box>
       </Box>
-    </Box>
-  </ThemeProvider>
-);
+    </ThemeProvider>
+  );
 }

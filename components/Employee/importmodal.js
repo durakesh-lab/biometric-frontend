@@ -308,17 +308,19 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
     {
       "username":"" ,
       'firstName': '',
+ 
       'lastName': '',
+           "password":"",
+           "role":"",
       'email': '',
       'joining_date': '',
       'date_of_birth': '',
       'mobile': '',
       'gender': '',
       'active_status': '',
-      'dept_code': '',
-      'dept_name': '',
-      'company_Id': '',
-      'branchCode': '',
+      'DepartmentId': '',
+      'CompanyId': '',
+      'BranchId': '',
     }
   ];
 
@@ -326,19 +328,21 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
      { label: 'username', key: 'username' },
          { label: 'First Name', key: 'firstName' },
             { label: 'Last Name', key: 'lastName' },
+            { label: 'password', key: 'password' },
+              { label: 'role', key: 'role' },
            { label: 'Email', key: 'email' },
    { label: 'Date of Joining', key: 'joining_date' },
     { label: 'date of birth', key: 'date_of_birth' },
     { label: 'Mobile', key: 'mobile' },
   { label: 'Gender', key: 'gender' },
     { label: 'active status', key: 'active_status.' },
-    { label: 'Department Code', key: 'dept_code' },
-    { label: 'Department Name', key: 'dept_name' },
+    // { label: 'DepartmentId', key: 'dept_code' },
+    { label: 'DepartmentId', key: 'DepartmentId' },
 
-    { label: 'Company Id', key: 'company_Id' },
+    { label: 'CompanyId', key: 'CompanyId' },
 
-    { label: 'Branch Code', key: 'branchCode' },
-    { label: 'Position Name', key: 'Position Name' },
+    { label: 'BranchId', key: 'BranchId' },
+    // { label: 'Position Name', key: 'Position Name' },
  
   ];
   
@@ -349,8 +353,8 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
     }
 
     const formData = new FormData();
-    formData.append('import_file', file);
-    formData.append('duplicate_record', existingDataOption === 'ignore' ? 'not_import' : 'overwrite');
+    formData.append('file', file);
+    // formData.append('duplicate_record', existingDataOption === 'ignore' ? 'not_import' : 'overwrite');
 
     onImport(formData);
     onClose();
@@ -378,7 +382,7 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
                 type="file"
                 ref={fileInputRef}
                 hidden
-                accept=".csv,.txt"
+                accept=".csv,.xlsx"
                 onChange={handleFileChange}
               />
             </Button>
@@ -454,6 +458,7 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
           <TableCell>K</TableCell>
           <TableCell>L</TableCell>
           <TableCell>M</TableCell>
+          <TableCell>N</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -461,6 +466,8 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
           <TableCell>Username</TableCell>
           <TableCell>First Name</TableCell>
           <TableCell>Last Name</TableCell>
+           <TableCell>Password</TableCell>
+               <TableCell>Role</TableCell>
           <TableCell>Email</TableCell>
           <TableCell>Date of Joining</TableCell>
           <TableCell>Date of Birth</TableCell>
@@ -476,6 +483,8 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
           <TableCell>10001</TableCell>
           <TableCell>Koi</TableCell>
           <TableCell>Smith</TableCell>
+           <TableCell>Password</TableCell>
+               <TableCell>Employee</TableCell>
           <TableCell>koi.smith@example.com</TableCell>
           <TableCell>14-10-2016</TableCell>
           <TableCell>02-07-1988</TableCell>
@@ -491,6 +500,8 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
           <TableCell>10002</TableCell>
           <TableCell>Koe</TableCell>
           <TableCell>Johnson</TableCell>
+               <TableCell>Password</TableCell>
+               <TableCell>HR</TableCell>
           <TableCell>koe.johnson@example.com</TableCell>
           <TableCell>14-10-2016</TableCell>
           <TableCell>02-07-1988</TableCell>
@@ -506,6 +517,8 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
           <TableCell>10003</TableCell>
           <TableCell>Kosan</TableCell>
           <TableCell>Williams</TableCell>
+               <TableCell>Password</TableCell>
+               <TableCell>HR Manager</TableCell>
           <TableCell>kosan.williams@example.com</TableCell>
           <TableCell>14-10-2016</TableCell>
           <TableCell>30-11-1990</TableCell>
@@ -536,7 +549,7 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
             3. The Username, Employee ID,  Department code, Branch Code must be unique
           </Typography>
           <Typography variant="caption" color="textSecondary">
-            Note: Only 'txt' and 'csv' formats are supported
+            Note: Only 'xlsx'  formats are supported
           </Typography>
         </Box>
       </DialogContent>

@@ -529,7 +529,7 @@ const applyFilters = () => {
                   () => !usernameError // This will be updated by our debounced function
                 ),
     // username: Yup.string().required("Required"),
-    password: Yup.string().required("Required"),
+    // password: Yup.string().required("Required"),
     role: Yup.string().required("Required"),
     active_status: Yup.string().required("Required"),
   });
@@ -665,7 +665,7 @@ const [showPassword, setShowPassword] = useState(false);
         try {
           let token = localStorage.getItem("token");
           const response = await axios.post(
-            `http://localhost:7000/employee/importImployeeByFile`, 
+            `http://localhost:3001/users/import`, 
             formData,
             {
               headers: { 
@@ -675,6 +675,7 @@ const [showPassword, setShowPassword] = useState(false);
             }
           );
           // setOpen("importsuccess");
+          console.log(response,"response",{response})
           setOpenSnackbar({status: true, message: 'Staff imported successfully'});
           fetchStaff();
         } catch (error) {

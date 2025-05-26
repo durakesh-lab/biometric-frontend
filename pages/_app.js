@@ -5,7 +5,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import "../styles/globals.css";
 import { Provider } from "react-redux";
 import { store } from "../src/store/store"; // Adjust the path if needed
-
+import 'bootstrap/dist/css/bootstrap.min.css';
 export const theme = createTheme({
   palette: {
     primary: {
@@ -23,7 +23,7 @@ export const theme = createTheme({
   },
   typography: {
     fontFamily:
-      "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "Inwsster, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     h6: { fontWeight: 600 },
     body2: { color: "#6c757d" },
   },
@@ -57,6 +57,9 @@ export const theme = createTheme({
 });
 
 export default function MyApp({ Component, pageProps }) {
+    React.useEffect(() => {
+    import('bootstrap/dist/js/bootstrap.bundle.min.js');
+  }, []);
   return (
 <Provider store={store}>
   <ThemeProvider theme={theme}>

@@ -25,3 +25,227 @@ html, body {
 .css-2celnl-MuiGrid-root>.MuiGrid-item{
   padding-left: 0px !important;
 }
+
+
+
+.nk-header-fixed+.nk-content {
+    margin-top: 65px;
+    position: relative;
+}
+
+@media (min-width: 576px) {
+    .nk-content {
+        padding: 32px 16px;
+    }
+}
+
+.container, .container-fluid, .container-xxl, .container-xl, .container-lg, .container-md, .container-sm
+ {
+    width: 100%;
+    padding-right: 14px;
+    padding-left: 14px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+
+
+@media (min-width: 768px) {
+    .nk-content-body>.nk-block-head-sm:first-child {
+        padding-bottom: 1.75rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .nk-content-body>.nk-block-head:first-child {
+        padding-bottom: 2.5rem;
+    }
+}
+.nk-content-body>.nk-block-head:first-child {
+    padding-bottom: 1.75rem;
+}
+.nk-block-head-sm {
+    padding-bottom: 1rem;
+}
+.nk-block-head {
+    position: relative;
+    padding-bottom: 1.25rem;
+}
+
+.nk-block-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media (min-width: 992px) {
+    .page-title {
+        font-size: 1.75rem;
+    }
+}
+.page-title {
+    font-family: Roboto;
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+.nk-block-tools {
+    display: flex
+;
+    align-items: center;
+}
+.g-3 {
+    margin: -0.5rem !important;
+}
+.btn:not(:disabled):not(.disabled) {
+    cursor: pointer;
+}
+
+.btn {
+    position: relative;
+    letter-spacing: .02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn:not(:disabled):not(.disabled) {
+    cursor: pointer;
+}
+
+.btn-icon:not([class*=btn-icon-break]) {
+    padding-left: 0;
+    padding-right: 0;
+}
+.card-bordered {
+    border: 1px solid #dbdfea;
+}
+.card {
+    position: relative;
+    display: flex
+;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border: 0 solid rgba(0, 0, 0, .125);
+    border-radius: 4px;
+}
+.card-aside-wrap {
+    display: flex;
+}
+
+@media (min-width: 992px) {
+    .toggle-break-lg {
+        transition: none;
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) !important;
+        position: static;
+        background: rgba(0, 0, 0, 0);
+        box-shadow: none;
+        z-index: 1 !important;
+    }
+}
+.toggle-slide-left {
+    left: 0;
+    transform: translateX(-100%);
+}
+.toggle-slide {
+    position: fixed;
+    top: 0;
+    z-index: 999;
+    min-width: 260px;
+    max-width: calc(100% - 40px);
+    transition: transform 650ms ease;
+}
+@media (min-width: 992px) {
+    .card-aside {
+        position: static;
+        display: block;
+    }
+}
+.card-aside-left {
+    order: -1;
+    border-right: 1px solid #e5e9f2;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+.card-aside {
+    width: 300px;
+    background-color: #fff;
+    min-height: calc(100vh - 282px);
+    flex-shrink: 0;
+}
+@media (min-width: 576px) {
+    .nk-wg-head {
+        padding: .75rem 1.5rem;
+    }
+}
+
+.nk-wg-head {
+    position: relative;
+    display: flex
+;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1.25rem;
+    border-bottom: 1px solid #e5e9f2;
+    min-height: 61px;
+}
+.nk-wg-menu:last-child {
+    margin-bottom: .5rem;
+}
+@media (min-width: 576px) {
+    .nk-wg-menu {
+        padding: 0 .75rem;
+    }
+}
+
+.nk-wg-menu {
+    margin-top: .75rem;
+    padding: 0 .5rem;
+}
+.card-aside-wrap .card-inner, .card-aside-wrap .card-content {
+    flex-grow: 1;
+}
+@media (min-width: 576px) {
+    .nk-wg-head {
+        padding: .75rem 1.5rem;
+    }
+}
+.nk-wg-head {
+    position: relative;
+    display: flex
+;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1.25rem;
+    border-bottom: 1px solid #e5e9f2;
+    min-height: 61px;
+}
+@media (min-width: 576px) {
+    .card-tools-toggle {
+        z-index: 9;
+    }
+}
+.card-title-group
+ {
+    display: flex
+;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+.card-tools.mr-n1 {
+    margin-right: -0.5rem !important;
+}
+.btn-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+@media (min-width: 576px) {
+    .card-inner {
+        padding: 1.5rem;
+    }
+}

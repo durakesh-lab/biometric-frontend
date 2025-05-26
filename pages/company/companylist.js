@@ -128,7 +128,8 @@ const CompanyListPage = () => {
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
-    { id: 'CompanyId', label: 'Company Id', sortable: true },
+    { id: 'Id', label: 'Id', sortable: false },
+    { id: 'CompanyId', label: 'Company Code', sortable: true },
     { id: 'name', label: 'Company Name', sortable: true },
     { id: 'owner', label: 'Owner', sortable: true },
     { id: 'email', label: 'Email', sortable: true },
@@ -249,7 +250,6 @@ const handleSelect = (event, id) => {
       direction: isAsc ? 'desc' : 'asc'
     });
   };
-console.log(pagination.page,"??????mmmmmmmmmmmmmm")
   // Handle page change
   const handlePageChange = (newPage) => {
     setPagination({ ...pagination, page: newPage });
@@ -667,6 +667,7 @@ console.log(companyIdError,"companyIdError############")
                             </TableCell>
                             
                             <TableCell>{getSerialNumber(index)}</TableCell>
+                             <TableCell>{company?._id}</TableCell>
                             <TableCell>{company?.companyId}</TableCell>
 
                             <TableCell>{company?.name}</TableCell>
@@ -687,7 +688,10 @@ console.log(companyIdError,"companyIdError############")
   <Button 
     variant="contained" 
     size="small" 
-    sx={{ textTransform: 'capitalize' }}
+    sx={{ textTransform: 'capitalize',   boxShadow: 'none', // Removes button shadow
+    '&:hover': {
+      boxShadow: 'none', // Prevents shadow on hover too
+    } }}
     onClick={() => handleManageBranches(company._id)}
   >
      Branches 
