@@ -784,7 +784,7 @@ const [showPassword, setShowPassword] = useState(false);
                     onClick={() => setExportModalOpen(true)}
                     variant="outlined"
                     color="primary"
-                    sx={{ mr: 1 }}
+                    sx={{ mr: 1,textTransform:"none" }}
                   >
                     Export
                   </Button>
@@ -793,7 +793,7 @@ const [showPassword, setShowPassword] = useState(false);
                         onClick={() => setImportModalOpen(true)}
                         variant="outlined"
                         color="primary"
-                        sx={{ mr: 1 }}
+                      sx={{ mr: 1,textTransform:"none" }}
                       >
                         Import
                       </Button>
@@ -1660,16 +1660,17 @@ const [showPassword, setShowPassword] = useState(false);
                     </Grid>
 
                     <Grid item xs={12}>
-                      <Button 
-                        fullWidth 
-                        type="submit" 
-                        variant="contained" 
+                       <Button
+            
+                        fullWidth
+                        onClick={() => setImportModalOpen(true)}
+                        variant="contained"
                         color="primary"
-                        size="large"
-                        sx={{ mt: 3 }}
+                      sx={{ mr: 3,textTransform:"none" }}
                       >
-                        UPDATE STAFF
+                        Update Staff
                       </Button>
+
                     </Grid>
                   </Grid>
                 </Form>
@@ -1950,16 +1951,19 @@ const [showPassword, setShowPassword] = useState(false);
                     </Grid>
 
                     <Grid item xs={12}>
-                      <Button 
-                        fullWidth 
-                        type="submit" 
-                        variant="contained" 
+  
+
+ <Button
+            
+                        fullWidth
+                        onClick={() => setImportModalOpen(true)}
+                        variant="contained"
                         color="primary"
-                        size="large"
-                        sx={{ mt: 3 }}
+                      sx={{ mr: 3,textTransform:"none" }}
                       >
-                        ADD STAFF
+                        Add Staff
                       </Button>
+
                     </Grid>
                   </Grid>
                 </Form>

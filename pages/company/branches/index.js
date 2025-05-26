@@ -1149,9 +1149,9 @@ router.push({
                         variant="contained" 
                         color="primary"
                         size="large"
-                        sx={{ mt: 3 }}
+                        sx={{ mt: 3,textTransform:"none" }}
                       >
-                        UPDATE BRANCH
+                        Update Branch
                       </Button>
                     </Grid>
                   </Grid>
@@ -1301,9 +1301,9 @@ router.push({
                         variant="contained" 
                         color="primary"
                         size="large"
-                        sx={{ mt: 3 }}
+                        sx={{ mt: 3,textTransform:"none"  }}
                       >
-                        ADD BRANCH
+                        Add Branch
                       </Button>
                     </Grid>
                   </Grid>

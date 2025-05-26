@@ -333,7 +333,7 @@ const handleSelect = (event, id) => {
   const handleMenuClick = (event, department) => {
     setAnchorEl(event.currentTarget);
     setSelectedDepartment(department);
-    seteditcheckfield({dept_code:staff.dept_code})
+    seteditcheckfield({dept_code:department.dept_code})
       setdeptCodeError("")
   };
 
@@ -1116,9 +1116,9 @@ const handleSelect = (event, id) => {
                         variant="contained" 
                         color="primary"
                         size="large"
-                        sx={{ mt: 3 }}
+                        sx={{ mt: 3,textTransform:"none" }}
                       >
-                        UPDATE DEPARTMENT
+                        Update Department
                       </Button>
                     </Grid>
                   </Grid>
@@ -1231,9 +1231,9 @@ const handleSelect = (event, id) => {
                         variant="contained" 
                         color="primary"
                         size="large"
-                        sx={{ mt: 3 }}
+                        sx={{ mt: 3,textTransform:"none" }}
                       >
-                        ADD DEPARTMENT
+                        Add Department
                       </Button>
                     </Grid>
                   </Grid>

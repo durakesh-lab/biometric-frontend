@@ -32,8 +32,10 @@ import {
   CircularProgress,
   Skeleton,
   Snackbar,
-  Alert
+  Alert,
+  SnackbarContent
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { 
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -797,6 +799,9 @@ console.log(companyIdError,"companyIdError############")
               </Box>
             </Box>
           </Grid>
+
+
+
         </Grid>
 
         {/* Filter Modal */}
@@ -1112,9 +1117,9 @@ console.log(companyIdError,"companyIdError############")
                           variant="contained" 
                           color="primary"
                           size="large"
-                          sx={{ mt: 3 }}
+                          sx={{ mr: 3,textTransform:"none" }}
                         >
-                          UPDATE COMPANY
+                          Update Company
                         </Button>
                       </Grid>
                     </Grid>
@@ -1126,7 +1131,7 @@ console.log(companyIdError,"companyIdError############")
         )}
         
         {/* Error Snackbar */}
-        {(openSnackbar.status || openSnackbar) && 
+        {/* {(openSnackbar.status || openSnackbar) && 
           <Snackbar
             open={openSnackbar}
             autoHideDuration={6000}
@@ -1142,8 +1147,25 @@ console.log(companyIdError,"companyIdError############")
               {openSnackbar.status ? openSnackbar.message : openSnackbar}
             </Alert>
           </Snackbar>
-        }
-      
+        } */}
+       {(openSnackbar.status || openSnackbar) && 
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={2000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }} // Moves it to top-right
+      >
+        <SnackbarContent
+          style={{ backgroundColor: openSnackbar.status ? '#0e9f6e' :'#d32f2f', color: 'white' }}
+          message={openSnackbar.status ? openSnackbar.message : openSnackbar}
+          action={
+            <IconButton size="small" onClick={handleCloseSnackbar} style={{ color: 'white' }}>
+              <CloseIcon />
+            </IconButton>
+          }
+        />
+      </Snackbar>
+          }
 
 
       {/* Floating Add Button */}
@@ -1407,7 +1429,7 @@ console.log(companyIdError,"companyIdError############")
                               variant="contained" 
                               color="primary"
                               size="large"
-                              sx={{ mt: 3 }}
+                              sx={{ mr: 3,textTransform:"none"}}
                               disabled={isSubmitting || loading}
                             >
                               {loading ? (
@@ -1421,7 +1443,7 @@ console.log(companyIdError,"companyIdError############")
                                   />
                                   Processing...
                                 </>
-                              ) : "ADD COMPANY"}
+                              ) : "Add Company"}
                             </Button>
                           </Grid>
                         </Grid>

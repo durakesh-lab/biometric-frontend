@@ -6,6 +6,9 @@ import "../styles/globals.css";
 import { Provider } from "react-redux";
 import { store } from "../src/store/store"; // Adjust the path if needed
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'primereact/resources/themes/saga-blue/theme.css';
+import 'primereact/resources/primereact.min.css';
+import 'primeicons/primeicons.css';
 export const theme = createTheme({
   palette: {
     primary: {

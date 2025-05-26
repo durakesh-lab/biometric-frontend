@@ -2,7 +2,9 @@
 import React, { useState } from 'react';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
-
+import { SnackbarContent } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from '@mui/material/IconButton';
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
@@ -66,16 +68,24 @@ const SuccessSnackbar = ({ open,openEdit, handleClose ,deleteemployee}) => {
     //   break;
   }
     return (
-      <Snackbar
-        open={check}
-        autoHideDuration={2000}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleClose} severity="success" sx={{ width: '100%' }}>
-          {dataToShow}
-        </Alert>
-      </Snackbar>
+<Snackbar
+  open={check}
+  autoHideDuration={2000}
+  onClose={handleClose}
+  anchorOrigin={{ vertical: 'top', horizontal: 'right' }} // Moves it to top-right
+>
+  <SnackbarContent
+    style={{ backgroundColor: '#0e9f6e', color: 'white' }}
+    message={dataToShow}
+    action={
+      <IconButton size="small" onClick={handleClose} style={{ color: 'white' }}>
+        <CloseIcon />
+      </IconButton>
+    }
+  />
+</Snackbar>
+
+
     );
 };
 
