@@ -56,7 +56,7 @@ import ApartmentIcon from '@mui/icons-material/Apartment';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { confirnDeleteAction, editStaffAction, getStaffList } from '@/store/authSlice';
-import Layout from '../../../../components/Layout/Layout';
+import Layout, { theme } from '../../../../components/Layout/Layout';
 import MyComponent from '../../../../components/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
@@ -65,6 +65,7 @@ import { Download as DownloadIcon } from '@mui/icons-material';
 import { Upload as UploadIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import ImportEmployeeModal from '../../../../components/Employee/importmodal';
+import ReactPaginate from 'react-paginate';
 const genders = [ { label: "Male", value: "M" }, { label: "Female", value: "F" }];
 
 const StaffListPage = () => {
@@ -685,6 +686,7 @@ const [showPassword, setShowPassword] = useState(false);
   return (
     <>
       <Layout>
+
         <Grid container spacing={3}>
           {/* Header Section */}
           <Grid item xs={12}>
@@ -747,155 +749,134 @@ const [showPassword, setShowPassword] = useState(false);
                 Staff List
               </Typography>
      
-              <Box display="flex" alignItems="center" gap={1}>
-                {showDelete && (
-                  <Tooltip title={`Delete selected (${selected.length})`}>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleConfirmDelete(selected)}
-                    >
-                      <DeleteIcon />
-                      <Typography variant="caption" sx={{ ml: 0.5 }}>
-                        ({selected.length})
-                      </Typography>
-                    </IconButton>
-                  </Tooltip>
-                )}
-                    <Dialog open={exportModalOpen} onClose={() => setExportModalOpen(false)}>
-                  <DialogTitle>Export Employees</DialogTitle>
-                  <DialogContent>
-                    <DialogContentText>
-                      Are you sure you want to export {staff.length} employees to a CSV file?
-                    </DialogContentText>
-                  </DialogContent>
-                  <DialogActions>
-                    <Button onClick={() => setExportModalOpen(false)} color="primary">
-                      Cancel
-                    </Button>
-                    <Button onClick={handleExportEmployees} color="primary" variant="contained">
-                      Export
-                    </Button>
-                  </DialogActions>
-                </Dialog>
-                
-                  
-                  <Button
-                    startIcon={<UploadIcon />}
-                    onClick={() => setExportModalOpen(true)}
-                    variant="outlined"
-                    color="primary"
-                    sx={{ mr: 1,textTransform:"none" }}
-                  >
-                    Export
-                  </Button>
-                      <Button
-                        startIcon={<DownloadIcon />}
-                        onClick={() => setImportModalOpen(true)}
-                        variant="outlined"
-                        color="primary"
-                      sx={{ mr: 1,textTransform:"none" }}
-                      >
-                        Import
-                      </Button>
-                
-                    {/* <Button
-                      startIcon={<DownloadIcon />}
-                      onClick={() => setImportModalOpen(true)}
-                      variant="outlined"
-                      color="primary"
-                      sx={{ mr: 1 }}
-                    >
-                      Import
-                    </Button> */}
-                <Button
-                  startIcon={<FilterIcon sx={{ color: 'text.secondary' }} />}
-                  onClick={() => setFilterOpen(true)}
-                  sx={{ 
-                    backgroundColor: '#f5f5f5',
-                    color: 'text.secondary',
-                    '&:hover': {
-                      backgroundColor: '#e0e0e0'
-                    }
-                  }}
-                >
-                  <Typography variant="body2">Sort & Filter</Typography>
-                </Button>
-                
-                {/* Role Filter Dropdown */}
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Role</InputLabel>
-          <Select
-  value={filters.role || ''}
-  label="Role"
-  onChange={(e) => {
-    handleFilterChange('role', e.target.value);
-    setPagination(prev => ({
-      ...prev,
-      page: 1  // Reset to page 1 when role filter changes
-    }));
-  }}
-  sx={{ color: 'text.secondary' }}
-  startAdornment={
-    <InputAdornment position="start">
-      <RoleIcon fontSize="small" />
-    </InputAdornment>
+<Box display="flex" alignItems="center" gap={1} sx={{ 
+  flexDirection: { xs: 'column', sm: 'row' },
+  width: '100%',
+  '& > *': {
+    width: { xs: '100%', sm: 'auto' },
+    mb: { xs: 1, sm: 0 }
   }
->
-                    <MenuItem value="">All Roles</MenuItem>
-                    {roleTypes.map((role) => (
-                      <MenuItem key={role} value={role}>
-                        {role}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                
-                {/* Department Filter Dropdown */}
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Department</InputLabel>
-                  <Select
-                    value={filters.department || ''}
-                    label="Department"
-                    onChange={(e) => handleFilterChange('department', e.target.value)}
-                    sx={{ color: 'text.secondary' }}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <DepartmentIcon fontSize="small" />
-                      </InputAdornment>
-                    }
-                    disabled={loadingDepartments || !selectedBranch}
-                  >
-                    <MenuItem value="">All Departments</MenuItem>
-                    {departments.map((dept) => (
-                      <MenuItem key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                
-      <TextField
-  variant="outlined"
-  size="small"
-  placeholder="Search..."
-  value={search}
-  onChange={(e) => {
-    setSearch(e.target.value);
-    setPagination(prev => ({
-      ...prev,
-      page: 1  // Reset to page 1 when search changes
-    }));
-  }}
-  InputProps={{
-    startAdornment: (
-      <InputAdornment position="start">
-        <SearchIcon sx={{ color: 'text.secondary' }} />
-      </InputAdornment>
-    ),
-  }}
-  sx={{ width: 200 }}
-/>
-              </Box>
+}}>
+  {showDelete && (
+    <Tooltip title={`Delete selected (${selected.length})`}>
+      <IconButton
+        color="error"
+        onClick={() => handleConfirmDelete(selected)}
+        sx={{ alignSelf: 'flex-start' }}
+      >
+        <DeleteIcon />
+        <Typography variant="caption" sx={{ ml: 0.5 }}>
+          ({selected.length})
+        </Typography>
+      </IconButton>
+    </Tooltip>
+  )}
+
+  {/* This Box will push everything to the right */}
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto', flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
+    {/* Export Button */}
+    <Button
+      startIcon={<UploadIcon />}
+      onClick={() => setExportModalOpen(true)}
+      variant="outlined"
+      color="primary"
+      sx={{ textTransform: "none", width: { xs: '100%', sm: 'auto' }}}
+    >
+      Export
+    </Button>
+
+    {/* Import Button */}
+    <Button
+      startIcon={<DownloadIcon />}
+      onClick={() => setImportModalOpen(true)}
+      variant="outlined"
+      color="primary"
+      sx={{ textTransform: "none",width: { xs: '100%', sm: 'auto' } }}
+    >
+      Import
+    </Button>
+
+    {/* Filter Button */}
+    <Button
+      startIcon={<FilterIcon />}
+      onClick={() => setFilterOpen(true)}
+      sx={{ 
+        backgroundColor: '#f5f5f5',
+        color: 'text.secondary',
+        '&:hover': { backgroundColor: '#e0e0e0' },width: { xs: '100%', sm: 'auto' },
+        textTransform: "none"
+      }}
+    >
+      <Typography variant="body2">Sort & Filter</Typography>
+    </Button>
+
+    {/* Role Filter - Full width on mobile */}
+    <FormControl size="small" sx={{ minWidth: 120, width: { xs: '100%', sm: 'auto' } }}>
+      <InputLabel>Role</InputLabel>
+      <Select
+        value={filters.role || ''}
+        label="Role"
+        onChange={(e) => {
+          handleFilterChange('role', e.target.value);
+          setPagination(prev => ({ ...prev, page: 1 }));
+        }}
+        sx={{ color: 'text.secondary' }}
+        startAdornment={
+          <InputAdornment position="start">
+            <RoleIcon fontSize="small" />
+          </InputAdornment>
+        }
+      >
+        <MenuItem value="">All Roles</MenuItem>
+        {roleTypes.map((role) => (
+          <MenuItem key={role} value={role}>{role}</MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+    {/* Department Filter - Full width on mobile */}
+    <FormControl size="small" sx={{ minWidth: 120, width: { xs: '100%', sm: 'auto' } }}>
+      <InputLabel>Department</InputLabel>
+      <Select
+        value={filters.department || ''}
+        label="Department"
+        onChange={(e) => handleFilterChange('department', e.target.value)}
+        sx={{ color: 'text.secondary' }}
+        startAdornment={
+          <InputAdornment position="start">
+            <DepartmentIcon fontSize="small" />
+          </InputAdornment>
+        }
+        disabled={loadingDepartments || !selectedBranch}
+      >
+        <MenuItem value="">All Departments</MenuItem>
+        {departments.map((dept) => (
+          <MenuItem key={dept._id} value={dept._id}>{dept.name}</MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+    {/* Search Field - Full width on mobile */}
+    <TextField
+      variant="outlined"
+      size="small"
+      placeholder="Search..."
+      value={search}
+      onChange={(e) => {
+        setSearch(e.target.value);
+        setPagination(prev => ({ ...prev, page: 1 }));
+      }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon sx={{ color: 'text.secondary' }} />
+          </InputAdornment>
+        ),
+      }}
+      sx={{ width: { xs: '100%', sm: 200 } }}
+    />
+  </Box>
+</Box>
             </Box>
           </Grid>
 
@@ -1015,8 +996,38 @@ const [showPassword, setShowPassword] = useState(false);
           {selectedBranch ? (
             <>
               <Grid item xs={12}>
-                <TableContainer elevation={0} component={Paper} sx={{height: "350px"}}>
-                  <Table>
+            <Box sx={{ overflowX: 'auto' }}>
+  <TableContainer
+    elevation={0}
+    component={Paper}
+    sx={{
+      height: {
+        // xs: 'auto',
+           xs: 600,
+        sm: 300,
+        md: 350,
+      },
+      maxHeight: '80vh',
+      overflowY: 'auto',
+      '&::-webkit-scrollbar': {
+        width: '6px',
+        height: '6px', // for horizontal scrollbar
+      },
+      '&::-webkit-scrollbar-track': {
+        background: '#f1f1f1',
+        borderRadius: '10px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: '#888',
+        borderRadius: '10px',
+        '&:hover': {
+          background: '#555',
+        },
+      },
+      scrollbarWidth: 'thin', // Firefox
+      scrollbarColor: '#888 #f1f1f1', // Firefox
+    }}
+  >                  <Table>
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
                         {columns.map((column) => (
@@ -1178,68 +1189,74 @@ const [showPassword, setShowPassword] = useState(false);
                     </TableBody>
                   </Table>
                 </TableContainer>
+                  </Box>
               </Grid>
 
               {/* Pagination */}
-              <Grid item xs={12}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-                  <Box display="flex" justifyContent="flex-start" alignItems="center">
-                    <FormControl size="small" sx={{ minWidth: 120 }}>
-                      <InputLabel>Rows per page</InputLabel>
-                      <Select
-                        value={pagination.page_size}
-                        label="Rows per page"
-                        onChange={handlePageSizeChange}
-                        sx={{ color: 'text.secondary' }}
-                      >
-                        {[5, 10, 25, 50, 100].map((size) => (
-                          <MenuItem key={size} value={size}>
-                            {size}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-
-                  <Box display="flex" justifyContent="center" alignItems="center" sx={{ flex: 1 }}>
-                    <Button
-                      disabled={pagination.page === 1}
-                      onClick={() => handlePageChange(1)}
-                      sx={{ color: 'text.secondary', mr: 2 }}
-                    >
-                      First Page
-                    </Button>
-
-                    <Button
-                      disabled={pagination.page === 1}
-                      onClick={() => handlePageChange(pagination.page - 1)}
-                      sx={{ color: 'text.secondary', mr: 2 }}
-                    >
-                      Previous
-                    </Button>
-
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mx: 2 }}>
-                      Page {pagination.page} of {pagination.total_pages}
-                    </Typography>
-
-                    <Button
-                      disabled={pagination.page === pagination.total_pages}
-                      onClick={() => handlePageChange(pagination.page + 1)}
-                      sx={{ color: 'text.secondary', mr: 2 }}
-                    >
-                      Next
-                    </Button>
-
-                    <Button
-                      disabled={pagination.page === pagination.total_pages}
-                      onClick={() => handlePageChange(pagination.total_pages)}
-                      sx={{ color: 'text.secondary' }}
-                    >
-                      Last Page
-                    </Button>
-                  </Box>
-                </Box>
-              </Grid>
+      <Grid item xs={12}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+          {/* Rows per page dropdown aligned to the left */}
+          <Box display="flex" justifyContent="flex-start" alignItems="center">
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Rows per page</InputLabel>
+              <Select
+                value={pagination.page_size}
+                label="Rows per page"
+                onChange={handlePageSizeChange}
+                sx={{ color: 'text.secondary' }}
+              >
+                {[5, 10, 25, 50, 100].map((size) => (
+                  <MenuItem key={size} value={size}>
+                    {size}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+      
+          {/* React Paginate - Centered */}
+          <Box 
+           sx={{
+          '& .pagination li.selected a': {
+            backgroundColor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
+            borderColor: theme.palette.primary.main,
+            fontWeight: 500,
+            fontSize: theme.typography.fontSize,
+          },
+          '& .pagination li a': {
+            fontSize: theme.typography.body2.fontSize,
+              color: theme.palette.text.primary,
+      
+          },
+        }}
+          >
+            <ReactPaginate
+              previousLabel={'Previous'}
+              nextLabel={'Next'}
+              breakLabel={'...'}
+              breakClassName={'break-me'}
+              pageCount={pagination.total_pages}
+              marginPagesDisplayed={2}
+              pageRangeDisplayed={3}
+              onPageChange={({ selected }) => handlePageChange(selected + 1)}
+              containerClassName={'pagination'}
+              activeClassName={'selected'}
+              previousClassName={'previous'}
+              nextClassName={'next'}
+              disabledClassName={'disabled'}
+              forcePage={pagination.page - 1}
+              pageClassName={'page-item'}
+              pageLinkClassName={'page-link'}
+              previousLinkClassName={'page-link'}
+              nextLinkClassName={'page-link'}
+            />
+          </Box>
+      
+          {/* Empty box to balance the layout */}
+          <Box sx={{ width: 120 }} /> {/* This matches the width of the rows selector */}
+        </Box>
+      </Grid>
             </>
           ) : (
             <Grid item xs={12}>

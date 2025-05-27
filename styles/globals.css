@@ -249,3 +249,64 @@ html, body {
         padding: 1.5rem;
     }
 }
+
+
+/* pagination css  start*/
+/* Pagination Styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Keep all your existing pagination styles */
+.pagination li { margin: 0 5px; }
+.pagination li a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.pagination li a:hover {
+  background-color: #f0f0f0;
+}
+
+.pagination li.selected a {
+  background-color: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}
+
+.pagination li.disabled a {
+  color: #bdbdbd;
+  cursor: not-allowed;
+}
+
+.pagination li.previous a,
+.pagination li.next a {
+  width: auto;
+  padding: 0 15px;
+}
+
+.pagination li.break a {
+  border: none;
+  cursor: default;
+}
+
+/* pagination css end */

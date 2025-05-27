@@ -10,7 +10,7 @@ import Sidebar from "./Sidebar";
 const drawerWidth = 220;
 
 // Custom theme: Roboto (body) + Poppins (headings)
-const theme = createTheme({
+export const theme = createTheme({
   palette: {
     primary: {
       main: "#0E9F6E",

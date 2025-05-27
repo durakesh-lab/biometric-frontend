@@ -51,7 +51,7 @@ import { confirnDeleteAction,editCompanyAction } from '@/store/authSlice';
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 
-import Layout from '../../components/Layout/Layout';
+import Layout, { theme } from '../../components/Layout/Layout';
 import SuccessSnackbar from '../../components/successpopup/successpopup';
 import MyComponent from '../../components/deletepopup';
 import { Formik, Form } from "formik";
@@ -60,6 +60,7 @@ import ViewCompanyModal from '../../components/Dashboard/viewcompany';
 import { Fab } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import Router, { useRouter } from 'next/router';
+import ReactPaginate from 'react-paginate';
 const CompanyListPage = () => {
   // State for table data and UI
   let router=useRouter()
@@ -199,12 +200,11 @@ const CompanyListPage = () => {
 // ]}, count:15}
 // response.data=response.data.slice(2)
       setCompanies(response.data?.data);
-
       setPagination({
         ...pagination,
         page,
         page_size,
-        total_pages: Math.ceil(response?.data?.count / pagination?.page_size),
+        total_pages: Math.ceil(response?.data?.count / page_size),
         count: response.data.count
       });
       setLoading(false);
@@ -559,7 +559,39 @@ console.log(companyIdError,"companyIdError############")
 
           {/* Company Table */}
           <Grid item xs={12}>
-            <TableContainer elevation={0} component={Paper} sx={{height: "350px"}}>
+            <Box sx={{ overflowX: 'auto' }}>
+  <TableContainer
+    elevation={0}
+    component={Paper}
+    sx={{
+      height: {
+        // xs: 'auto',
+           xs: 600,
+        sm: 300,
+        md: 350,
+      },
+      maxHeight: '80vh',
+      overflowY: 'auto',
+      '&::-webkit-scrollbar': {
+        width: '6px',
+        height: '6px', // for horizontal scrollbar
+      },
+      '&::-webkit-scrollbar-track': {
+        background: '#f1f1f1',
+        borderRadius: '10px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: '#888',
+        borderRadius: '10px',
+        '&:hover': {
+          background: '#555',
+        },
+      },
+      scrollbarWidth: 'thin', // Firefox
+      scrollbarColor: '#888 #f1f1f1', // Firefox
+    }}
+  >
+
               <Table>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
@@ -735,70 +767,75 @@ console.log(companyIdError,"companyIdError############")
                 </TableBody>
               </Table>
             </TableContainer>
+            </Box>
           </Grid>
 
           {/* Pagination */}
-          <Grid item xs={12}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-              {/* Rows per page dropdown aligned to the left */}
-              <Box display="flex" justifyContent="flex-start" alignItems="center">
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Rows per page</InputLabel>
-                  <Select
-                    value={pagination.page_size}
-                    label="Rows per page"
-                    onChange={handlePageSizeChange}
-                    sx={{ color: 'text.secondary' }}
-                  >
-                    {[5, 10, 25, 50, 100].map((size) => (
-                      <MenuItem key={size} value={size}>
-                        {size}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
+       {/* Pagination */}
+<Grid item xs={12}>
+  <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+    {/* Rows per page dropdown aligned to the left */}
+    <Box display="flex" justifyContent="flex-start" alignItems="center">
+      <FormControl size="small" sx={{ minWidth: 120 }}>
+        <InputLabel>Rows per page</InputLabel>
+        <Select
+          value={pagination.page_size}
+          label="Rows per page"
+          onChange={handlePageSizeChange}
+          sx={{ color: 'text.secondary' }}
+        >
+          {[5, 10, 25, 50, 100].map((size) => (
+            <MenuItem key={size} value={size}>
+              {size}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Box>
 
-              {/* Pagination controls explicitly centered */}
-              <Box display="flex" justifyContent="center" alignItems="center" sx={{ flex: 1 }}>
-                <Button
-                  disabled={pagination.page === 1}
-                  onClick={() => handlePageChange(1)}
-                  sx={{ color: 'text.secondary', mr: 2 }}
-                >
-                  First Page
-                </Button>
+    {/* React Paginate - Centered */}
+    <Box 
+     sx={{
+    '& .pagination li.selected a': {
+      backgroundColor: theme.palette.primary.main,
+      color: theme.palette.primary.contrastText,
+      borderColor: theme.palette.primary.main,
+      fontWeight: 500,
+      fontSize: theme.typography.fontSize,
+    },
+    '& .pagination li a': {
+      fontSize: theme.typography.body2.fontSize,
+        color: theme.palette.text.primary,
 
-                <Button
-                  disabled={pagination.page === 1}
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  sx={{ color: 'text.secondary', mr: 2 }}
-                >
-                  Previous
-                </Button>
+    },
+  }}
+    >
+      <ReactPaginate
+        previousLabel={'Previous'}
+        nextLabel={'Next'}
+        breakLabel={'...'}
+        breakClassName={'break-me'}
+        pageCount={pagination.total_pages}
+        marginPagesDisplayed={2}
+        pageRangeDisplayed={3}
+        onPageChange={({ selected }) => handlePageChange(selected + 1)}
+        containerClassName={'pagination'}
+        activeClassName={'selected'}
+        previousClassName={'previous'}
+        nextClassName={'next'}
+        disabledClassName={'disabled'}
+        forcePage={pagination.page - 1}
+        pageClassName={'page-item'}
+        pageLinkClassName={'page-link'}
+        previousLinkClassName={'page-link'}
+        nextLinkClassName={'page-link'}
+      />
+    </Box>
 
-                <Typography variant="body2" sx={{ color: 'text.secondary', mx: 2 }}>
-                  Page {pagination.page} of {pagination.total_pages}
-                </Typography>
-
-                <Button
-                  disabled={pagination.page === pagination.total_pages}
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  sx={{ color: 'text.secondary', mr: 2 }}
-                >
-                  Next
-                </Button>
-
-                <Button
-                  disabled={pagination.page === pagination.total_pages}
-                  onClick={() => handlePageChange(pagination.total_pages)}
-                  sx={{ color: 'text.secondary' }}
-                >
-                  Last Page
-                </Button>
-              </Box>
-            </Box>
-          </Grid>
+    {/* Empty box to balance the layout */}
+    <Box sx={{ width: 120 }} /> {/* This matches the width of the rows selector */}
+  </Box>
+</Grid>
 
 
 
