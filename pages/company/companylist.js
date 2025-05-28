@@ -36,6 +36,8 @@ import {
   SnackbarContent
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
 import { 
   Search as SearchIcon,
   FilterList as FilterIcon,
@@ -1186,22 +1188,38 @@ console.log(companyIdError,"companyIdError############")
           </Snackbar>
         } */}
        {(openSnackbar.status || openSnackbar) && 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={2000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }} // Moves it to top-right
+  <Snackbar
+  open={openSnackbar}
+  autoHideDuration={2000}
+  onClose={handleCloseSnackbar}
+  anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+>
+  <SnackbarContent
+    style={{ 
+      backgroundColor: openSnackbar.status ? '#0e9f6e' : '#d32f2f', 
+      color: 'white' 
+    }}
+    message={
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        {openSnackbar.status ? (
+          <CheckCircleIcon style={{ marginRight: 8 }} />
+        ) : (
+          <ErrorIcon style={{ marginRight: 8 }} />
+        )}
+        {openSnackbar.status ? openSnackbar.message : openSnackbar}
+      </div>
+    }
+    action={
+      <IconButton 
+        size="small" 
+        onClick={handleCloseSnackbar} 
+        style={{ color: 'white' }}
       >
-        <SnackbarContent
-          style={{ backgroundColor: openSnackbar.status ? '#0e9f6e' :'#d32f2f', color: 'white' }}
-          message={openSnackbar.status ? openSnackbar.message : openSnackbar}
-          action={
-            <IconButton size="small" onClick={handleCloseSnackbar} style={{ color: 'white' }}>
-              <CloseIcon />
-            </IconButton>
-          }
-        />
-      </Snackbar>
+        <CloseIcon />
+      </IconButton>
+    }
+  />
+</Snackbar>
           }
 
 

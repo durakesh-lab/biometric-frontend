@@ -30,7 +30,7 @@ export default function DashboardHeader({userdata}) {
         textAlign: "center" 
       }}>
         <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
-          HELLO {userdata?.username}!
+          HELLO {userdata?.firstName && userdata?.firstName?.toUpperCase()}!
         </Typography>
 
         <Typography variant="body2" sx={{ 

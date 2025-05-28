@@ -51,6 +51,9 @@ import {
   VisibilityOff,
    ChevronRight as ChevronRightIcon,Group as GroupIcon
 } from '@mui/icons-material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import CloseIcon from '@mui/icons-material/Close';
 import StoreIcon from '@mui/icons-material/Store';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import axios from 'axios';
@@ -1973,7 +1976,7 @@ const [showPassword, setShowPassword] = useState(false);
  <Button
             
                         fullWidth
-                        onClick={() => setImportModalOpen(true)}
+                          type="submit"                     
                         variant="contained"
                         color="primary"
                       sx={{ mr: 3,textTransform:"none" }}
@@ -2028,21 +2031,39 @@ const [showPassword, setShowPassword] = useState(false);
 
 
         {/* Snackbar for notifications */}
-        <Snackbar
-          open={Boolean(openSnackbar)}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        >
-          <Alert 
-            onClose={handleCloseSnackbar} 
-            severity={openSnackbar?.status ? "success" : "error"}
-            variant="filled"
-            sx={{ width: '100%' }}
-          >
-            {openSnackbar?.message || openSnackbar}
-          </Alert>
-        </Snackbar>
+       <Snackbar
+  open={Boolean(openSnackbar)}
+  autoHideDuration={6000}
+  onClose={handleCloseSnackbar}
+  anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+>
+  <Alert 
+    icon={openSnackbar?.status ? <CheckCircleIcon fontSize="inherit" /> : <ErrorIcon fontSize="inherit" />}
+    onClose={handleCloseSnackbar}
+    severity={openSnackbar?.status ? "success" : "error"}
+    variant="filled"
+    sx={{ 
+      width: '100%',
+      backgroundColor: openSnackbar?.status ? '#0e9f6e' : '#d32f2f',
+      color: 'white',
+      '& .MuiAlert-icon': {
+        color: 'white',
+        alignItems: 'center'
+      }
+    }}
+    action={
+      <IconButton 
+        size="small" 
+        onClick={handleCloseSnackbar} 
+        style={{ color: 'white' }}
+      >
+        <CloseIcon />
+      </IconButton>
+    }
+  >
+    {openSnackbar?.message || openSnackbar}
+  </Alert>
+</Snackbar>
       </Layout>
     </>
   );
