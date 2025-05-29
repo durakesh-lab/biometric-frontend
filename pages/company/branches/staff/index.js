@@ -774,7 +774,22 @@ const [showPassword, setShowPassword] = useState(false);
       </IconButton>
     </Tooltip>
   )}
-
+    <Dialog open={exportModalOpen} onClose={() => setExportModalOpen(false)}>
+  <DialogTitle>Export Employees</DialogTitle>
+  <DialogContent>
+    <DialogContentText>
+      Are you sure you want to export {staff.length} staff to a CSV file?
+    </DialogContentText>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setExportModalOpen(false)} color="primary">
+      Cancel
+    </Button>
+    <Button onClick={handleExportEmployees} color="primary" variant="contained">
+      Export
+    </Button>
+  </DialogActions>
+</Dialog>
   {/* This Box will push everything to the right */}
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto', flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
     {/* Export Button */}
