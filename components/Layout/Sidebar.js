@@ -57,23 +57,23 @@ const menuGroups = [
           // { label: "Add Company", link: "/company/addcompany" },
         ],
       },
-,
-      {
-        label: "Branch",
-        icon: <StoreIcon />,
-        subItems: [
-          { label: "All Branch", link: "/Branch/branchlist" },
-          // { label: "Add Branch", link: "/Branch/addbranch" },
-        ],
-      },
-      {
-        label: "Department",
-        icon: <DepartmentIcon />,
-        subItems: [
-          { label: "All Departments", link: "/department/departmentlist" },
-          // { label: "Add Department", link: "/department/adddepartment" },
-        ],
-      },
+// ,
+//       {
+//         label: "Branch",
+//         icon: <StoreIcon />,
+//         subItems: [
+//           { label: "All Branch", link: "/Branch/branchlist" },
+//           // { label: "Add Branch", link: "/Branch/addbranch" },
+//         ],
+//       },
+//       {
+//         label: "Department",
+//         icon: <DepartmentIcon />,
+//         subItems: [
+//           { label: "All Departments", link: "/department/departmentlist" },
+//           // { label: "Add Department", link: "/department/adddepartment" },
+//         ],
+//       },
       // {
       //   label: "Employee",
       //   icon: <GroupIcon />,
@@ -82,16 +82,16 @@ const menuGroups = [
       //     // { label: "Add Employee", link: "/employee/addEmployee" },
       //   ],
       // },
-      {
-        label: "Staff",
-        icon: <GroupIcon />,
-        subItems: [
-          { label: "All Staff", link: "/staff" },
-          // { label: "All employees", link: "/employee/employeelist" },
-          // { label: "All Employees", link: "/employee/employeelist" },
-          // { label: "Add Employee", link: "/employee/addEmployee" },
-        ],
-      },
+      // {
+      //   label: "Staff",
+      //   icon: <GroupIcon />,
+      //   subItems: [
+      //     { label: "All Staff", link: "/staff" },
+      //     // { label: "All employees", link: "/employee/employeelist" },
+      //     // { label: "All Employees", link: "/employee/employeelist" },
+      //     // { label: "Add Employee", link: "/employee/addEmployee" },
+      //   ],
+      // },
       // {
       //   label: "Position",
       //   icon: <GroupIcon />,
