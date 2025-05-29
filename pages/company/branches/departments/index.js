@@ -143,7 +143,7 @@ const DepartmentlistPage = () => {
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
-    { id: 'Id', label: 'Id', sortable: false },
+    // { id: 'Id', label: 'Id', sortable: false },
     { id: 'name', label: 'Department Name', sortable: true },
     { id: 'dept_code', label: 'Department Code', sortable: true },
     { id: 'otherDetails', label: 'Details', sortable: true },
@@ -866,7 +866,7 @@ const handleSelect = (event, id) => {
                               </TableCell>
                               
                               <TableCell>{getSerialNumber(index)}</TableCell>
-                              <TableCell>{department._id}</TableCell>
+                              {/* <TableCell>{department._id}</TableCell> */}
                               <TableCell>{department.name}</TableCell>
                               <TableCell>{department.dept_code}</TableCell>
                               <TableCell>{department.otherDetails}</TableCell>

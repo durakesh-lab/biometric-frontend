@@ -142,7 +142,7 @@ const BranchlistPage = () => {
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
-        { id: 'Id', label: 'Id', sortable: false },
+        // { id: 'Id', label: 'Id', sortable: false },
     { id: 'branchCode', label: 'branch code', sortable: false },
     { id: 'name', label: 'Branch Name', sortable: true },
     { id: 'manager', label: 'Manager', sortable: true },
@@ -798,7 +798,7 @@ router.push({
                               </TableCell>
                               
                               <TableCell>{getSerialNumber(index)}</TableCell>
-                              <TableCell>{branch._id}</TableCell>
+                              {/* <TableCell>{branch._id}</TableCell> */}
                               <TableCell>{branch.branchCode}</TableCell>
                               <TableCell>{branch.name}</TableCell>
                               <TableCell>{branch.manager}</TableCell>

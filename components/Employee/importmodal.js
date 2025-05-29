@@ -318,9 +318,9 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
       'mobile': '',
       'gender': '',
       'active_status': '',
-      'DepartmentId': '',
-      'CompanyId': '',
-      'BranchId': '',
+      'Department Code': '',
+      'Company Id': '',
+      'Branch Code': '',
     }
   ];
 
@@ -337,11 +337,11 @@ const ImportEmployeeModal = ({ open, onClose, onImport }) => {
   { label: 'Gender', key: 'gender' },
     { label: 'active status', key: 'active_status.' },
     // { label: 'DepartmentId', key: 'dept_code' },
-    { label: 'DepartmentId', key: 'DepartmentId' },
+    { label: 'Department Code', key: 'Department Code' },
 
-    { label: 'CompanyId', key: 'CompanyId' },
+    { label: 'Company Id', key: 'Company Id' },
 
-    { label: 'BranchId', key: 'BranchId' },
+    { label: 'Branch Code', key: 'Branch Code' },
     // { label: 'Position Name', key: 'Position Name' },
  
   ];

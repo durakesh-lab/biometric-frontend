@@ -680,7 +680,7 @@ const [showPassword, setShowPassword] = useState(false);
           );
           // setOpen("importsuccess");
           console.log(response,"response",{response})
-          setOpenSnackbar({status: true, message: 'Staff imported successfully'});
+          setOpenSnackbar({status: true, message:response?.data?.count +" "+ 'Staff imported successfully'});
           fetchStaff();
         } catch (error) {
           console.error('Error importing employees:', error);

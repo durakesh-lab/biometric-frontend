@@ -133,7 +133,7 @@ const CompanyListPage = () => {
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
-    { id: 'Id', label: 'Id', sortable: false },
+    // { id: 'Id', label: 'Id', sortable: false },
     { id: 'CompanyId', label: 'Company Code', sortable: true },
     { id: 'name', label: 'Company Name', sortable: true },
     { id: 'owner', label: 'Owner', sortable: true },
@@ -703,7 +703,7 @@ console.log(companyIdError,"companyIdError############")
                             </TableCell>
                             
                             <TableCell>{getSerialNumber(index)}</TableCell>
-                             <TableCell>{company?._id}</TableCell>
+                             {/* <TableCell>{company?._id}</TableCell> */}
                             <TableCell>{company?.companyId}</TableCell>
 
                             <TableCell>{company?.name}</TableCell>
