@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Grid, Paper, Typography, Box, Snackbar, Alert } from "@mui/material";
+import { Grid, Paper, Typography, Box, Snackbar, Alert,  IconButton } from "@mui/material";
 import Layout from "../../components/Layout/Layout";
 // Dashboard components
 import DashboardHeader from "../../components/Dashboard/DashboardHeader";
@@ -13,7 +13,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { usePathname, useSearchParams } from 'next/navigation';
 import { getPositionList } from "@/store/authSlice";
 import { jwtDecode } from "jwt-decode";
-
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import CloseIcon from '@mui/icons-material/Close';
 export default function Dashboard() {
 
   let dispatch=useDispatch()
@@ -188,7 +190,7 @@ const handleCloseSnackbar = (event, reason) => {
 </Grid>
       </Box>
       {/* {success login} */}
-            <Snackbar
+            {/* <Snackbar
               open={showSuccess}
               autoHideDuration={6000}
               onClose={handleCloseSnackbar}
@@ -199,6 +201,42 @@ const handleCloseSnackbar = (event, reason) => {
                 severity="success"
                 variant="filled"
                 sx={{ width: '100%' }}
+              >
+                {"Login Successfully"}
+              </Alert>
+            </Snackbar> */}
+
+
+
+                   <Snackbar
+              open={Boolean(showSuccess)}
+              autoHideDuration={6000}
+              onClose={handleCloseSnackbar}
+              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <Alert 
+                icon={ <CheckCircleIcon fontSize="inherit" />}
+                onClose={handleCloseSnackbar}
+                severity= "success" 
+                variant="filled"
+                sx={{ 
+                  width: '100%',
+                  backgroundColor: '#0e9f6e' ,
+                  color: 'white',
+                  '& .MuiAlert-icon': {
+                    color: 'white',
+                    alignItems: 'center'
+                  }
+                }}
+                action={
+                  <IconButton 
+                    size="small" 
+                    onClick={handleCloseSnackbar} 
+                    style={{ color: 'white' }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                }
               >
                 {"Login Successfully"}
               </Alert>
