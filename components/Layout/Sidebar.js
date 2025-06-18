@@ -30,7 +30,19 @@ import {
 } from "@mui/icons-material";
 import { useRouter } from "next/router";
 import StoreIcon from '@mui/icons-material/Store';
+import { useSelector } from "react-redux";
 
+
+export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerToggle }) {
+  const router = useRouter();
+  const [openMenu, setOpenMenu] = useState(null);  
+ let reduxdata=useSelector((state)=>{if(state.users.getPermission){return((state.users.getPermission))}else{return(state.users.getPermission)} })
+  var rolepermission={}
+var allpermission={}
+ if(reduxdata?.rolepermission){
+ rolepermission=JSON.parse( reduxdata.rolepermission)
+ allpermission=reduxdata.allpermission
+ }
 const menuGroups = [
   {
     heading: "GENERAL",
@@ -48,12 +60,22 @@ const menuGroups = [
       //     { label: "Reports", link: "/payroll/reports" },
       //   ],
       // },
-      
-      {
-        label: "Company",
+     ...(allpermission.length && rolepermission.permission.includes(allpermission[0]._id)
+        ? [
+            {
+              label: "Company",
+              icon: <BusinessIcon />,
+              subItems: [
+                { label: "All Company", link: "/company/companylist" },
+              ],
+            },
+          ]
+        : []), 
+       {
+        label: "Permissions",
         icon: <BusinessIcon />,
         subItems: [
-          { label: "All Company", link: "/company/companylist" }
+          { label: "manage Permission", link: "/permission" }
           // { label: "Add Company", link: "/company/addcompany" },
         ],
       },
@@ -155,11 +177,7 @@ const menuGroups = [
   //   ],
   // },
 ];
-
-export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerToggle }) {
-  const router = useRouter();
-  const [openMenu, setOpenMenu] = useState(null);  
-
+//  console.log(rolepermission.permission,allpermission,allpermission.length && allpermission,allpermission.length && rolepermission.permission.includes(allpermission[0]._id), "***************##############################",menuGroups)
 
   const isItemActive = (item) => {
     if (item.link) {

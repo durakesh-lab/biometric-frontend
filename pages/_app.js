@@ -3,12 +3,15 @@ import * as React from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import "../styles/globals.css";
-import { Provider } from "react-redux";
+import { Provider, useDispatch } from "react-redux";
 import { store } from "../src/store/store"; // Adjust the path if needed
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'primereact/resources/themes/saga-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
+import { jwtDecode } from "jwt-decode";
+import { getPermissionbyRole } from "@/store/authSlice";
+import PermisissionRole from "../components/permission/permsission";
 export const theme = createTheme({
   palette: {
     primary: {
@@ -63,10 +66,14 @@ export default function MyApp({ Component, pageProps }) {
     React.useEffect(() => {
     import('bootstrap/dist/js/bootstrap.bundle.min.js');
   }, []);
+
+
+
   return (
 <Provider store={store}>
   <ThemeProvider theme={theme}>
     <CssBaseline />
+    <PermisissionRole />
     <Component {...pageProps} />
   </ThemeProvider>
 </Provider>

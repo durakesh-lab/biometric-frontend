@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState } from "react";
 import {
   List,
@@ -15,6 +17,7 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
 import KeyboardArrowDownOutlinedIcon from '@mui/icons-material/KeyboardArrowDownOutlined';
 import { format, isThisWeek, isAfter, isBefore, addYears } from "date-fns";
 import axios from "axios";
+import { useRouter } from "next/router";
 
 export default function Birthdays() {
   const [employeesPosition, setEmployeesPosition] = useState([]);
@@ -22,7 +25,7 @@ export default function Birthdays() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOption, setSelectedOption] = useState("This Week");
   const [filter, setFilter] = useState("this_week");
-
+ let router=useRouter()
   const fetchEmployees = async () => {
     try {
       setLoading(true);
@@ -32,13 +35,13 @@ export default function Birthdays() {
       };
 
       const token = localStorage.getItem("token");
-      // const responseForPosition =[]  await axios.get(
-      //   `http://localhost:7000/employee/wer`, {
-      //     headers: { Authorization: token },
-      //     params
-      //   }
-      // );
-      const responseForPosition =await {}
+      const responseForPosition = await axios.get(
+        `http://localhost:3001/users/usersbirthday?time=`+filter, {
+          headers: { Authorization: token },
+          params
+        }
+      );
+      // const responseForPosition =await {}
       setEmployeesPosition(responseForPosition?.data?.data ||[]);
       setLoading(false);
     } catch (error) {
@@ -49,8 +52,8 @@ export default function Birthdays() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
-
+  }, [filter]);
+console.log(employeesPosition,"employeesPosition??????employeesPositionemployeesPosition")
   const getFilteredBirthdays = () => {
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -111,21 +114,26 @@ export default function Birthdays() {
     if (option) {
       setSelectedOption(option);
       const value = option.toLowerCase().replace(" ", "_");
+
       setFilter(value);
     }
     setAnchorEl(null);
   };
 
   const filteredBirthdays = sortBirthdays(getFilteredBirthdays());
-
+const handleClickUser=(branchId,companyId)=>{
+  // console.log(person,"??????????==============")
+    router.push(`company/branches/staff?id=${branchId}&companyId=${companyId}`)
+}
   return (
-    <Box sx={{ height: "300px" }}>
+    <Box sx={{ height: "300px" }} >
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           mb: 2,
+          
         }}
       >
         <Typography variant="h6" gutterBottom>
@@ -166,34 +174,57 @@ export default function Birthdays() {
         </>
       </Box>
 
-      <Box sx={{ overflowY: "auto", height: "calc(100% - 60px)" }}>
+      <Box
+    sx={{
+      overflowY: "auto",
+      height: "calc(100% - 60px)",
+      '&::-webkit-scrollbar': {
+        width: '6px',
+        height: '6px',
+      },
+      '&::-webkit-scrollbar-track': {
+        background: '#f1f1f1',
+        borderRadius: '10px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: '#888',
+        borderRadius: '10px',
+        '&:hover': {
+          background: '#555',
+        },
+      },
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#888 #f1f1f1',
+    }}
+  >
         <List disablePadding>
           {loading ? (
             <Typography variant="body2" color="text.secondary">
               Loading...
             </Typography>
-          ) : filteredBirthdays.length > 0 ? (
-            filteredBirthdays.map((person, idx) => (
+          ) : employeesPosition.length > 0 ? (
+            employeesPosition.map((person, idx) => (
               <React.Fragment key={person.id}>
-                <ListItem disablePadding sx={{ py: 1.5 }}>
+                <ListItem onClick={()=>{handleClickUser(person.branchId,person.companyId)}} disablePadding sx={{ py: 1.5 }}>
                   <Avatar sx={{ mr: 2, bgcolor: "#ECFDF5", color: "#10B981" }}>
-                    {person.first_name?.charAt(0) || '?'}
+                    {person.firstName?.charAt(0) || '?'}
                   </Avatar>
                   <ListItemText
                     primary={
                       <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        {person.first_name || 'Unknown'}
+                        {person.firstName || 'Unknown'}
                       </Typography>
                     }
                     secondary={
-                      `${person.position?.position_name || 'No position'} - ${format(
-                        new Date(person.birthday),
+                      `${person.role || 'No position'} - ${format(
+                        new Date(person.date_of_birth),
                         "dd/MM/yyyy"
                       )}`
                     }
                   />
+
                 </ListItem>
-                {idx < filteredBirthdays.length - 1 && <Divider component="li" />}
+                {idx < employeesPosition.length - 1 && <Divider component="li" />}
               </React.Fragment>
             ))
           ) : (

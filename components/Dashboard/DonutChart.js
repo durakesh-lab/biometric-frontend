@@ -14,79 +14,66 @@ import axios from "axios";
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
 export default function DonutChart() {
-
-  const [employees, setEmployees] = useState([]);
-  const [employeesPosition, setemployeesPosition] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [graphdata, setgraphdata] = useState({labels:[],data:[]});
+  const [graphData, setGraphData] = useState({ labels: [], data: [] });
 
-  const fetchEmployees = async () => {
+  const fetchCompanies = async () => {
     try {
       setLoading(true);
-      // Construct query params
-      const params = {
-        page: 1,
-        page_size: 100000,
-      };
-
       let token = localStorage.getItem("token");
-      const responseForPosition = await axios.get(
-        `http://localhost:7000/employee/wer`, {
+      const response = await axios.get(
+        `http://localhost:3001/company/allcompany`,
+        {
           headers: { Authorization: token },
-          params
         }
       );
-      setemployeesPosition(responseForPosition.data.data)
+      setCompanies(response.data);
       setLoading(false);
     } catch (error) {
       setLoading(false);
+      console.error("Error fetching companies:", error);
     }
   };
 
   useEffect(() => {
-    fetchEmployees();
+    fetchCompanies();
   }, []);
-useEffect(()=>{
-  if(employeesPosition.length){
-    const positionCount = {};
-    employeesPosition.forEach(emp => {
-      const pos = emp.position?.position_name || "Unknown";
-      positionCount[pos] = (positionCount[pos] || 0) + 1;
-    });
-    
-    const labels = Object.keys(positionCount);
-    const dataValues = Object.values(positionCount);
 
-    graphdata.labels=labels
-    graphdata.data=dataValues
-    setgraphdata({
-      labels: labels,
-      data: dataValues
-    })
+  useEffect(() => {
+    if (companies.length) {
+      // Count companies by industry
+      const industryCount = {};
+      companies.forEach(company => {
+        const industry = company.industry || "Unknown";
+        industryCount[industry] = (industryCount[industry] || 0) + 1;
+      });
+      
+      const labels = Object.keys(industryCount);
+      const dataValues = Object.values(industryCount);
 
-  }
-},[employeesPosition.length])
+      setGraphData({
+        labels: labels,
+        data: dataValues
+      });
+    }
+  }, [companies]);
+
   const data = {
-    // labels: [
-    //   "Software Engineer",
-    //   "UI/UX Designer",
-    //   "Data Analyst",
-    //   "Mobile Development",
-    //   "Project Manager",
-    // ],
-    labels:graphdata.labels   ,
+    labels: graphData.labels,
     datasets: [
       {
-        label: "Employees",
-        // data: [50, 28, 25, 10, 7],
-        data: graphdata.data,
-
+        label: "Companies",
+        data: graphData.data,
         backgroundColor: [
           "#10B981", // Dark green
           "#34D399", // Medium green
           "#6EE7B7", // Lighter green
           "#A7F3D0",
           "#D1FAE5",
+          "#A78BFA", // Purple for additional industries
+          "#FBBF24", // Amber
+          "#F87171", // Red
         ],
         borderWidth: 0,
       },
@@ -98,7 +85,6 @@ useEffect(()=>{
     maintainAspectRatio: false,
     cutout: "60%", // Donut hole size
     plugins: {
-      // Hide the default legend (we're doing a custom legend below)
       legend: { display: false },
       title: { display: false },
       tooltip: {
@@ -106,7 +92,9 @@ useEffect(()=>{
           label: (context) => {
             const label = context.label || "";
             const value = context.parsed || 0;
-            return `${label}: ${value}`;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = Math.round((value / total) * 100);
+            return `${label}: ${value} (${percentage}%)`;
           },
         },
       },
@@ -121,21 +109,21 @@ useEffect(()=>{
   }));
 
   return (
-<Box
+    <Box
       sx={{
         borderRadius: 1,
         backgroundColor: "#fff",
         p: 2,
         width: "100%",
-        maxWidth: { xs: '100%', sm: 250 }, // Full width on mobile, 250px on desktop
+        maxWidth: { xs: '100%', sm: 250 },
         display: "flex",
         flexDirection: "column",
-        height: { xs: 'auto', sm: "320px" } // Auto height on mobile
+        height: { xs: 'auto', sm: "320px" }
       }}
     >
       {/* Top Title */}
       <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#374151" }}>
-        Total Employee
+        Companies by Industry
       </Typography>
 
       {/* Donut Chart (centered) */}
@@ -146,11 +134,15 @@ useEffect(()=>{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          height: { xs: 150, sm: 130 } // Adjust height for mobile
+          height: { xs: 150, sm: 130 }
         }}
       >
         <Box sx={{ width: { xs: '100%', sm: 200 }, height: '100%' }}>
-          {graphdata?.data?.length ? <Doughnut data={data} options={options} /> : null}
+          {graphData?.data?.length ? <Doughnut data={data} options={options} /> : 
+            <Typography variant="body2" sx={{ textAlign: 'center', color: '#6B7280' }}>
+              {loading ? 'Loading data...' : 'No data available'}
+            </Typography>
+          }
         </Box>
       </Box>
 
@@ -191,4 +183,3 @@ useEffect(()=>{
     </Box>
   );
 }
-

@@ -1,5 +1,6 @@
 import { port } from '@/config';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
 
 // ---------------------------------
 // 1) Thunk for login
@@ -758,6 +759,28 @@ const authSlice = createSlice({
   }
 });
 
+
+export const getPermissionbyRole = createAsyncThunk(
+  "auth/getPermissionbyRole",
+  async (obj , { rejectWithValue }) => {
+    // let token=localStorage.getItem("token")
+
+    try {
+  const response = await axios.get(`http://localhost:3001/permissions/findpermissionsbyrole/${obj}`);
+          const role = response.data[0];
+        const response2= await axios.get('http://localhost:3001/permissions');
+      // const data = await response.json();
+      if (response.errors) {
+        return rejectWithValue(data.errors[0].message);
+      }
+
+      return {rolepermission:role.permAndSubPerm,allpermission:response2.data};
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 let userSlice=createSlice({
   name:"users",
   initialState:{
@@ -780,7 +803,25 @@ let userSlice=createSlice({
       state.edituserdata=null
       state.error = action.payload || action.error.message;
     });
+    builder.addCase(getPermissionbyRole.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.getPermission=null
+    });
+    builder.addCase(getPermissionbyRole.fulfilled, (state, action) => {
+      state.loading = false;
+      // console.log(action,"90000000000000000000")
+      state.getPermission = action.payload // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(getPermissionbyRole.rejected, (state, action) => {
+      state.loading = false;
+            // console.log(action,"777777777770")
 
+      state.getPermission=null
+      state.error = action.payload || action.error.message;
+    });
+    
   }
 })
 export const { logout,onLogout ,confirnDeleteAction} = authSlice.actions;

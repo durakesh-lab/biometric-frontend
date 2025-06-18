@@ -69,6 +69,7 @@ import { Upload as UploadIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import ImportEmployeeModal from '../../../../components/Employee/importmodal';
 import ReactPaginate from 'react-paginate';
+
 const genders = [ { label: "Male", value: "M" }, { label: "Female", value: "F" }];
 
 const StaffListPage = () => {
@@ -511,6 +512,20 @@ const applyFilters = () => {
     setOpenSnackbar(false);
   };
 
+
+  const handleManageEmployees=(id)=>{
+router.push({
+  pathname: '/company/branches/staff',
+  query: { id: id ,companyId:router.query.id }
+});
+}
+
+  const handleManagegroups=(id)=>{
+router.push({
+  pathname: '/managegroup',
+  query: { branchId: selectedBranch ,companyId:selectedCompany }
+});
+}
   // Validation schema
   const validationSchema = Yup.object({
     firstName: Yup.string().required("Required"),
@@ -793,15 +808,26 @@ const [showPassword, setShowPassword] = useState(false);
   {/* This Box will push everything to the right */}
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto', flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
     {/* Export Button */}
-    <Button
-      startIcon={<UploadIcon />}
-      onClick={() => setExportModalOpen(true)}
-      variant="outlined"
-      color="primary"
-      sx={{ textTransform: "none", width: { xs: '100%', sm: 'auto' }}}
-    >
-      Export
-    </Button>
+<Button 
+  variant="outlined" 
+  color="primary"
+  startIcon={<GroupIcon />}
+  sx={{ textTransform: "none", width: { xs: '100%', sm: 'auto' } }}
+  onClick={() => handleManagegroups()}
+>
+  Manage Group
+</Button>
+
+<Button
+  startIcon={<UploadIcon />}
+  onClick={() => setExportModalOpen(true)}
+  variant="outlined"
+  color="primary"
+  sx={{ textTransform: "none", width: { xs: '100%', sm: 'auto' } }}
+>
+  Export
+</Button>
+
 
     {/* Import Button */}
     <Button

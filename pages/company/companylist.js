@@ -103,7 +103,13 @@ const CompanyListPage = () => {
     industry: '',
     ordering: ""
   });
-
+ let reduxdata=useSelector((state)=>{if(state.users.getPermission){return((state.users.getPermission))}else{return(state.users.getPermission)} })
+  var rolepermission={}
+var allpermission={}
+ if(reduxdata?.rolepermission){
+ rolepermission=JSON.parse( reduxdata.rolepermission)
+ allpermission=reduxdata.allpermission
+ }  
   // Dropdown options
   const [dropdownOptions, setDropdownOptions] = useState({
     industries: ['Information Technology', 'Finance', 'Healthcare', 'Manufacturing', 'Retail'],
@@ -141,10 +147,10 @@ const CompanyListPage = () => {
     { id: 'phoneNumber', label: 'Phone Number', sortable: true },
     { id: 'industry', label: 'Industry', sortable: true },
     { id: 'view', label: 'View', sortable: false },
-    { id: 'managebranches', label: 'Manage', sortable: false },
+    ...((allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? [{ id: 'managebranchesw', label: 'Manage', sortable: false }]:[]),
     { id: 'actions', label: 'Actions', sortable: false }
   ];
-
+  console.log(allpermission,"987555555555")
   // Fetch companies data
   const fetchCompanies = async (page=1,page_size=10) => {
     try {
@@ -499,8 +505,8 @@ const checkCompanyIdExists = debounce(async (value,field) => {
   }
 }, 1000);
 
-console.log(companyIdError,"companyIdError############")
-  return (
+
+ return (
     <>
       <Layout>
         <Grid container spacing={3}>
@@ -720,7 +726,9 @@ console.log(companyIdError,"companyIdError############")
                                 <ViewIcon />
                               </IconButton>
                             </TableCell>
+                              {(allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? 
                             <TableCell>
+                            
   <Button 
     variant="contained" 
     size="small" 
@@ -732,7 +740,7 @@ console.log(companyIdError,"companyIdError############")
   >
      Branches 
   </Button>
-</TableCell>
+</TableCell> :"" }
                             <TableCell>
                               <IconButton
                                 aria-label="more"
@@ -757,8 +765,11 @@ console.log(companyIdError,"companyIdError############")
                                   elevation: 0,
                                 }}
                               >
-                                <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem>
+                                {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[2]._id)) ? 
+
+                                <MenuItem onClick={handleEdit}>Edit</MenuItem> :""}
+                                {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[1]._id)) ? 
+                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem> :""}
                               </Menu>
                             </TableCell>
                           </TableRow>
@@ -1225,6 +1236,7 @@ console.log(companyIdError,"companyIdError############")
 
       {/* Floating Add Button */}
 {/* Floating Add Button - Bottom Right */}
+{(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[0]._id)) ? 
 <Box
   sx={{
     position: 'fixed',
@@ -1249,7 +1261,7 @@ console.log(companyIdError,"companyIdError############")
     <AddIcon  />
   </Fab>
 </Box>
-
+:"" }
 {/* Add Company Modal */}
 <Modal
   open={addModalOpen}
