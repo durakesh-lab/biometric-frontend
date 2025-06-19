@@ -37,7 +37,7 @@ let data={}
   const from = searchParams.get('from');
 useEffect(()=>{
   dispatch(getPositionList({page:1,page_size:10}))
-  setuserdata(jwtDecode(localStorage.getItem("token")))
+  // setuserdata(jwtDecode(localStorage.getItem("token")))
 },[])
 const handleCloseSnackbar = (event, reason) => {
   if (reason === 'clickaway') {

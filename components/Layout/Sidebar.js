@@ -60,8 +60,8 @@ const menuGroups = [
       //     { label: "Reports", link: "/payroll/reports" },
       //   ],
       // },
-     ...(allpermission.length && rolepermission.permission.includes(allpermission[0]._id)
-        ? [
+    //  ...(allpermission.length && rolepermission.permission.includes(allpermission[0]._id)
+    //     ? [
             {
               label: "Company",
               icon: <BusinessIcon />,
@@ -69,8 +69,8 @@ const menuGroups = [
                 { label: "All Company", link: "/company/companylist" },
               ],
             },
-          ]
-        : []), 
+        //   ]
+        // : []), 
        {
         label: "Permissions",
         icon: <BusinessIcon />,

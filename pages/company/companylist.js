@@ -147,7 +147,9 @@ var allpermission={}
     { id: 'phoneNumber', label: 'Phone Number', sortable: true },
     { id: 'industry', label: 'Industry', sortable: true },
     { id: 'view', label: 'View', sortable: false },
-    ...((allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? [{ id: 'managebranchesw', label: 'Manage', sortable: false }]:[]),
+    // ...((allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? [
+      { id: 'managebranchesw', label: 'Manage', sortable: false },
+    // ]:[]),
     { id: 'actions', label: 'Actions', sortable: false }
   ];
   console.log(allpermission,"987555555555")
@@ -726,7 +728,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                                 <ViewIcon />
                               </IconButton>
                             </TableCell>
-                              {(allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? 
+                              {/* {(allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ?  */}
                             <TableCell>
                             
   <Button 
@@ -740,7 +742,8 @@ const checkCompanyIdExists = debounce(async (value,field) => {
   >
      Branches 
   </Button>
-</TableCell> :"" }
+</TableCell> 
+{/* :"" } */}
                             <TableCell>
                               <IconButton
                                 aria-label="more"
@@ -765,11 +768,13 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                                   elevation: 0,
                                 }}
                               >
-                                {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[2]._id)) ? 
+                                {/* {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[2]._id)) ?  */}
 
-                                <MenuItem onClick={handleEdit}>Edit</MenuItem> :""}
-                                {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[1]._id)) ? 
-                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem> :""}
+                                <MenuItem onClick={handleEdit}>Edit</MenuItem> 
+                                {/* :""} */}
+                                {/* {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[1]._id)) ?  */}
+                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem>
+                                 {/* :""} */}
                               </Menu>
                             </TableCell>
                           </TableRow>
@@ -1236,7 +1241,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
 
       {/* Floating Add Button */}
 {/* Floating Add Button - Bottom Right */}
-{(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[0]._id)) ? 
+{/* {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[0]._id)) ?  */}
 <Box
   sx={{
     position: 'fixed',
@@ -1261,7 +1266,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
     <AddIcon  />
   </Fab>
 </Box>
-:"" }
+{/* :"" } */}
 {/* Add Company Modal */}
 <Modal
   open={addModalOpen}
