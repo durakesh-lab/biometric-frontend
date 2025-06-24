@@ -146,7 +146,7 @@ router.push({
         }
       });
 
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
         `http://localhost:3001/company`,
         {
@@ -282,7 +282,7 @@ router.push({
   const handleDelete = async (id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       let data = { object_ids: Array.isArray(id) ? id : [id], action_type: "delete" };
       await axios.post(`http://localhost:3001/company/actioncompany`, data, {
         headers: { Authorization: token }

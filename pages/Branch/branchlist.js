@@ -146,7 +146,7 @@
 //         }
 //       });
 
-//       let token = localStorage.getItem("token");
+//       let token = localStorage.getItem("biometric_token");
 //       // const response = await axios.get(
 //       //   `http://localhost:3001/branch`, {
 //       //     headers: { Authorization: token },
@@ -285,7 +285,7 @@
 //   const handleDelete = async (id) => {
 //     id = JSON.parse(sessionStorage.getItem("deleteIds"));
 //     try {
-//       let token = localStorage.getItem("token");
+//       let token = localStorage.getItem("biometric_token");
 //       const response = await axios.delete(`http://localhost:3001/branch/${id}`, {
 //         headers: { Authorization: token }
 //       });
@@ -338,7 +338,7 @@
 //   // Handle add branch
 //   const handleAddBranch = async (values) => {
 //     try {
-//       let token = localStorage.getItem("token");
+//       let token = localStorage.getItem("biometric_token");
 //       const response = await axios.post('http://localhost:3001/branch', values, {
 //         headers: { Authorization: token }
 //       });
@@ -1197,7 +1197,7 @@ const BranchlistPage = () => {
   const fetchCompanies = async () => {
     try {
       setLoadingCompanies(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company`, {
@@ -1236,7 +1236,7 @@ const BranchlistPage = () => {
         }
       });
 
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
         `http://localhost:3001/company/${selectedCompany}/branches`, {
           headers: { Authorization: token },
@@ -1360,7 +1360,7 @@ const handleSelect = (event, id) => {
   const handleDelete = async (id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
      if(Array.isArray(id)){
       
          var data = { Ids: id, action_type: "delete" };
@@ -1425,7 +1425,7 @@ const handleSelect = (event, id) => {
   // Handle add branch
   const handleAddBranch = async (values) => {
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.post('http://localhost:3001/branch', values, {
         headers: { Authorization: token }
       });

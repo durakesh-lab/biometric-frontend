@@ -26,18 +26,12 @@ let router=useRouter()
 let selector=useSelector((state)=>{return (state.auth)})
 let [userdata,setuserdata]=useState({})
 let data={}
-//  useEffect(()=>{
-//    data=jwtDecode(localStorage.getItem("token"))
-//    setuserdata(data)
-//   console.log(userdata,"userdatauserdatauserdatauserdata")
-// if(!localStorage.getItem("token")){
-//   router.push("/login")
-// }
-//   },[])
+
   const from = searchParams.get('from');
 useEffect(()=>{
   dispatch(getPositionList({page:1,page_size:10}))
-  // setuserdata(jwtDecode(localStorage.getItem("token")))
+  setuserdata(jwtDecode(localStorage.getItem("biometric_token")))
+  console.log(jwtDecode(localStorage.getItem("biometric_token")),"??????????@@@@@@@")
 },[])
 const handleCloseSnackbar = (event, reason) => {
   if (reason === 'clickaway') {

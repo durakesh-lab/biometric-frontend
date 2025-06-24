@@ -6,12 +6,15 @@ import { useDispatch } from 'react-redux';
 const PermisissionRole = () => {
     let dispatch=useDispatch()
   React.useEffect(() => {
-    if(localStorage.getItem("token")){
-    let data=jwtDecode(localStorage.getItem("token"))
+    if(localStorage.getItem("biometric_token")){
+    let data=jwtDecode(localStorage.getItem("biometric_token"))
+
     if (data.role) {
       const fetchRoleDetails = async () => {
         // setLoading(true);
         try {
+           
+
           dispatch(getPermissionbyRole(data.role));
           // const response = await axios.get(`http://localhost:3001/permissions/findpermissionsbyrole/${data.role}`);
           // const role = response.data[0];

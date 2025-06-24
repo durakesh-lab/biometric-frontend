@@ -173,7 +173,7 @@ let deletepopup=useSelector((state)=>{return (state.auth)})
         }
       });
   
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
   
       const response = await axios.get(
         `http://localhost:7000/employee/wer`, 
@@ -321,7 +321,7 @@ let deletepopup=useSelector((state)=>{return (state.auth)})
     id=JSON.parse(sessionStorage.getItem("deleteIds"))
     // id=id.object_ids
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
 
       let data = { object_ids: Array.isArray(id) ? id : [id], action_type: "delete" };
       await axios.post(`http://localhost:7000/employee/actionemployee`, data, {

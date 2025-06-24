@@ -175,7 +175,7 @@ console.log(newStaff,"newStaffnewStaff#######")
   const fetchCompanies = async () => {
     try {
       setLoadingCompanies(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company`, {
@@ -197,7 +197,7 @@ console.log(newStaff,"newStaffnewStaff#######")
     
     try {
       setLoadingBranches(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company/${companyId}/branches`, {
@@ -219,7 +219,7 @@ console.log(newStaff,"newStaffnewStaff#######")
     
     try {
       setLoadingDepartments(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/department/${branchId}`, {
@@ -259,7 +259,7 @@ const fetchStaff = async () => {
       }
     });
 
-    let token = localStorage.getItem("token");
+    let token = localStorage.getItem("biometric_token");
     const response = await axios.post(
       `http://localhost:3001/users/allusers`,
       { branchId: selectedBranch, companyId: selectedCompany },
@@ -405,7 +405,7 @@ const applyFilters = () => {
   const handleDelete = async (id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
         headers: { Authorization: token }
       });
@@ -459,7 +459,7 @@ const applyFilters = () => {
   // Handle add staff
   const handleAddStaff = async (values) => {
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.post('http://localhost:3001/auth/register', values, {
         headers: { Authorization: token }
       });

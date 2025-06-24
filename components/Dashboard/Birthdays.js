@@ -34,7 +34,7 @@ export default function Birthdays() {
         page_size: 100000,
       };
 
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("biometric_token");
       const responseForPosition = await axios.get(
         `http://localhost:3001/users/usersbirthday?time=`+filter, {
           headers: { Authorization: token },

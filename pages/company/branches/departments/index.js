@@ -155,7 +155,7 @@ const DepartmentlistPage = () => {
   const fetchCompanies = async () => {
     try {
       setLoadingCompanies(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company`, {
@@ -177,7 +177,7 @@ const DepartmentlistPage = () => {
     
     try {
       setLoadingBranches(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company/${companyId}/branches`, {
@@ -216,7 +216,7 @@ const DepartmentlistPage = () => {
         }
       });
 
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
         `http://localhost:3001/department/${selectedBranch}`, {
           headers: { Authorization: token },
@@ -353,7 +353,7 @@ const handleSelect = (event, id) => {
   const handleDelete = async (id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
              if(Array.isArray(id)){
                   
                      var data = { Ids: id, action_type: "delete" };
@@ -420,7 +420,7 @@ const handleSelect = (event, id) => {
   // Handle add department
   const handleAddDepartment = async (values) => {
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.post('http://localhost:3001/department', values, {
         headers: { Authorization: token }
       });
@@ -483,7 +483,7 @@ const handleSelect = (event, id) => {
            return 
         }
         try {
-          let token = localStorage.getItem("token");
+          let token = localStorage.getItem("biometric_token");
           const response = await axios.post(`http://localhost:3001/department/checkandverifyfields`, { field:"dept_code", dept_code: value }, {
             headers: { Authorization: token }
           });

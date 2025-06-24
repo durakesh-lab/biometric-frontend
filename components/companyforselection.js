@@ -53,17 +53,17 @@ import { confirnDeleteAction,editCompanyAction } from '@/store/authSlice';
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 
-import Layout, { theme } from '../../components/Layout/Layout';
-import SuccessSnackbar from '../../components/successpopup/successpopup';
-import MyComponent from '../../components/deletepopup';
+import Layout, { theme } from './Layout/Layout';
+import SuccessSnackbar from './successpopup/successpopup';
+import MyComponent from './deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import ViewCompanyModal from '../../components/Dashboard/viewcompany';
+import ViewCompanyModal from './Dashboard/viewcompany';
 import { Fab } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import Router, { useRouter } from 'next/router';
 import ReactPaginate from 'react-paginate';
-const CompanyListPage = () => {
+const CompanyListPage = ({setselected_Company}) => {
   // State for table data and UI
   let router=useRouter()
   const [companies, setCompanies] = useState([]);
@@ -137,7 +137,6 @@ var allpermission={}
 
   // Columns configuration
   const columns = [
-    { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
     // { id: 'Id', label: 'Id', sortable: false },
     { id: 'CompanyId', label: 'Company Code', sortable: true },
@@ -148,9 +147,7 @@ var allpermission={}
     { id: 'industry', label: 'Industry', sortable: true },
     { id: 'view', label: 'View', sortable: false },
     ...((allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? [{ id: 'managebranchesw', label: 'Manage', sortable: false }]:[]),
-    { id: 'actions', label: 'Actions', sortable: false }
   ];
-  console.log(allpermission,"987555555555")
   // Fetch companies data
   const fetchCompanies = async (page=1,page_size=10) => {
     try {
@@ -461,11 +458,8 @@ const industries = [
   { label: 'Education', value: 'Education' },
   { label: 'Other', value: 'Other' }
 ];
-const handleManageBranches=(id)=>{
-router.push({
-  pathname: '/company/branches',
-  query: { id: id }
-});
+const handleManageBranches=(id,company)=>{
+setselected_Company({id,company})
 }
 
 // utils/debounce.js
@@ -508,8 +502,8 @@ const checkCompanyIdExists = debounce(async (value,field) => {
 
  return (
     <>
-      <Layout>
-        <Grid container spacing={3}>
+  <> 
+                 <Grid container spacing={3}>
           {/* Header Section */}
           <Grid item xs={12}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={0} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
@@ -618,7 +612,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                         }}
                       >
                         {column.sortable ? (
-                          <Box 
+                          <Box
                             display="flex" 
                             alignItems="center" 
                             justifyContent="center"
@@ -700,13 +694,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                               }
                             }}
                           >
-                            <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
-                             <Checkbox
-  checked={selected.indexOf(company._id) !== -1}  // Make sure to use _id if that's your key
-  onChange={(event) => handleSelect(event, company._id)}  // Use _id if that's your key
-  sx={{ padding: '4px' }}
-/>
-                            </TableCell>
+              
                             
                             <TableCell>{getSerialNumber(index)}</TableCell>
                              {/* <TableCell>{company?._id}</TableCell> */}
@@ -736,42 +724,12 @@ const checkCompanyIdExists = debounce(async (value,field) => {
     '&:hover': {
       boxShadow: 'none', // Prevents shadow on hover too
     } }}
-    onClick={() => handleManageBranches(company._id)}
+    onClick={() => handleManageBranches(company._id,company)}
   >
      Branches 
   </Button>
 </TableCell> :"" }
-                            <TableCell>
-                              <IconButton
-                                aria-label="more"
-                                aria-controls="long-menu"
-                                aria-haspopup="true"
-                                onClick={(e) => handleMenuClick(e, company)}
-                                sx={{ color: 'text.secondary' }}
-                              >
-                                <MoreVertIcon />
-                              </IconButton>
-                              <Menu
-                                id="long-menu"
-                                anchorEl={anchorEl}
-                                keepMounted
-                                open={openMenu}
-                                onClose={handleMenuClose}
-                                PaperProps={{
-                                  style: {
-                                    width: '20ch',
-                                    boxShadow: 'none',
-                                  },
-                                  elevation: 0,
-                                }}
-                              >
-                                {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[2]._id)) ? 
-
-                                <MenuItem onClick={handleEdit}>Edit</MenuItem> :""}
-                                {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[1]._id)) ? 
-                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem> :""}
-                              </Menu>
-                            </TableCell>
+                          
                           </TableRow>
                         </>
                       );
@@ -956,67 +914,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
 
         {/* Success Snackbar */}
         <SuccessSnackbar open={open} handleClose={handleClose} />
-        
-        {/* Delete Confirmation Popup */}
-
-
-
-        {/* Error Snackbar */}
-        {/* {(openSnackbar.status || openSnackbar) && 
-          <Snackbar
-            open={openSnackbar}
-            autoHideDuration={6000}
-            onClose={handleCloseSnackbar}
-            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-          >
-            <Alert 
-              onClose={handleCloseSnackbar} 
-              severity={openSnackbar.status ? "success" : "error"}
-              variant="filled"
-              sx={{ width: '100%' }}
-            >
-              {openSnackbar.status ? openSnackbar.message : openSnackbar}
-            </Alert>
-          </Snackbar>
-        } */}
-       {(openSnackbar.status || openSnackbar) && 
-  <Snackbar
-  open={openSnackbar}
-  autoHideDuration={2000}
-  onClose={handleCloseSnackbar}
-  anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
->
-  <SnackbarContent
-    style={{ 
-      backgroundColor: openSnackbar.status ? '#0e9f6e' : '#d32f2f', 
-      color: 'white' 
-    }}
-    message={
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {openSnackbar.status ? (
-          <CheckCircleIcon style={{ marginRight: 8 }} />
-        ) : (
-          <ErrorIcon style={{ marginRight: 8 }} />
-        )}
-        {openSnackbar.status ? openSnackbar.message : openSnackbar}
-      </div>
-    }
-    action={
-      <IconButton 
-        size="small" 
-        onClick={handleCloseSnackbar} 
-        style={{ color: 'white' }}
-      >
-        <CloseIcon />
-      </IconButton>
-    }
-  />
-</Snackbar>
-          }
-
-
-
-      </Layout>
+         </>
     </>
   );
 };

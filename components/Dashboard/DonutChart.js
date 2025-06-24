@@ -21,7 +21,7 @@ export default function DonutChart() {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
         `http://localhost:3001/company/allcompany`,
         {

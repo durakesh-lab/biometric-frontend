@@ -162,7 +162,7 @@
 //         }
 //       });
 
-//       let token = localStorage.getItem("token");
+//       let token = localStorage.getItem("biometric_token");
 //       console.log(params,{params})
 //       const response = await axios.get(
 //         `http://localhost:7000/department/getdepartmentList`, {
@@ -294,7 +294,7 @@
 //   const handleDelete = async (id) => {
 //     id = JSON.parse(sessionStorage.getItem("deleteIds"));
 //     try {
-//       let token = localStorage.getItem("token");
+//       let token = localStorage.getItem("biometric_token");
 
 //       let data = { object_ids: Array.isArray(id) ? id : [id], action_type: "delete" };
 //       await axios.post(`http://localhost:7000/department/actiondepartment`, {id}, {

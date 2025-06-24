@@ -30,10 +30,13 @@ import {
 } from "@mui/icons-material";
 import { useRouter } from "next/router";
 import StoreIcon from '@mui/icons-material/Store';
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { confirnDeleteAction, SelectCompanyBranchGlobal } from "@/store/authSlice";
+import Cookies from "js-cookie";
 
 
 export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerToggle }) {
+    let dispatch = useDispatch();
   const router = useRouter();
   const [openMenu, setOpenMenu] = useState(null);  
  let reduxdata=useSelector((state)=>{if(state.users.getPermission){return((state.users.getPermission))}else{return(state.users.getPermission)} })
@@ -43,6 +46,7 @@ var allpermission={}
  rolepermission=JSON.parse( reduxdata.rolepermission)
  allpermission=reduxdata.allpermission
  }
+ 
 const menuGroups = [
   {
     heading: "GENERAL",
@@ -60,8 +64,8 @@ const menuGroups = [
       //     { label: "Reports", link: "/payroll/reports" },
       //   ],
       // },
-    //  ...(allpermission.length && rolepermission.permission.includes(allpermission[0]._id)
-    //     ? [
+     ...(allpermission.length && rolepermission.permission.includes(allpermission[0]._id)
+        ? [
             {
               label: "Company",
               icon: <BusinessIcon />,
@@ -69,8 +73,8 @@ const menuGroups = [
                 { label: "All Company", link: "/company/companylist" },
               ],
             },
-        //   ]
-        // : []), 
+          ]
+        : []), 
        {
         label: "Permissions",
         icon: <BusinessIcon />,
@@ -143,6 +147,14 @@ const menuGroups = [
           // { label: "Post New Job", link: "/jobs/new" },
         ],
       },
+       {
+        label: "Profile Management",
+        icon: <WorkOutlineIcon />,
+        subItems: [
+          { label: "My Profile", link: "/myprofile" },
+          { label: "Users Profile", link: "/jobs/new" },
+        ],
+      },
       // {
       //   label: "Candidate",
       //   icon: <PersonSearchIcon />,
@@ -159,6 +171,19 @@ const menuGroups = [
       //     { label: "Reminders", link: "/calendar/reminders" },
       //   ],
       // },
+    ],
+  },
+    {
+    heading: "Setting",
+    items: [
+      {
+        label: "Setting",
+        icon: <WorkOutlineIcon />,
+        subItems: [
+          { label: "General Setting", link: "/settings/generalsetting" },
+          // { label: "Post New Job", link: "/jobs/new" },
+        ],
+      },
     ],
   },
   // {
@@ -274,7 +299,10 @@ const menuGroups = [
                 // Keep menu open if it's toggled open or active
                 const isOpen = openMenu === item.label || isItemActive(item);
                 const isActive = isItemActive(item);
-
+           
+              if(item.label=="Manage Users"){
+                confirnDeleteAction(true)
+              }
                 return (
                   <React.Fragment key={item.label}>
                     <ListItem disablePadding>
@@ -548,7 +576,18 @@ open
                                       }
                                     : {}),
                                 }}
-                                onClick={() => handleClickItem(sub.link)}
+                                onClick={() =>{ if(sub.label=="manage Group" || sub.label=="Users Profile"){
+                                  if(Cookies.get('usercompanyandbranch')){
+                                   handleClickItem(sub.link)
+                                  }
+                                  else{
+                   dispatch(SelectCompanyBranchGlobal("open")) 
+         
+               
+              }
+                                }else{
+                                  handleClickItem(sub.link)
+                                }}  }
                               >
                                 <ListItemText primary={sub.label} />
                               </ListItemButton>

@@ -108,7 +108,7 @@ export const createEmployee = createAsyncThunk(
   "auth/createEmployee",
   async ({ obj }, { rejectWithValue }) => {
     obj.area=[obj.area]
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch('http://localhost:7000/employee/addemployee', {
         method: 'POST',
@@ -134,7 +134,7 @@ export const createEmployee = createAsyncThunk(
 export const createDepartment = createAsyncThunk(
   "auth/createDepartment",
   async ({ obj }, { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch(obj?.url=="createposition" ?'http://localhost:7000/position/addposition': 'http://localhost:7000/department/adddepartment', {
         method: 'POST',
@@ -159,7 +159,7 @@ export const createDepartment = createAsyncThunk(
 export const createPosition = createAsyncThunk(
   "auth/createPosition",
   async ({ obj }, { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch('http://localhost:7000/position/addposition', {
         method: 'POST',
@@ -184,7 +184,7 @@ export const createPosition = createAsyncThunk(
 export const createbranch = createAsyncThunk(
   "auth/createbranch",
   async ({ obj }, { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch('http://localhost:7000/area/addArea', {
         method: 'POST',
@@ -209,7 +209,7 @@ export const createbranch = createAsyncThunk(
 export const createcompany = createAsyncThunk(
   "auth/createcompany",
   async ({ obj }, { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch('http://localhost:3001/company', {
         method: 'POST',
@@ -235,7 +235,7 @@ export const editEmployeeAction = createAsyncThunk(
   "auth/editEmployee",
   async (obj , { rejectWithValue }) => {
     obj.area=[obj.area]
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
 
     try {
       const response = await fetch('http://localhost:7000/employee/editemployee/'+obj.id, {
@@ -262,7 +262,7 @@ export const editEmployeeAction = createAsyncThunk(
 export const editDepartmentAction = createAsyncThunk(
   "auth/editDepartment",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
 
     try {
       const response = await fetch('http://localhost:3001/department/'+obj.id, {
@@ -289,7 +289,7 @@ export const editDepartmentAction = createAsyncThunk(
 export const editStaffAction = createAsyncThunk(
   "auth/editStaffAction",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
 
     try {
       const response = await fetch('http://localhost:3001/users/edituser/'+obj.id, {
@@ -316,7 +316,7 @@ export const editStaffAction = createAsyncThunk(
 export const editPositionAction = createAsyncThunk(
   "auth/editPosition",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
 
     try {
       const response = await fetch('http://localhost:7000/Position/editPosition/'+obj.id, {
@@ -343,7 +343,7 @@ export const editPositionAction = createAsyncThunk(
 export const editCompanyAction = createAsyncThunk(
   "auth/editCompanyAction",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch('http://localhost:3001/company/'+obj.id, {
         method: 'PUT',
@@ -368,7 +368,7 @@ export const editCompanyAction = createAsyncThunk(
 export const editBranchAction = createAsyncThunk(
   "auth/editBranchAction",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
 
     try {
       const response = await fetch('http://localhost:3001/branch/'+obj.id, {
@@ -395,7 +395,7 @@ export const editBranchAction = createAsyncThunk(
 export const getPositionList = createAsyncThunk(
   "auth/getPositionList",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
 
     try {
       const response = await fetch('http://localhost:7000/position/getPositionList/', {
@@ -420,7 +420,7 @@ export const getPositionList = createAsyncThunk(
 export const getbranchList = createAsyncThunk(
   "auth/getbranchList",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
 
     try {
       const response = await fetch('http://localhost:7000/area/getAreaList/', {
@@ -445,7 +445,7 @@ export const getbranchList = createAsyncThunk(
 export const getDepartmentList = createAsyncThunk(
   "auth/getDepartmentList",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("token")
+    let token=localStorage.getItem("biometric_token")
 
     try {
       const response = await fetch('http://localhost:7000/department/getdepartmentList/', {
@@ -763,17 +763,18 @@ const authSlice = createSlice({
 export const getPermissionbyRole = createAsyncThunk(
   "auth/getPermissionbyRole",
   async (obj , { rejectWithValue }) => {
-    // let token=localStorage.getItem("token")
+    // let token=localStorage.getItem("biometric_token")
 
     try {
+      
   const response = await axios.get(`http://localhost:3001/permissions/findpermissionsbyrole/${obj}`);
           const role = response.data[0];
         const response2= await axios.get('http://localhost:3001/permissions');
       // const data = await response.json();
-      if (response.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      // if (response2.errors) {
+      //   return rejectWithValue(data.errors[0].message);
+      // }
+    
       return {rolepermission:role.permAndSubPerm,allpermission:response2.data};
     } catch (error) {
       return rejectWithValue(error.message);
@@ -784,9 +785,15 @@ export const getPermissionbyRole = createAsyncThunk(
 let userSlice=createSlice({
   name:"users",
   initialState:{
-   edituserdata:{}
+   edituserdata:{},
+   opencompanybranch:false
   },
-  reducers:{},
+  reducers:{
+          SelectCompanyBranchGlobal:(state,data)=>{
+      
+        return {...state,opencompanybranch:data.payload}
+    },
+  },
   extraReducers:(builder)=>{
     builder.addCase(editStaffAction.pending, (state) => {
       state.loading = true;
@@ -805,19 +812,19 @@ let userSlice=createSlice({
     });
     builder.addCase(getPermissionbyRole.pending, (state) => {
       state.loading = true;
+            // console.log(action,"90000000000000000000222")
       state.error = null;
       state.getPermission=null
     });
     builder.addCase(getPermissionbyRole.fulfilled, (state, action) => {
       state.loading = false;
-      // console.log(action,"90000000000000000000")
+ 
       state.getPermission = action.payload // token from userRegister
       state.error = null;
     });
     builder.addCase(getPermissionbyRole.rejected, (state, action) => {
       state.loading = false;
-            // console.log(action,"777777777770")
-
+      
       state.getPermission=null
       state.error = action.payload || action.error.message;
     });
@@ -825,6 +832,8 @@ let userSlice=createSlice({
   }
 })
 export const { logout,onLogout ,confirnDeleteAction} = authSlice.actions;
+export const { SelectCompanyBranchGlobal} = userSlice.actions;
+
 export default authSlice.reducer;
 const userSliceReducer=userSlice.reducer
 export  {userSliceReducer}

@@ -70,6 +70,7 @@ import ReactPaginate from 'react-paginate';
 import { useRouter } from 'next/router';
 import ViewStaffModal from '../../components/Dashboard/viewstaff';
 import ViewStaffModalwithgroup from '../../components/Dashboard/viewstaffwithgroup';
+import Cookies from 'js-cookie';
 
 // Styled components
 const StyledBadge = styled(Badge)(({ theme }) => ({
@@ -146,7 +147,6 @@ const GroupManagement = () => {
     // { id: 2, name: 'SQA', count: 50, color: 'pink', shiftTiming: '9am-5pm', description: 'Software Quality Assurance team' },
     // { id: 1, name: 'Xcv', count: 3, color: 'dark', shiftTiming: 'Flexible', description: 'Experimental group' }
   ]);
-  console.log(openAssignGroup,"openAssignGroupopenAssignGroup")
   const users = [
     { id: 17102, name: 'ShawnDub', status: 'inactive', initials: 'SH', color: 'purple', groupId: 2 },
     { id: 17101, name: 'RobertMaymn', status: 'inactive', initials: 'RO', color: 'primary', groupId: 1 },
@@ -161,7 +161,7 @@ const GroupManagement = () => {
     { id: 17053, name: 'John Doe', status: 'active', initials: 'JO', color: 'secondary', groupId: null }
   ];
  const fetchgroup=async ()=>{
-   let token = localStorage.getItem("token");
+   let token = localStorage.getItem("biometric_token");
                 const response = await axios.get('http://localhost:3001/groups', {
                   headers: { Authorization: token }
                 });
@@ -171,7 +171,7 @@ const GroupManagement = () => {
                 }
  }
  const fetchusers=async ()=>{
-   let token = localStorage.getItem("token");
+   let token = localStorage.getItem("biometric_token");
                 const response = await axios.post('http://localhost:3001/users/allusers', {
                   headers: { Authorization: token }
                 });
@@ -247,7 +247,7 @@ endTime: yup
         count: 0
       };
       try {
-             let token = localStorage.getItem("token");
+             let token = localStorage.getItem("biometric_token");
                 const response = await axios.post('http://localhost:3001/groups', newGroup, {
                   headers: { Authorization: token }
                 });
@@ -298,7 +298,7 @@ validationSchema: yup.object({
       // );
       // setGroups(updatedGroups);
          try {
-             let token = localStorage.getItem("token");
+             let token = localStorage.getItem("biometric_token");
                 const response = await axios.post('http://localhost:3001/groups/edit', values, {
                   headers: { Authorization: token }
                 });
@@ -339,7 +339,7 @@ validationSchema: yup.object({
 
 
             try {
-             let token = localStorage.getItem("token");
+             let token = localStorage.getItem("biometric_token");
                 const response = await axios.post('http://localhost:3001/users/edituser_assigngroup/'+currentUser._id, {groupId:groupIdToAssign}, {
                   headers: { Authorization: token }
                 });
@@ -369,7 +369,7 @@ validationSchema: yup.object({
   if (selectedGroupId && selectedUsers.length) {
 
             try {
-             let token = localStorage.getItem("token");
+             let token = localStorage.getItem("biometric_token");
                 const response = await axios.post('http://localhost:3001/users/edituser_assigngroup_bulk', {groupId:selectedGroupId,userIds:selectedUsers}, {
                   headers: { Authorization: token }
                 });
@@ -459,7 +459,7 @@ validationSchema: yup.object({
 
   const handleDeleteGroup =async (id) => {
     if (id) {
-       let token = localStorage.getItem("token");
+       let token = localStorage.getItem("biometric_token");
                 const response = await axios.get('http://localhost:3001/groups/delete/'+id, {
                   headers: { Authorization: token }
                 });
@@ -549,7 +549,7 @@ validationSchema: yup.object({
     const fetchCompanies = async () => {
       try {
         setLoadingCompanies(true);
-        let token = localStorage.getItem("token");
+        let token = localStorage.getItem("biometric_token");
         
         const response = await axios.get(
           `http://localhost:3001/company`, {
@@ -571,7 +571,7 @@ validationSchema: yup.object({
       
       try {
         setLoadingBranches(true);
-        let token = localStorage.getItem("token");
+        let token = localStorage.getItem("biometric_token");
         
         const response = await axios.get(
           `http://localhost:3001/company/${companyId}/branches`, {
@@ -589,7 +589,7 @@ validationSchema: yup.object({
 
       const fetchgroupcount =async (id) => {
     if (true) {
-       let token = localStorage.getItem("token");
+       let token = localStorage.getItem("biometric_token");
                 const response = await axios.post('http://localhost:3001/users/getAllgroupscount',{ branchId: selectedBranch, companyId: selectedCompany ,type:"group"}, {
                   headers: { Authorization: token }
                 });
@@ -649,7 +649,7 @@ validationSchema: yup.object({
             }
           });
       
-          let token = localStorage.getItem("token");
+          let token = localStorage.getItem("biometric_token");
           const response = await axios.post(
             `http://localhost:3001/users/allusers`,
             { branchId: selectedBranch, companyId: selectedCompany ,type:"group",...(groupId ? {groupId}:{})},
@@ -675,11 +675,15 @@ validationSchema: yup.object({
 
       
               useEffect(() => {
-          if (router.query.companyId) {
-              setSelectedCompany(router.query.companyId)
-            setSelectedBranch(router.query.branchId)
+          if (Cookies.get('usercompanyandbranch')) {
+           
+             let data= JSON.parse(Cookies.get('usercompanyandbranch'))
+             console.log(data,"444444444@@@@@@@@@@@@@@@@@@@@@@@@@@")
+           
+              setSelectedCompany(data.company._id)
+            setSelectedBranch(data.branch._id)
           }
-        }, [router.query.companyId])
+        }, [Cookies.get('usercompanyandbranch')])
                   // console.log(router.query.branchId,"===========++++++++++++",selectedBranch)
 
         useEffect(() => {
@@ -753,13 +757,13 @@ const listHeight = 400;
   </Box>
 
   {/* Dropdowns container */}
-  <Box sx={{ 
+  {/* <Box sx={{ 
     display: 'flex', 
     gap: 2, 
     mb: 3,
     flexDirection: { xs: 'column', sm: 'row' } // Stack vertically on mobile, horizontal on desktop
-  }}>
-    <FormControl fullWidth sx={{ minWidth: 200 }}>
+  }}> */}
+    {/* <FormControl fullWidth sx={{ minWidth: 200 }}>
       <InputLabel id="company-select-label">Select Company</InputLabel>
       <Select
         labelId="company-select-label"
@@ -786,10 +790,10 @@ const listHeight = 400;
           ))
         )}
       </Select>
-    </FormControl>
+    </FormControl> */}
 
     {/* Branch Selection - Only show if company is selected */}
-    {selectedCompany && (
+    {/* {selectedCompany && (
       <FormControl fullWidth sx={{ minWidth: 200 }}>
         <InputLabel id="branch-select-label">Select Branch</InputLabel>
         <Select
@@ -823,7 +827,7 @@ const listHeight = 400;
         </Select>
       </FormControl>
     )}
-  </Box>
+  </Box> */}
 </Box>
 
         {/* Create Group Modal */}
@@ -843,7 +847,6 @@ const listHeight = 400;
               </IconButton>
             </Box>
             <form onSubmit={createGroupForm.handleSubmit}>
-              {console.log(createGroupForm,"createGroupForm########")}
               <TextField
                 fullWidth
                 margin="normal"
@@ -1288,7 +1291,6 @@ const listHeight = 400;
                 </IconButton>
               </Box>
           <List>
-{console.log(selectedGroupId2 === 'all',"???????????",selectedGroupId2)}
 <ListItem
   button
  selected={selectedGroupId2 === 'all'}

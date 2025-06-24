@@ -193,7 +193,7 @@ const StaffListPage = () => {
   const fetchCompanies = async () => {
     try {
       setLoadingCompanies(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company`, {
@@ -215,7 +215,7 @@ const StaffListPage = () => {
     
     try {
       setLoadingBranches(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company/${companyId}/branches`, {
@@ -237,7 +237,7 @@ const StaffListPage = () => {
     
     try {
       setLoadingDepartments(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/department/${branchId}`, {
@@ -277,7 +277,7 @@ const fetchStaff = async () => {
       }
     });
 
-    let token = localStorage.getItem("token");
+    let token = localStorage.getItem("biometric_token");
     const response = await axios.post(
       `http://localhost:3001/users/allusers`,
       { branchId: selectedBranch, companyId: selectedCompany },
@@ -418,7 +418,7 @@ const applyFilters = () => {
   const handleDelete = async (id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
          if(Array.isArray(id)){
             
                var data = { Ids: id, action_type: "delete" };
@@ -486,7 +486,7 @@ const applyFilters = () => {
   // Handle add staff
   const handleAddStaff = async (values) => {
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.post('http://localhost:3001/auth/register', values, {
         headers: { Authorization: token }
       });
@@ -662,7 +662,7 @@ const [showPassword, setShowPassword] = useState(false);
          return 
       }
       try {
-        let token = localStorage.getItem("token");
+        let token = localStorage.getItem("biometric_token");
         const response = await axios.post(`http://localhost:3001/users/checkandverifyfields`,field=="username" ? { field:"username", username: value,id }:{ field:"email", email: value ,id}, {
           headers: { Authorization: token }
         });
@@ -682,7 +682,7 @@ const [showPassword, setShowPassword] = useState(false);
       const [importModalOpen, setImportModalOpen] = useState(false);
       const handleImportEmployees = async (formData) => {
         try {
-          let token = localStorage.getItem("token");
+          let token = localStorage.getItem("biometric_token");
           const response = await axios.post(
             `http://localhost:3001/users/import`, 
             formData,
@@ -808,7 +808,7 @@ const [showPassword, setShowPassword] = useState(false);
   {/* This Box will push everything to the right */}
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto', flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
     {/* Export Button */}
-<Button 
+{/* <Button 
   variant="outlined" 
   color="primary"
   startIcon={<GroupIcon />}
@@ -816,7 +816,7 @@ const [showPassword, setShowPassword] = useState(false);
   onClick={() => handleManagegroups()}
 >
   Manage Group
-</Button>
+</Button> */}
 
 <Button
   startIcon={<UploadIcon />}

@@ -136,7 +136,7 @@ const DepartmentlistPage = () => {
   const fetchCompanies = async () => {
     try {
       setLoadingCompanies(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company`, {
@@ -158,7 +158,7 @@ const DepartmentlistPage = () => {
     
     try {
       setLoadingBranches(true);
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
         `http://localhost:3001/company/${companyId}/branches`, {
@@ -197,7 +197,7 @@ const DepartmentlistPage = () => {
         }
       });
 
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
         `http://localhost:3001/department/${selectedBranch}`, {
           headers: { Authorization: token },
@@ -332,7 +332,7 @@ const DepartmentlistPage = () => {
   const handleDelete = async (id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.delete(`http://localhost:3001/department/${id}`, {
         headers: { Authorization: token }
       });
@@ -386,7 +386,7 @@ const DepartmentlistPage = () => {
   // Handle add department
   const handleAddDepartment = async (values) => {
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.post('http://localhost:3001/department', values, {
         headers: { Authorization: token }
       });

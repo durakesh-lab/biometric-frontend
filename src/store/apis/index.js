@@ -2,7 +2,7 @@ import axios from "axios";
 
 
 export const PostApi = async (api, token, data,type) => {
-    token=localStorage.getItem("token")
+    token=localStorage.getItem("biometric_token")
     try {
         let requestOptions = {
             method: 'POST',
@@ -26,7 +26,7 @@ export const PostApi = async (api, token, data,type) => {
 }
 
 export const GetApi = async (api, derivedtoken) => {
-     token=localStorage.getItem("token")
+     token=localStorage.getItem("biometric_token")
     try {
         const res = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}${api}`, { headers: { "Authorization": `${token}`} })
         return res.data

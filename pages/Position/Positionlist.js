@@ -166,7 +166,7 @@ const DepartmentListPage = () => {
         }
       });
 
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
         `http://localhost:7000/position/getPositionList`, {
           headers: { Authorization: token },
@@ -298,7 +298,7 @@ const DepartmentListPage = () => {
   const handleDelete = async (id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
-      let token = localStorage.getItem("token");
+      let token = localStorage.getItem("biometric_token");
 
       let data = { object_ids: Array.isArray(id) ? id : [id], action_type: "delete" };
       let deleteresponse=await axios.post(`http://localhost:7000/Position/actionposition`, {id}, {

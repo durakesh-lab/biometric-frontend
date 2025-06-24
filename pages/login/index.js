@@ -22,12 +22,14 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
 export default function Login() {
   const dispatch = useDispatch();
-  const { loading, errorlogin, token, requires2FA, twoFactorLoading, twoFactorError } = useSelector((state) => state.auth);
+  const { loading, errorlogin, token, requires2FA, twoFactorError } = useSelector((state) => state.auth);
   const router = useRouter();
   const [email, setEmail] = useState('');
+    const [twoFactorLoading, settwoFactorLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [activeText, setActiveText] = useState(0);
@@ -63,29 +65,40 @@ export default function Login() {
   }, []);
 
   // Redirect to dashboard if token exists in localStorage
-  useEffect(() => {
-    if (localStorage.getItem("token")) {
-      router.push({
-        pathname: '/dashboard',
-        query: { from: "login" }
-      });
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (localStorage.getItem("biometric_token")) {
+  //     router.push({
+  //       pathname: '/dashboard',
+  //       query: { from: "login" }
+  //     });
+  //   }
+  // }, []);
 
   const handleLogin = (e) => {
     e.preventDefault();
     dispatch(loginUser({ email, password }));
   };
 
-  const handleVerifyCode = (e) => {
+  const handleVerifyCode =async (e) => {
+    settwoFactorLoading(true)
     e.preventDefault();
-    dispatch(verifyTwoFactorCode({ email, code }));
+    // dispatch(verifyTwoFactorCode({ token:token?.access_token, code }));
+     var deleteresponse = await axios.post(`http://localhost:3001/auth/verifycode`,{ username:email, password, code }, {
+            headers: { Authorization: token?.access_token }
+          });
+            if(deleteresponse.data.status){
+               localStorage.setItem("biometric_token", deleteresponse.data.access_token);
+     router.push({
+        pathname: '/dashboard',
+        query: { from: "login" }
+      });
+  }
   };
 
   // Store token and redirect after successful login
   useEffect(() => {
     if (token?.access_token && !token?.multifactorauth) {
-      localStorage.setItem("token", token.access_token);
+      localStorage.setItem("biometric_token", token.access_token);
       router.push({
         pathname: '/dashboard',
         query: { from: "login" }
@@ -424,6 +437,8 @@ export default function Login() {
                     </>
                   ) : 'Verify Code'}
                 </Button>
+
+
                 
                 <Box sx={{ textAlign: 'center', mt: 2 }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>

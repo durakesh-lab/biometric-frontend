@@ -51,15 +51,15 @@ import {
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { confirnDeleteAction, editBranchAction, getbranchList } from '@/store/authSlice';
-import Layout, { theme } from '../../../components/Layout/Layout';
-import MyComponent from '../../../components/deletepopup';
+import Layout, { theme } from './Layout/Layout';
+import MyComponent from './deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import ViewBranchModal from '../../../components/Dashboard/viewbranch';
+import ViewBranchModal from './Dashboard/viewbranch';
 import { useRouter } from 'next/router';
 import ReactPaginate from 'react-paginate';
-
-const BranchlistPage = () => {
+ import Cookies from 'js-cookie';
+const BranchlistPage = ({company_id,setselected_Company,setSelection,handleModalClose,setSnackbar}) => {
   const router = useRouter();
   // State for companies
   const [companies, setCompanies] = useState([]);
@@ -132,15 +132,13 @@ const BranchlistPage = () => {
 
 
   useEffect(()=>{
-    console.log(router.query.id,"55555555555")
-    setSelectedCompany(router.query.id)
+    setSelectedCompany(company_id.id)
     
-  },[router.query.id])
+  },[company_id?.id])
 
 
   // Columns configuration
   const columns = [
-    { id: 'checkbox', label: '', sortable: false },
     { id: 'srNo', label: 'SN.', sortable: false },
         // { id: 'Id', label: 'Id', sortable: false },
     { id: 'branchCode', label: 'branch code', sortable: false },
@@ -150,13 +148,8 @@ const BranchlistPage = () => {
     { id: 'phoneNumber', label: 'Phone Number', sortable: true },
     { id: 'email', label: 'Email', sortable: true },
     { id: 'view', label: 'View', sortable: false },
-    { id: 'manage', label: 'Manage', sortable: false },
-      {
-    id: 'employees',
-    label: 'Employees',
-    sortable: false
-  },
-    { id: 'actions', label: 'Actions', sortable: false }
+    { id: 'Select', label: 'Select', sortable: false },
+     
   ];
 
   // Handle department navigation
@@ -457,11 +450,12 @@ const BranchlistPage = () => {
     dispatch(getbranchList());
   }, [dispatch]);
 
-const handleManageBranches=(id)=>{
-router.push({
-  pathname: '/company/branches/departments',
-  query: { id: id ,companyId:router.query.id }
-});
+const handleManageBranches=(id,branch)=>{
+   console.log(company_id,branch,"=======================")
+   let dataToSave=JSON.stringify({branch,company:company_id.company})
+Cookies.set('usercompanyandbranch', dataToSave, { expires: 1 });
+setSelection(true)
+handleModalClose()
 }
 const handleManageEmployees=(id)=>{
 router.push({
@@ -513,7 +507,7 @@ router.push({
     }, 1000);
   return (
     <>
-      <Layout>
+
         <Grid container spacing={3}>
           {/* Header Section with Breadcrumbs */}
           <Grid item xs={12}>
@@ -539,7 +533,7 @@ router.push({
                   <Link 
                     underline="hover" 
                     color="inherit" 
-                    onClick={() =>  router.push("/company/companylist")}
+                    onClick={() => setselected_Company("")}
                     sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                   >
                     <BusinessIcon sx={{ mr: 0.5, fontSize: 20 }} />
@@ -604,38 +598,6 @@ router.push({
             </Box>
           </Grid>
 
-          {/* Company Selection */}
-          {/* <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel id="company-select-label">Select Company</InputLabel>
-              <Select
-              
-                labelId="company-select-label"
-                id="company-select"
-                value={selectedCompany || ''}
-                label="Select Company"
-                onChange={(e) => setSelectedCompany(e.target.value)}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <BusinessIcon />
-                  </InputAdornment>
-                }
-                disabled={loadingCompanies}
-              >
-                {loadingCompanies ? (
-                  <MenuItem disabled>
-                    <CircularProgress size={24} />
-                  </MenuItem>
-                ) : (
-                  companies.map((company) => (
-                    <MenuItem key={company._id} value={company._id}>
-                      {company.name}
-                    </MenuItem>
-                  ))
-                )}
-              </Select>
-            </FormControl>
-          </Grid> */}
 <Grid item xs={12}>
   <Box
     sx={{
@@ -789,13 +751,7 @@ router.push({
                                 }
                               }}
                             >
-                              <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onChange={(event) => handleSelect(event, branch._id)}
-                                  sx={{ padding: '4px' }}
-                                />
-                              </TableCell>
+    
                               
                               <TableCell>{getSerialNumber(index)}</TableCell>
                               {/* <TableCell>{branch._id}</TableCell> */}
@@ -822,63 +778,16 @@ router.push({
     '&:hover': {
       boxShadow: 'none', // Prevents shadow on hover too
     } }}
-                                  onClick={() => handleManageBranches(branch._id)}
+                                  onClick={() => {handleManageBranches(branch._id,branch);setSnackbar({
+      open: true,
+      message:"Company & Branch Selected Successfully",
+      severity:"success"
+    });}}
                                 >
-                                   Departments 
+                                   Select 
                                 </Button>
                               </TableCell>
-                              <TableCell>
-  <Button 
-    variant="contained" 
-    size="small" 
-    sx={{ textTransform: 'capitalize', ml: 1,   boxShadow: 'none', // Removes button shadow
-    '&:hover': {
-      boxShadow: 'none', // Prevents shadow on hover too
-    } }}
-    onClick={() => handleManageEmployees(branch._id)}
-  >
-    Employees
-  </Button>
-</TableCell>
-                              {/* <TableCell>
-                                <Tooltip title="Manage Departments">
-                                  <IconButton
-                                    sx={{ color: 'text.secondary' }}
-                                    onClick={() => handleDepartmentClick(branch._id)}
-                                  >
-                                    <DepartmentIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </TableCell> */}
-                              
-                              <TableCell>
-                                <IconButton
-                                  aria-label="more"
-                                  aria-controls="long-menu"
-                                  aria-haspopup="true"
-                                  onClick={(e) => handleMenuClick(e, branch)}
-                                  sx={{ color: 'text.secondary' }}
-                                >
-                                  <MoreVertIcon />
-                                </IconButton>
-                                <Menu
-                                  id="long-menu"
-                                  anchorEl={anchorEl}
-                                  keepMounted
-                                  open={openMenu && selectedBranch?._id === branch._id}
-                                  onClose={handleMenuClose}
-                                  PaperProps={{
-                                    style: {
-                                      width: '20ch',
-                                      boxShadow: 'none',
-                                    },
-                                    elevation: 0,
-                                  }}
-                                >
-                                  <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                                  <MenuItem onClick={() => handleConfirmDelete(selectedBranch._id)}>Delete</MenuItem>
-                                </Menu>
-                              </TableCell>
+   
                             </TableRow>
                           );
                         })
@@ -1047,337 +956,10 @@ router.push({
         {/* Delete Confirmation Popup */}
         <MyComponent />
 
-        {/* Edit Branch Modal */}
-        <Modal
-          open={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          aria-labelledby="edit-branch-modal"
-          aria-describedby="edit-branch-form"
-        >
-          <Box sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '80%',
-            maxWidth: 600,
-            bgcolor: 'background.paper',
-            p: 4,
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            borderRadius: 2,
-            '&::-webkit-scrollbar': {
-              width: '6px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: '#f1f1f1',
-              borderRadius: '10px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: '#888',
-              borderRadius: '10px',
-              '&:hover': {
-                background: '#555',
-              }
-            },
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#888 #f1f1f1',
-          }}>
-            <Typography variant="h5" gutterBottom>Edit Branch</Typography>
-            <Divider sx={{ mb: 3 }} />
-            <Formik
-              initialValues={currentBranch}
-              validationSchema={validationSchema}
-              onSubmit={handleEditSubmit}
-              enableReinitialize
-            >
-              {({ values, errors, touched, handleChange }) => (
-                <Form>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Branch Information</Typography>
-                      <Divider />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="branch Code*"
-                        name="branchCode"
-                        value={values.branchCode}
-                         onChange={(e)=>{handleChange(e); ;if(editcheckfield.branchCode!=e.target.value){ checkFieldsExists(e.target.value,"branch_code")} } }
 
-                         error={(touched.branchCode && Boolean(errors.branchCode)) || Boolean(branchCodeError)}
-    helperText={
-      (touched.branchCode && errors.branchCode) || 
-      branchCodeError
-    }
-   
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Branch Name*"
-                        name="name"
-                        value={values.name}
-                        onChange={handleChange}
-                        error={touched.name && Boolean(errors.name)}
-                        helperText={touched.name && errors.name}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Manager*"
-                        name="manager"
-                        value={values.manager}
-                        onChange={handleChange}
-                        error={touched.manager && Boolean(errors.manager)}
-                        helperText={touched.manager && errors.manager}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Address*"
-                        name="address"
-                        value={values.address}
-                        onChange={handleChange}
-                        error={touched.address && Boolean(errors.address)}
-                        helperText={touched.address && errors.address}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Phone Number*"
-                        name="phoneNumber"
-                        value={values.phoneNumber}
-                        onChange={handleChange}
-                        error={touched.phoneNumber && Boolean(errors.phoneNumber)}
-                        helperText={touched.phoneNumber && errors.phoneNumber}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Email*"
-                        name="email"
-                        value={values.email}
-                        onChange={handleChange}
-                        error={touched.email && Boolean(errors.email)}
-                        helperText={touched.email && errors.email}
-                        variant="outlined"
-                      />
-                    </Grid>
+ 
 
-                    <Grid item xs={12}>
-                      <Button 
-                        fullWidth 
-                        type="submit" 
-                        variant="contained" 
-                        color="primary"
-                        size="large"
-                        sx={{ mt: 3,textTransform:"none" }}
-                      >
-                        Update Branch
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </Form>
-              )}
-            </Formik>
-          </Box>
-        </Modal>
 
-        {/* Add Branch Modal */}
-        <Modal
-          open={addModalOpen}
-          onClose={() => setAddModalOpen(false)}
-          aria-labelledby="add-branch-modal"
-          aria-describedby="add-branch-form"
-        >
-          <Box sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '80%',
-            maxWidth: 600,
-            bgcolor: 'background.paper',
-            p: 4,
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            borderRadius: 2,
-            '&::-webkit-scrollbar': {
-              width: '6px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: '#f1f1f1',
-              borderRadius: '10px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: '#888',
-              borderRadius: '10px',
-              '&:hover': {
-                background: '#555',
-              }
-            },
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#888 #f1f1f1',
-          }}>
-            <Typography variant="h5" gutterBottom>Add New Branch</Typography>
-            <Divider sx={{ mb: 3 }} />
-            <Formik
-              initialValues={newBranch}
-              validationSchema={validationSchema}
-              onSubmit={handleAddBranch}
-            >
-              {({ values, errors, touched, handleChange }) => (
-                <Form>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Branch Information</Typography>
-                      <Divider />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="branch Code*"
-                        name="branchCode"
-                        value={values.branchCode}
-                         onChange={(e)=>{handleChange(e); checkFieldsExists(e.target.value,"branch_code") } }
-
-                         error={(touched.branchCode && Boolean(errors.branchCode)) || Boolean(branchCodeError)}
-    helperText={
-      (touched.branchCode && errors.branchCode) || 
-      branchCodeError
-    }
-
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Branch Name*"
-                        name="name"
-                        value={values.name}
-                        onChange={handleChange}
-                        error={touched.name && Boolean(errors.name)}
-                        helperText={touched.name && errors.name}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Manager*"
-                        name="manager"
-                        value={values.manager}
-                        onChange={handleChange}
-                        error={touched.manager && Boolean(errors.manager)}
-                        helperText={touched.manager && errors.manager}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Address*"
-                        name="address"
-                        value={values.address}
-                        onChange={handleChange}
-                        error={touched.address && Boolean(errors.address)}
-                        helperText={touched.address && errors.address}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Phone Number*"
-                        name="phoneNumber"
-                        value={values.phoneNumber}
-                        onChange={handleChange}
-                        error={touched.phoneNumber && Boolean(errors.phoneNumber)}
-                        helperText={touched.phoneNumber && errors.phoneNumber}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Email*"
-                        name="email"
-                        value={values.email}
-                        onChange={handleChange}
-                        error={touched.email && Boolean(errors.email)}
-                        helperText={touched.email && errors.email}
-                        variant="outlined"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Button 
-                        fullWidth 
-                        type="submit" 
-                        variant="contained" 
-                        color="primary"
-                        size="large"
-                        sx={{ mt: 3,textTransform:"none"  }}
-                      >
-                        Add Branch
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </Form>
-              )}
-            </Formik>
-          </Box>
-        </Modal>
-
-        {/* Floating Add Button - Only show when company is selected */}
-        {selectedCompany && (
-          <Box
-            sx={{
-              position: 'fixed',
-              bottom: 32,
-              right: 32,
-              zIndex: 1000,
-            }}
-          >
-            <Fab 
-              color="primary" 
-              aria-label="add"
-              onClick={() =>{ setAddModalOpen(true);setbranchCodeError("")} }
-              sx={{
-                backgroundColor: 'primary.main',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'primary.dark',
-                },
-                boxShadow: 3,
-              }}
-            >
-              <AddIcon />
-            </Fab>
-          </Box>
-        )}
 
         {/* Snackbar for notifications */}
         <Snackbar
@@ -1395,7 +977,7 @@ router.push({
             {openSnackbar?.message || openSnackbar}
           </Alert>
         </Snackbar>
-      </Layout>
+ 
     </>
   );
 };
