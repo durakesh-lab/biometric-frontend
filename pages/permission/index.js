@@ -44,7 +44,7 @@ const PermissionPage = () => {
 
   const fetchPermissions = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/permissions');
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions`);
       setPermissions(response.data);
     } catch (error) {
       showSnackbar('Failed to fetch permissions', 'error');
@@ -76,7 +76,7 @@ setRoles(r)
     
     setLoading(true);
     try {
-      await axios.post('http://localhost:3001/permissions', { title: inputPermission });
+      await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions`, { title: inputPermission });
       await fetchPermissions();
       setInputPermission("");
       setShowAddPermissionModal(false);
@@ -96,7 +96,7 @@ setRoles(r)
     
     setLoading(true);
     try {
-      await axios.post('http://localhost:3001/permissions/sub', {
+      await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions/sub`, {
         title: inputPermission,
         parentPermission: selectedPermission
       });

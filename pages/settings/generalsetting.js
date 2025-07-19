@@ -56,7 +56,7 @@ const [formData, setFormData] = useState({
         setLoading(true);
         let token = localStorage.getItem("biometric_token");
         const response = await axios.get(
-          `http://localhost:3001/settings/2factor-authentication`, {
+         `${process.env.NEXT_PUBLIC_BASE_URL}/settings/2factor-authentication`, {
             headers: { Authorization: token }
           }
         );
@@ -118,7 +118,7 @@ setFormData({
       
       let token = localStorage.getItem("biometric_token");
       await axios.post(
-        `http://localhost:3001/settings/2factor-authentication`,
+       `${process.env.NEXT_PUBLIC_BASE_URL}/settings/2factor-authentication`,
         formData,
         {
           headers: { Authorization: token }

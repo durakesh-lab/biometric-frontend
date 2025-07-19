@@ -46,7 +46,7 @@ var allpermission={}
  rolepermission=JSON.parse( reduxdata.rolepermission)
  allpermission=reduxdata.allpermission
  }
- 
+
 const menuGroups = [
   {
     heading: "GENERAL",
@@ -64,7 +64,7 @@ const menuGroups = [
       //     { label: "Reports", link: "/payroll/reports" },
       //   ],
       // },
-     ...(allpermission.length && rolepermission.permission.includes(allpermission[0]._id)
+     ...(allpermission.length && rolepermission.permission.includes(allpermission[2]._id)
         ? [
             {
               label: "Company",
@@ -136,6 +136,22 @@ const menuGroups = [
       // },
     ],
   },
+   {
+    heading: "Leaves MANAGEMENT",
+    items: [
+    
+       {
+        label: "Leaves Management",
+        icon: <WorkOutlineIcon />,
+        subItems: [
+          { label: "My Leaves", link: "/Leavemanagement/myleaves/summary" },
+          { label: "My Branch Users", link: "/Leavemanagement/branchusers/summary" },
+          // { label: "Users Leaves", link: "/profilemanagement/allusers" },
+        ],
+      },
+     
+    ],
+  },
   {
     heading: "USER MANAGEMENT",
     items: [
@@ -151,8 +167,9 @@ const menuGroups = [
         label: "Profile Management",
         icon: <WorkOutlineIcon />,
         subItems: [
-          { label: "My Profile", link: "/myprofile" },
-          { label: "Users Profile", link: "/jobs/new" },
+          { label: "My Profile", link: "/profilemanagement/myprofile" },
+          { label: "My Branch Users", link: "/profilemanagement/branchusers" },
+          { label: "Users Profile", link: "/profilemanagement/allusers" },
         ],
       },
       // {

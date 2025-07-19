@@ -80,7 +80,7 @@ const AdminAddEditPermission = () => {
 
   const handleAddPermission = async () => {
     try {
-      const { data } = await axios.get('http://localhost:3001/permissions');
+      const { data } = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions`);
       const transformedData = transformPermissionsData(data);
       setPermissionsData(transformedData);
       // setallpermissions(data);
@@ -98,7 +98,7 @@ const AdminAddEditPermission = () => {
       const fetchRoleDetails = async () => {
         setLoading(true);
         try {
-          const response = await axios.get(`http://localhost:3001/permissions/findpermissionsbyrole/${profile_id}`);
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions/findpermissionsbyrole/${profile_id}`);
           const role = response.data[0];
           setTitle(role.role);
           setPermission(JSON.parse(role.permAndSubPerm).permission);
@@ -166,13 +166,12 @@ console.log(permission,"??????+===========")
       };
 
       let response;
-      console.log(payload,"?????????")
 
       if (profile_id) {
-        response = await axios.post(`http://localhost:3001/permissions/createpermissionsbyrole`, payload);
+        response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions/createpermissionsbyrole`, payload);
         showSnackbar('Profile updated successfully', 'success');
       } else {
-        response = await axios.post('http://localhost:3001/roles', payload);
+        response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/roles`, payload);
         showSnackbar('Profile added successfully', 'success');
       }
       

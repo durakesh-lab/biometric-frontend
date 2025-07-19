@@ -174,7 +174,7 @@ const BranchlistPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company`, {
+       `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
           headers: { Authorization: token }
         }
       );
@@ -212,7 +212,7 @@ const BranchlistPage = () => {
 
       let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
-        `http://localhost:3001/company/${selectedCompany}/branches`, {
+       `${process.env.NEXT_PUBLIC_BASE_URL}/company/${selectedCompany}/branches`, {
           headers: { Authorization: token },
           params
         }
@@ -344,12 +344,12 @@ const BranchlistPage = () => {
      if(Array.isArray(id)){
       
          var data = { Ids: id, action_type: "delete" };
-      var response = await axios.post(`http://localhost:3001/branch/delete-bulk`,data, {
+      var response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/delete-bulk`,data, {
         headers: { Authorization: token }
       });
      }
      else{
-            var response = await axios.delete(`http://localhost:3001/branch/${id}`, {
+            var response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/${id}`, {
         headers: { Authorization: token }
       });
      }
@@ -405,7 +405,7 @@ const BranchlistPage = () => {
   const handleAddBranch = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post('http://localhost:3001/branch', values, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/branch`, values, {
         headers: { Authorization: token }
       });
       
@@ -498,7 +498,7 @@ router.push({
       }
       try {
         let token = localStorage.getItem("biometric_token");
-        const response = await axios.post(`http://localhost:3001/branch/checkandverifyfields`, { field:"branch_code", branchCode: value }, {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/checkandverifyfields`, { field:"branch_code", branchCode: value }, {
           headers: { Authorization: token }
         });
         if(field=="branch_code"){

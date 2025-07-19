@@ -1200,7 +1200,7 @@ const BranchlistPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
           headers: { Authorization: token }
         }
       );
@@ -1238,7 +1238,7 @@ const BranchlistPage = () => {
 
       let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
-        `http://localhost:3001/company/${selectedCompany}/branches`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company/${selectedCompany}/branches`, {
           headers: { Authorization: token },
           params
         }
@@ -1364,13 +1364,13 @@ const handleSelect = (event, id) => {
      if(Array.isArray(id)){
       
          var data = { Ids: id, action_type: "delete" };
-      var response = await axios.post(`http://localhost:3001/branch/delete-bulk`,data, {
+      var response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/delete-bulk`,data, {
         headers: { Authorization: token }
       });
      }
      else{
   //  var data = { companyIds: Array.isArray(id) ? id : [id], action_type: "delete" };
-            var response = await axios.delete(`http://localhost:3001/branch/${id}`, {
+            var response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/${id}`, {
         headers: { Authorization: token }
       });
      }
@@ -1426,7 +1426,7 @@ const handleSelect = (event, id) => {
   const handleAddBranch = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post('http://localhost:3001/branch', values, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/branch`, values, {
         headers: { Authorization: token }
       });
       

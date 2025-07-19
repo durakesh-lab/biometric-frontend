@@ -56,10 +56,9 @@ const ProfilePage = () => {
       try {
        
         setLoading(true);
-        const response = await axios.get("http://localhost:3001/users/getuser/"+id);
-        console.log(response.data,"??????")
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/users/getuser/`+id);
         setStaffData(response.data);
-        setHasEditPermission(response.data.hasEditPermission);
+        setHasEditPermission(response.data.editstatus);
         setLoading(false);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to fetch profile");
@@ -161,7 +160,7 @@ let token=localStorage.getItem("biometric_token")
 
   const handleEditClick = () => {
     if (hasEditPermission) {
-      router.push(`/myprofile/editprofile`);
+      router.push(`/profilemanagement/myprofile/editprofile`);
     } else {
       setConfirmOpen(true);
     }
@@ -203,15 +202,16 @@ let token=localStorage.getItem("biometric_token")
             size="medium"
             sx={{ fontWeight: 500 }}
           /> */}
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleEditClick}
-            disabled={processing}
-            startIcon={processing ? <CircularProgress size={20} /> : <EditIcon />}
-          >
-            {hasEditPermission ? "Edit Profile" : "Request Edit"}
-          </Button>
+<Button
+  variant="contained"
+  color="primary"
+  onClick={handleEditClick}
+  // disabled={!hasEditPermission || processing} // ❌ disable if no permission or processing
+  startIcon={processing ? <CircularProgress size={20} /> : <EditIcon />}
+>
+  Edit Profile
+</Button>
+
         </Box>
       </Box>
 
@@ -309,12 +309,12 @@ let token=localStorage.getItem("biometric_token")
             <FieldRow 
               icon={<BranchIcon />}
               label="Department" 
-              value={staffData.department.name}
+              value={staffData?.department?.name}
             />
             <FieldRow 
               icon={<CodeIcon />}
               label="Department Code" 
-              value={staffData.department.dept_code}
+              value={staffData?.department?.dept_code}
             />
           </Section>
         </Grid>
@@ -325,18 +325,18 @@ let token=localStorage.getItem("biometric_token")
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
       >
-        <DialogTitle>Request Edit Permission?</DialogTitle>
+        <DialogTitle> Edit Permission</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You need to request permission to edit this profile. A Manager will review your request.
-            Are you sure you want to proceed?
+            You Dont't have permission to edit this profile. A Manager will allow you to edit profile.
+            {/* Are you sure you want to proceed? */}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={handleEditRequest} color="primary" autoFocus>
+          <Button onClick={() => setConfirmOpen(false)}>ok</Button>
+          {/* <Button onClick={handleEditRequest} color="primary" autoFocus>
             Confirm
-          </Button>
+          </Button> */}
         </DialogActions>
       </Dialog>
 

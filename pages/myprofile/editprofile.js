@@ -106,7 +106,7 @@ const EditStaffPage = () => {
         const userId = decoded.sub;
         
         // Fetch staff data
-        const response = await axios.get(`http://localhost:3001/users/getuser/${userId}`);
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/users/getuser/${userId}`);
         console.log(response.data);
         setStaffData(response.data);
         
@@ -131,7 +131,7 @@ const EditStaffPage = () => {
       const decoded = jwtDecode(token);
       const userId = decoded.sub;
       
-      const response = await axios.put(`http://localhost:3001/users/updateuser/${userId}`, values);
+      const response = await axios.put(`${process.env.NEXT_PUBLIC_BASE_URL}/users/updateuser/${userId}`, values);
       setSnackbar({
         open: true,
         message: "Profile updated successfully",

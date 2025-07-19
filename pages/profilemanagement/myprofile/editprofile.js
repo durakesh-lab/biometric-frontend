@@ -16,7 +16,8 @@ import {
   Select,
   Divider,
   Paper,
-  Stack
+  Stack,
+  FormHelperText
 } from "@mui/material";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
@@ -30,14 +31,14 @@ import {
 } from "@mui/icons-material";
 import Layout from "../../../components/Layout/Layout";
 import { jwtDecode } from "jwt-decode";
-
 const genders = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'other', label: 'Other' },
+  { value: 'M', label: 'Male' },
+  { value: 'F', label: 'Female' },
+  // { value: 'other', label: 'Other' },
 ];
 
-const roleTypes = ['Admin', 'Manager', 'Staff', 'Supervisor'];
+// Added "Employee" to role types to match the response data
+const roleTypes = ['Admin', 'Manager', 'Staff', 'Supervisor', 'Employee'];
 const statusTypes = ['Active', 'Inactive'];
 
 // Utility functions for date validation
@@ -63,14 +64,22 @@ const validationSchema = Yup.object({
     .test(
       'email-exists',
       'Email already exists',
-      () => !emailError
+      function(value) {
+        // Access form context to compare with original email
+        if (!this.parent.staffData || value === this.parent.staffData.email) return true;
+        return !this.parent.emailError;
+      }
     ),
   username: Yup.string()
     .required("Required")
     .test(
       'username-exists',
-      'username already exists',
-      () => !usernameError
+      'Username already exists',
+      function(value) {
+        // Access form context to compare with original username
+        if (!this.parent.staffData || value === this.parent.staffData.username) return true;
+        return !this.parent.usernameError;
+      }
     ),
   role: Yup.string().required("Required"),
   active_status: Yup.string().required("Required"),
@@ -106,13 +115,13 @@ const EditStaffPage = () => {
         const userId = decoded.sub;
         
         // Fetch staff data
-        const response = await axios.get(`http://localhost:3001/users/getuser/${userId}`);
-        console.log(response.data);
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/users/getuser/${userId}`);
         setStaffData(response.data);
         
-        // Fetch departments (if needed)
+        // Fetch departments if needed
         // const deptResponse = await axios.get("/api/departments");
         // setDepartments(deptResponse.data);
+        // setLoadingDepartments(false);
         
         setLoading(false);
       } catch (err) {
@@ -130,8 +139,8 @@ const EditStaffPage = () => {
       const token = localStorage.getItem("biometric_token");
       const decoded = jwtDecode(token);
       const userId = decoded.sub;
-      
-      const response = await axios.put(`http://localhost:3001/users/updateuser/${userId}`, values);
+        // console.log(values,"87655555555555555")
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/${userId}`, values);
       setSnackbar({
         open: true,
         message: "Profile updated successfully",
@@ -139,7 +148,7 @@ const EditStaffPage = () => {
       });
       
       // Optionally redirect back to profile after delay
-      setTimeout(() => router.push("/profile"), 2000);
+      // setTimeout(() => router.push("/profile"), 2000);
     } catch (err) {
       setSnackbar({
         open: true,
@@ -150,7 +159,11 @@ const EditStaffPage = () => {
   };
 
   const checkFieldExists = async (value, fieldName) => {
-    if (!value || !staffData || value === staffData[fieldName]) return;
+    if (!value || !staffData || value === staffData[fieldName]) {
+      if (fieldName === 'email') setEmailError(false);
+      if (fieldName === 'username') setUsernameError(false);
+      return;
+    };
     
     try {
       const response = await axios.post("/api/staff/check-field", {
@@ -171,7 +184,34 @@ const EditStaffPage = () => {
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
-
+  
+  // Fetch departments data
+  const fetchDepartments = async (branchId) => {
+    if (!branchId) return;
+    
+    try {
+      setLoadingDepartments(true);
+      let token = localStorage.getItem("biometric_token");
+      
+      const response = await axios.get(
+       `${process.env.NEXT_PUBLIC_BASE_URL}/department/${branchId}`, {
+          headers: { Authorization: token }
+        }
+      );
+      setDepartments(response.data?.data);
+      setLoadingDepartments(false);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      setLoadingDepartments(false);
+    }
+  };
+  useEffect(()=>{
+    const token = localStorage.getItem("biometric_token");
+        const decoded = jwtDecode(token);
+    if(decoded.branchId){
+    fetchDepartments(decoded.branchId)
+    }
+  },[])
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
@@ -219,7 +259,10 @@ const EditStaffPage = () => {
             initialValues={{
               ...staffData,
               date_of_birth: formatDateForInput(staffData.date_of_birth),
-              joining_date: formatDateForInput(staffData.joining_date)
+              joining_date: formatDateForInput(staffData.joining_date),
+              emailError: false,
+              usernameError: false,
+              gender:staffData.gender || ""
             }}
             validationSchema={validationSchema}
             onSubmit={handleSubmit}
@@ -259,25 +302,27 @@ const EditStaffPage = () => {
                     />
                   </Grid>
 
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      select
-                      label="Gender*"
-                      name="gender"
-                      value={values.gender}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      error={touched.gender && Boolean(errors.gender)}
-                      helperText={touched.gender && errors.gender}
-                    >
-                      {genders.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
+<Grid item xs={12} md={6}>
+  <FormControl fullWidth error={touched.gender && Boolean(errors.gender)}>
+    <InputLabel>Gender*</InputLabel>
+    <Select
+      name="gender"
+      value={values.gender || ''}
+      label="Gender*"
+      onChange={handleChange}
+      onBlur={handleBlur}
+    >
+      {genders.map((option) => (
+        <MenuItem key={option.value} value={option.value}>
+          {option.label}
+        </MenuItem>
+      ))}
+    </Select>
+    {touched.gender && errors.gender && (
+      <FormHelperText>{errors.gender}</FormHelperText>
+    )}
+  </FormControl>
+</Grid>
 
                   <Grid item xs={12} md={6}>
                     <TextField
@@ -336,7 +381,7 @@ const EditStaffPage = () => {
                   </Grid>
 
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth error={touched.role && Boolean(errors.role)}>
                       <InputLabel>Role*</InputLabel>
                       <Select
                         name="role"
@@ -344,7 +389,6 @@ const EditStaffPage = () => {
                         label="Role*"
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.role && Boolean(errors.role)}
                       >
                         {roleTypes.map((role) => (
                           <MenuItem key={role} value={role}>
@@ -352,11 +396,14 @@ const EditStaffPage = () => {
                           </MenuItem>
                         ))}
                       </Select>
+                      {touched.role && errors.role && (
+                        <FormHelperText>{errors.role}</FormHelperText>
+                      )}
                     </FormControl>
                   </Grid>
 
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth error={touched.active_status && Boolean(errors.active_status)}>
                       <InputLabel>Status*</InputLabel>
                       <Select
                         name="active_status"
@@ -364,7 +411,6 @@ const EditStaffPage = () => {
                         label="Status*"
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.active_status && Boolean(errors.active_status)}
                       >
                         {statusTypes.map((status) => (
                           <MenuItem key={status} value={status}>
@@ -372,6 +418,9 @@ const EditStaffPage = () => {
                           </MenuItem>
                         ))}
                       </Select>
+                      {touched.active_status && errors.active_status && (
+                        <FormHelperText>{errors.active_status}</FormHelperText>
+                      )}
                     </FormControl>
                   </Grid>
 
@@ -413,25 +462,29 @@ const EditStaffPage = () => {
                     />
                   </Grid>
 
-                  {/* Department field if needed */}
-                  {/* <Grid item xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Department</InputLabel>
-                      <Select
-                        name="department"
-                        value={values.department}
-                        label="Department"
-                        onChange={handleChange}
-                        disabled={loadingDepartments}
-                      >
-                        {departments.map((dept) => (
-                          <MenuItem key={dept._id} value={dept._id}>
-                            {dept.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid> */}
+                  {/* Department display */}
+                        <Grid item xs={6}>
+                                      <FormControl fullWidth>
+                                        <InputLabel>Department</InputLabel>
+                                        <Select
+                                          name="department"
+                                          value={values?.department?._id}
+                                          label="Department"
+                                          onChange={handleChange}
+                                          disabled={loadingDepartments}
+                                        >
+                                          {departments.length ? departments.map((dept) => (
+                                            <MenuItem key={dept._id} value={dept._id}>
+                                              {dept.name}
+                                            </MenuItem>
+                                          )) :  (
+                                    <MenuItem disabled>
+                                      No department available
+                                    </MenuItem>
+                                  ) }
+                                        </Select>
+                                      </FormControl>
+                                    </Grid>
 
                   <Grid item xs={12} sx={{ mt: 3 }}>
                     <Button
@@ -458,19 +511,21 @@ const EditStaffPage = () => {
           </Formik>
         </Paper>
 
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-        >
-          <Alert 
-            onClose={handleCloseSnackbar} 
-            severity={snackbar.severity}
-            sx={{ width: '100%' }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
+<Snackbar
+  open={snackbar.open}
+  autoHideDuration={6000}
+  onClose={handleCloseSnackbar}
+  anchorOrigin={{ vertical: 'top', horizontal: 'right' }} // <-- Position set here
+>
+  <Alert 
+    onClose={handleCloseSnackbar} 
+    severity={snackbar.severity}
+    sx={{ width: '100%' }}
+  >
+    {snackbar.message}
+  </Alert>
+</Snackbar>
+
       </Box>
     </Layout>
   );

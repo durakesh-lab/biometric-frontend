@@ -9,7 +9,8 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:3001/auth/login', {
+      console.log(process.env.NEXT_PUBLIC_BASE_URL,"9876555555555555555555")
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +212,7 @@ export const createcompany = createAsyncThunk(
   async ({ obj }, { rejectWithValue }) => {
     let token=localStorage.getItem("biometric_token")
     try {
-      const response = await fetch('http://localhost:3001/company', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
         method: 'POST',
         headers:{
           Authorization:token,
@@ -265,7 +266,7 @@ export const editDepartmentAction = createAsyncThunk(
     let token=localStorage.getItem("biometric_token")
 
     try {
-      const response = await fetch('http://localhost:3001/department/'+obj.id, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/department/`+obj.id, {
         method: 'PUT',
         headers:{
           Authorization:token,
@@ -292,7 +293,7 @@ export const editStaffAction = createAsyncThunk(
     let token=localStorage.getItem("biometric_token")
 
     try {
-      const response = await fetch('http://localhost:3001/users/edituser/'+obj.id, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/`+obj.id, {
         method: 'POST',
         headers:{
           Authorization:token,
@@ -301,7 +302,7 @@ export const editStaffAction = createAsyncThunk(
         body: JSON.stringify(obj),
         
       });
-      
+    
       const data = await response.json();
       if (data.errors) {
         return rejectWithValue(data.errors[0].message);
@@ -345,7 +346,7 @@ export const editCompanyAction = createAsyncThunk(
   async (obj , { rejectWithValue }) => {
     let token=localStorage.getItem("biometric_token")
     try {
-      const response = await fetch('http://localhost:3001/company/'+obj.id, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/company/`+obj.id, {
         method: 'PUT',
         headers:{
           Authorization:token,
@@ -371,7 +372,7 @@ export const editBranchAction = createAsyncThunk(
     let token=localStorage.getItem("biometric_token")
 
     try {
-      const response = await fetch('http://localhost:3001/branch/'+obj.id, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/`+obj.id, {
         method: 'PUT',
         headers:{
           Authorization:token,
@@ -521,7 +522,6 @@ const authSlice = createSlice({
   
     });
     builder.addCase(loginUser.rejected, (state, action) => {
-      console.log(action,"@@@rejected")
 
       state.loading = false;
       state.errorlogin = action.payload || action.error.message;
@@ -665,7 +665,6 @@ const authSlice = createSlice({
                   state.createdPositionData=null
                 });
                 builder.addCase(createPosition.fulfilled, (state, action) => {
-                  console.log({state, action},"#####")
                   state.loading = false;
                   state.createdPositionData = action.payload // token from userRegister
                   state.error = null;
@@ -681,7 +680,6 @@ const authSlice = createSlice({
                   state.createdbranchData=null
                 });
                 builder.addCase(createbranch.fulfilled, (state, action) => {
-                  console.log({state, action},"#####")
                   state.loading = false;
                   state.createdbranchData = action.payload // token from userRegister
                   state.error = null;
@@ -697,7 +695,6 @@ const authSlice = createSlice({
                   state.createdcompanyData=null
                 });
                 builder.addCase(createcompany.fulfilled, (state, action) => {
-                  console.log({state, action},"#####")
                   state.loading = false;
                   state.createdcompanyData = action.payload // token from userRegister
                   state.error = null;
@@ -767,9 +764,9 @@ export const getPermissionbyRole = createAsyncThunk(
 
     try {
       
-  const response = await axios.get(`http://localhost:3001/permissions/findpermissionsbyrole/${obj}`);
+  const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions/findpermissionsbyrole/${obj}`);
           const role = response.data[0];
-        const response2= await axios.get('http://localhost:3001/permissions');
+        const response2= await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions`);
       // const data = await response.json();
       // if (response2.errors) {
       //   return rejectWithValue(data.errors[0].message);
@@ -786,12 +783,17 @@ let userSlice=createSlice({
   name:"users",
   initialState:{
    edituserdata:{},
-   opencompanybranch:false
+   opencompanybranch:false,
+   zindexheadervalue:null
   },
   reducers:{
           SelectCompanyBranchGlobal:(state,data)=>{
       
         return {...state,opencompanybranch:data.payload}
+    },
+      zindexheader:(state,data)=>{
+      
+        return {...state,zindexheadervalue:data.payload}
     },
   },
   extraReducers:(builder)=>{
@@ -832,7 +834,7 @@ let userSlice=createSlice({
   }
 })
 export const { logout,onLogout ,confirnDeleteAction} = authSlice.actions;
-export const { SelectCompanyBranchGlobal} = userSlice.actions;
+export const { SelectCompanyBranchGlobal,zindexheader} = userSlice.actions;
 
 export default authSlice.reducer;
 const userSliceReducer=userSlice.reducer

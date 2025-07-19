@@ -83,7 +83,7 @@ export default function Login() {
     settwoFactorLoading(true)
     e.preventDefault();
     // dispatch(verifyTwoFactorCode({ token:token?.access_token, code }));
-     var deleteresponse = await axios.post(`http://localhost:3001/auth/verifycode`,{ username:email, password, code }, {
+     var deleteresponse = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/verifycode`,{ username:email, password, code }, {
             headers: { Authorization: token?.access_token }
           });
             if(deleteresponse.data.status){

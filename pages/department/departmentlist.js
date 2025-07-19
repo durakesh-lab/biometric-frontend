@@ -139,7 +139,7 @@ const DepartmentlistPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
           headers: { Authorization: token }
         }
       );
@@ -161,7 +161,7 @@ const DepartmentlistPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company/${companyId}/branches`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company/${companyId}/branches`, {
           headers: { Authorization: token }
         }
       );
@@ -199,7 +199,7 @@ const DepartmentlistPage = () => {
 
       let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
-        `http://localhost:3001/department/${selectedBranch}`, {
+       `${process.env.NEXT_PUBLIC_BASE_URL}/department/${selectedBranch}`, {
           headers: { Authorization: token },
           params
         }
@@ -333,7 +333,7 @@ const DepartmentlistPage = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.delete(`http://localhost:3001/department/${id}`, {
+      const response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/department/${id}`, {
         headers: { Authorization: token }
       });
       
@@ -387,7 +387,7 @@ const DepartmentlistPage = () => {
   const handleAddDepartment = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post('http://localhost:3001/department', values, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/department`, values, {
         headers: { Authorization: token }
       });
       

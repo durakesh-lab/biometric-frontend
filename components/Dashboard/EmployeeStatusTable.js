@@ -148,7 +148,7 @@ router.push({
 
       let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
-        `http://localhost:3001/company`,
+       `${process.env.NEXT_PUBLIC_BASE_URL}/company`,
         {
           headers: { Authorization: token },
           params
@@ -284,7 +284,7 @@ router.push({
     try {
       let token = localStorage.getItem("biometric_token");
       let data = { object_ids: Array.isArray(id) ? id : [id], action_type: "delete" };
-      await axios.post(`http://localhost:3001/company/actioncompany`, data, {
+      await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/company/actioncompany`, data, {
         headers: { Authorization: token }
       });
       setSelected([]);

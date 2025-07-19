@@ -196,7 +196,7 @@ const StaffListPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
           headers: { Authorization: token }
         }
       );
@@ -218,7 +218,7 @@ const StaffListPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company/${companyId}/branches`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company/${companyId}/branches`, {
           headers: { Authorization: token }
         }
       );
@@ -240,7 +240,7 @@ const StaffListPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/department/${branchId}`, {
+       `${process.env.NEXT_PUBLIC_BASE_URL}/department/${branchId}`, {
           headers: { Authorization: token }
         }
       );
@@ -279,7 +279,7 @@ const fetchStaff = async () => {
 
     let token = localStorage.getItem("biometric_token");
     const response = await axios.post(
-      `http://localhost:3001/users/allusers`,
+      `${process.env.NEXT_PUBLIC_BASE_URL}/users/allusers`,
       { branchId: selectedBranch, companyId: selectedCompany },
       {
         headers: { Authorization: token },
@@ -422,12 +422,12 @@ const applyFilters = () => {
          if(Array.isArray(id)){
             
                var data = { Ids: id, action_type: "delete" };
-            var response = await axios.post(`http://localhost:3001/users/delete-bulk`,data, {
+            var response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/delete-bulk`,data, {
               headers: { Authorization: token }
             });
            }
            else{
-                      var response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
+                      var response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/users/deleteUser/${id}`, {
         headers: { Authorization: token }
       });
            }
@@ -487,7 +487,7 @@ const applyFilters = () => {
   const handleAddStaff = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post('http://localhost:3001/auth/register', values, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/register`, values, {
         headers: { Authorization: token }
       });
       
@@ -663,7 +663,7 @@ const [showPassword, setShowPassword] = useState(false);
       }
       try {
         let token = localStorage.getItem("biometric_token");
-        const response = await axios.post(`http://localhost:3001/users/checkandverifyfields`,field=="username" ? { field:"username", username: value,id }:{ field:"email", email: value ,id}, {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/checkandverifyfields`,field=="username" ? { field:"username", username: value,id }:{ field:"email", email: value ,id}, {
           headers: { Authorization: token }
         });
         if(field=="username"){
@@ -684,7 +684,7 @@ const [showPassword, setShowPassword] = useState(false);
         try {
           let token = localStorage.getItem("biometric_token");
           const response = await axios.post(
-            `http://localhost:3001/users/import`, 
+            `${process.env.NEXT_PUBLIC_BASE_URL}/users/import`, 
             formData,
             {
               headers: { 

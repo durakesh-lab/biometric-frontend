@@ -174,7 +174,7 @@ var allpermission={}
 
       let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
-        `http://localhost:3001/company`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
           headers: { Authorization: token },
           params
         }
@@ -326,13 +326,13 @@ const handleSelect = (event, id) => {
      if(Array.isArray(id)){
       
          var data = { companyIds: id, action_type: "delete" };
-      var deleteresponse = await axios.post(`http://localhost:3001/company/delete-bulk`,data, {
+      var deleteresponse = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/company/delete-bulk`,data, {
         headers: { Authorization: token }
       });
      }
      else{
   //  var data = { companyIds: Array.isArray(id) ? id : [id], action_type: "delete" };
-      var deleteresponse = await axios.delete(`http://localhost:3001/company/`+id, {id}, {
+      var deleteresponse = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/company/`+id, {id}, {
         headers: { Authorization: token }
       });
      }
@@ -491,7 +491,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
   }
   try {
     let token = localStorage.getItem("biometric_token");
-    const response = await axios.post(`http://localhost:3001/company/checkandverifyfields`,field=="companyId" ? { field:"companyId", companyId: value }:{ field:"company_email", email: value }, {
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/company/checkandverifyfields`,field=="companyId" ? { field:"companyId", companyId: value }:{ field:"company_email", email: value }, {
       headers: { Authorization: token }
     });
     if(field=="companyId"){
@@ -765,10 +765,10 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                                   elevation: 0,
                                 }}
                               >
-                                {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[2]._id)) ? 
+                                {(allpermission.length && rolepermission?.sub_permission?.includes(allpermission[0]?.subPermissions[2]?._id)) ? 
 
                                 <MenuItem onClick={handleEdit}>Edit</MenuItem> :""}
-                                {(allpermission.length && rolepermission.sub_permission.includes(allpermission[0].subPermissions[1]._id)) ? 
+                                {(allpermission.length && rolepermission?.sub_permission?.includes(allpermission[0]?.subPermissions[1]?._id)) ? 
                                 <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem> :""}
                               </Menu>
                             </TableCell>

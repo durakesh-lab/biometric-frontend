@@ -44,6 +44,8 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 export default function Header({ drawerWidth, onDrawerToggle }) {
   let dispatch = useDispatch();
    let selector = useSelector((state)=>{return(state.users.opencompanybranch)});
+      let selectorzindex = useSelector((state)=>{return(state.users)});
+console.log(selectorzindex,"??????????????????????")
   const router = useRouter();
   const [anchorElAvatar, setAnchorElAvatar] = useState(null);
   const [userToken, setUserToken] = useState(null);
@@ -71,8 +73,8 @@ export default function Header({ drawerWidth, onDrawerToggle }) {
 
   const handleAvatarClick = (event) => {
     setAnchorElAvatar(event.currentTarget);
+    
   };
-
   const handleCloseSelection = () => {
     setAnchorElAvatar(null);
   };
@@ -128,7 +130,7 @@ export default function Header({ drawerWidth, onDrawerToggle }) {
         color: "#374151",
         borderBottom: "1px solid #E5E7EB",
         boxShadow: "none",
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        zIndex:selectorzindex?.zindexheadervalue!=null ? 0: (theme) => theme.zIndex.drawer + 1,
       }}
     >
       <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

@@ -23,7 +23,7 @@ export default function DonutChart() {
       setLoading(true);
       let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
-        `http://localhost:3001/company/allcompany`,
+       `${process.env.NEXT_PUBLIC_BASE_URL}/company/allcompany`,
         {
           headers: { Authorization: token },
         }

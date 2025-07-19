@@ -36,7 +36,7 @@ export default function Birthdays() {
 
       const token = localStorage.getItem("biometric_token");
       const responseForPosition = await axios.get(
-        `http://localhost:3001/users/usersbirthday?time=`+filter, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/users/usersbirthday?time=`+filter, {
           headers: { Authorization: token },
           params
         }

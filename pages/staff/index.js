@@ -178,7 +178,7 @@ console.log(newStaff,"newStaffnewStaff#######")
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
           headers: { Authorization: token }
         }
       );
@@ -200,7 +200,7 @@ console.log(newStaff,"newStaffnewStaff#######")
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company/${companyId}/branches`, {
+       `${process.env.NEXT_PUBLIC_BASE_URL}/${companyId}/branches`, {
           headers: { Authorization: token }
         }
       );
@@ -222,7 +222,7 @@ console.log(newStaff,"newStaffnewStaff#######")
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/department/${branchId}`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/department/${branchId}`, {
           headers: { Authorization: token }
         }
       );
@@ -261,7 +261,7 @@ const fetchStaff = async () => {
 
     let token = localStorage.getItem("biometric_token");
     const response = await axios.post(
-      `http://localhost:3001/users/allusers`,
+      `${process.env.NEXT_PUBLIC_BASE_URL}/users/allusers`,
       { branchId: selectedBranch, companyId: selectedCompany },
       {
         headers: { Authorization: token },
@@ -406,7 +406,7 @@ const applyFilters = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/users/deleteUser/${id}`, {
         headers: { Authorization: token }
       });
       
@@ -460,7 +460,7 @@ const applyFilters = () => {
   const handleAddStaff = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post('http://localhost:3001/auth/register', values, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/register`, values, {
         headers: { Authorization: token }
       });
       

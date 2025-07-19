@@ -142,7 +142,7 @@ const GroupManagement = () => {
   };
 
   // Sample data with state for editable groups
-  const [groups, setGroups] = useState([
+  let [groups, setGroups] = useState([
     // { id: 'all', name: 'All Users', icon: <GroupsIcon />, count: 6739, color: 'primary' },
     // { id: 2, name: 'SQA', count: 50, color: 'pink', shiftTiming: '9am-5pm', description: 'Software Quality Assurance team' },
     // { id: 1, name: 'Xcv', count: 3, color: 'dark', shiftTiming: 'Flexible', description: 'Experimental group' }
@@ -162,17 +162,18 @@ const GroupManagement = () => {
   ];
  const fetchgroup=async ()=>{
    let token = localStorage.getItem("biometric_token");
-                const response = await axios.get('http://localhost:3001/groups', {
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/groups`, {
                   headers: { Authorization: token }
                 });
                 if(response.data){
                  setGroups(response.data);
+                    fetchgroupcount(undefined,response.data)
 
                 }
  }
  const fetchusers=async ()=>{
    let token = localStorage.getItem("biometric_token");
-                const response = await axios.post('http://localhost:3001/users/allusers', {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/allusers`, {
                   headers: { Authorization: token }
                 });
                 if(response.data){
@@ -180,9 +181,7 @@ const GroupManagement = () => {
 
                 }
  }
- useEffect(()=>{
-  fetchgroup()
- },[])
+
   // Formik for create group
   const createGroupForm = useFormik({
  initialValues: {
@@ -248,7 +247,7 @@ endTime: yup
       };
       try {
              let token = localStorage.getItem("biometric_token");
-                const response = await axios.post('http://localhost:3001/groups', newGroup, {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/groups`, newGroup, {
                   headers: { Authorization: token }
                 });
 
@@ -299,7 +298,7 @@ validationSchema: yup.object({
       // setGroups(updatedGroups);
          try {
              let token = localStorage.getItem("biometric_token");
-                const response = await axios.post('http://localhost:3001/groups/edit', values, {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/groups/edit`, values, {
                   headers: { Authorization: token }
                 });
               if(Object.keys(response.data)?.length){
@@ -340,7 +339,7 @@ validationSchema: yup.object({
 
             try {
              let token = localStorage.getItem("biometric_token");
-                const response = await axios.post('http://localhost:3001/users/edituser_assigngroup/'+currentUser._id, {groupId:groupIdToAssign}, {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser_assigngroup/`+currentUser._id, {groupId:groupIdToAssign}, {
                   headers: { Authorization: token }
                 });
               if(Object.keys(response.data)?.length){
@@ -370,7 +369,7 @@ validationSchema: yup.object({
 
             try {
              let token = localStorage.getItem("biometric_token");
-                const response = await axios.post('http://localhost:3001/users/edituser_assigngroup_bulk', {groupId:selectedGroupId,userIds:selectedUsers}, {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser_assigngroup_bulk`, {groupId:selectedGroupId,userIds:selectedUsers}, {
                   headers: { Authorization: token }
                 });
                 fetchgroupcount()
@@ -460,7 +459,7 @@ validationSchema: yup.object({
   const handleDeleteGroup =async (id) => {
     if (id) {
        let token = localStorage.getItem("biometric_token");
-                const response = await axios.get('http://localhost:3001/groups/delete/'+id, {
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/groups/delete/`+id, {
                   headers: { Authorization: token }
                 });
                 fetchgroup()
@@ -552,7 +551,7 @@ validationSchema: yup.object({
         let token = localStorage.getItem("biometric_token");
         
         const response = await axios.get(
-          `http://localhost:3001/company`, {
+         `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
             headers: { Authorization: token }
           }
         );
@@ -574,7 +573,7 @@ validationSchema: yup.object({
         let token = localStorage.getItem("biometric_token");
         
         const response = await axios.get(
-          `http://localhost:3001/company/${companyId}/branches`, {
+          `${process.env.NEXT_PUBLIC_BASE_URL}/company/${companyId}/branches`, {
             headers: { Authorization: token }
           }
         );
@@ -587,13 +586,15 @@ validationSchema: yup.object({
       }
     };
 
-      const fetchgroupcount =async (id) => {
+      const fetchgroupcount =async (id,samp_group) => {
+        groups=samp_group || groups
     if (true) {
        let token = localStorage.getItem("biometric_token");
-                const response = await axios.post('http://localhost:3001/users/getAllgroupscount',{ branchId: selectedBranch, companyId: selectedCompany ,type:"group"}, {
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/getAllgroupscount`,{ branchId: selectedBranch, companyId: selectedCompany ,type:"group"}, {
                   headers: { Authorization: token }
                 });
                let data=response.data
+
                let testgroups=groups.map((e,i)=>{
                  data.data.forEach((j)=>{
                  if( e._id==j.groupId){
@@ -602,10 +603,9 @@ validationSchema: yup.object({
                  })
                 return e
                })
-                  // console.log(testgroups,"??????@@@@@@@@@@")
-                                 
-                    //  console.log(testgroups,"===++++++++++")
-                    //  alert("8888888")
+             
+                    // console.log(testgroups,"777777777777777")
+
                   setGroups(testgroups)
          
       // setGroups(groups.filter(group => group.id !== currentGroup.id));
@@ -616,15 +616,15 @@ validationSchema: yup.object({
         fetchCompanies();
       }, []);
     
-      useEffect(() => {
-        if (selectedCompany) {
-          fetchBranches(selectedCompany);
-          if(!router.query.branchId){
-          setSelectedBranch(null); // Reset branch selection when company changes
-          }
-          // setNewStaff(prev => ({ ...prev, companyId: selectedCompany }));
-        }
-      }, [selectedCompany]);
+      // useEffect(() => {
+      //   if (selectedCompany) {
+      //     fetchBranches(selectedCompany);
+      //     if(!router.query.branchId){
+      //     setSelectedBranch(null); // Reset branch selection when company changes
+      //     }
+      //     // setNewStaff(prev => ({ ...prev, companyId: selectedCompany }));
+      //   }
+      // }, [selectedCompany]);
     
       // Fetch staff data
       const fetchStaff = async (groupId) => {
@@ -651,7 +651,7 @@ validationSchema: yup.object({
       
           let token = localStorage.getItem("biometric_token");
           const response = await axios.post(
-            `http://localhost:3001/users/allusers`,
+            `${process.env.NEXT_PUBLIC_BASE_URL}/users/allusers`,
             { branchId: selectedBranch, companyId: selectedCompany ,type:"group",...(groupId ? {groupId}:{})},
             {
               headers: { Authorization: token },
@@ -678,7 +678,6 @@ validationSchema: yup.object({
           if (Cookies.get('usercompanyandbranch')) {
            
              let data= JSON.parse(Cookies.get('usercompanyandbranch'))
-             console.log(data,"444444444@@@@@@@@@@@@@@@@@@@@@@@@@@")
            
               setSelectedCompany(data.company._id)
             setSelectedBranch(data.branch._id)
@@ -690,7 +689,7 @@ validationSchema: yup.object({
           if (selectedBranch) {
             // fetchDepartments(selectedBranch);
             fetchStaff();
-            fetchgroupcount()
+         
             setNewStaff(prev => ({ ...prev, branchId: selectedBranch }));
           }
         }, [selectedBranch,])
@@ -722,8 +721,10 @@ const handleGroupSelect = (id) => {
   setSelectedGroupId2(id);
 };
 
-
 const listHeight = 400;
+ useEffect(()=>{
+  fetchgroup()
+ },[selectedBranch])
   return (
     <Layout> 
       <Box >

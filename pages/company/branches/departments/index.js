@@ -158,7 +158,7 @@ const DepartmentlistPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
           headers: { Authorization: token }
         }
       );
@@ -180,7 +180,7 @@ const DepartmentlistPage = () => {
       let token = localStorage.getItem("biometric_token");
       
       const response = await axios.get(
-        `http://localhost:3001/company/${companyId}/branches`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company/${companyId}/branches`, {
           headers: { Authorization: token }
         }
       );
@@ -218,7 +218,7 @@ const DepartmentlistPage = () => {
 
       let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
-        `http://localhost:3001/department/${selectedBranch}`, {
+        `${process.env.NEXT_PUBLIC_BASE_URL}/department/${selectedBranch}`, {
           headers: { Authorization: token },
           params
         }
@@ -357,12 +357,12 @@ const handleSelect = (event, id) => {
              if(Array.isArray(id)){
                   
                      var data = { Ids: id, action_type: "delete" };
-                  var response = await axios.post(`http://localhost:3001/department/delete-bulk`,data, {
+                  var response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/department/delete-bulk`,data, {
                     headers: { Authorization: token }
                   });
                  }
                  else{
-                            var response = await axios.get(`http://localhost:3001/department/deleteUser/${id}`, {
+                            var response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/department/deleteUser/${id}`, {
               headers: { Authorization: token }
             });
                  }
@@ -421,7 +421,7 @@ const handleSelect = (event, id) => {
   const handleAddDepartment = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post('http://localhost:3001/department', values, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/department`, values, {
         headers: { Authorization: token }
       });
       
@@ -484,7 +484,7 @@ const handleSelect = (event, id) => {
         }
         try {
           let token = localStorage.getItem("biometric_token");
-          const response = await axios.post(`http://localhost:3001/department/checkandverifyfields`, { field:"dept_code", dept_code: value }, {
+          const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/department/checkandverifyfields`, { field:"dept_code", dept_code: value }, {
             headers: { Authorization: token }
           });
           if(field=="dept_code"){
