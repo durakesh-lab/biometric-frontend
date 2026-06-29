@@ -53,12 +53,12 @@ import { confirnDeleteAction,editCompanyAction } from '@/store/authSlice';
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 
-import Layout, { theme } from './Layout/Layout';
-import SuccessSnackbar from './successpopup/successpopup';
-import MyComponent from './deletepopup';
+import Layout, { theme } from '../Layout/Layout';
+import SuccessSnackbar from '../common/successpopup';
+import MyComponent from '../common/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import ViewCompanyModal from './Dashboard/viewcompany';
+import ViewCompanyModal from '../Dashboard/viewcompany';
 import { Fab } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import Router, { useRouter } from 'next/router';

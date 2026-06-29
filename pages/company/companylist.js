@@ -54,8 +54,8 @@ import { confirnDeleteAction,editCompanyAction } from '@/store/authSlice';
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 
 import Layout, { theme } from '../../components/Layout/Layout';
-import SuccessSnackbar from '../../components/successpopup/successpopup';
-import MyComponent from '../../components/deletepopup';
+import SuccessSnackbar from '../../components/common/successpopup';
+import MyComponent from '../../components/common/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import ViewCompanyModal from '../../components/Dashboard/viewcompany';

@@ -111,17 +111,24 @@ const EditStaffPage = () => {
         
         // Get user ID from token
         const token = localStorage.getItem("biometric_token");
-        const decoded = jwtDecode(token);
+        if (!token) {
+          router.push("/login");
+          return;
+        }
+        let decoded;
+        try {
+          decoded = jwtDecode(token);
+        } catch (e) {
+          console.error("Invalid token:", e);
+          localStorage.removeItem("biometric_token");
+          router.push("/login");
+          return;
+        }
         const userId = decoded.sub;
         
         // Fetch staff data
         const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/users/getuser/${userId}`);
         setStaffData(response.data);
-        
-        // Fetch departments if needed
-        // const deptResponse = await axios.get("/api/departments");
-        // setDepartments(deptResponse.data);
-        // setLoadingDepartments(false);
         
         setLoading(false);
       } catch (err) {
@@ -137,7 +144,19 @@ const EditStaffPage = () => {
     try {
       // Get user ID from token
       const token = localStorage.getItem("biometric_token");
-      const decoded = jwtDecode(token);
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      let decoded;
+      try {
+        decoded = jwtDecode(token);
+      } catch (e) {
+        console.error("Invalid token:", e);
+        localStorage.removeItem("biometric_token");
+        router.push("/login");
+        return;
+      }
       const userId = decoded.sub;
         // console.log(values,"87655555555555555")
       const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/${userId}`, values);
@@ -207,9 +226,15 @@ const EditStaffPage = () => {
   };
   useEffect(()=>{
     const token = localStorage.getItem("biometric_token");
+    if (token) {
+      try {
         const decoded = jwtDecode(token);
-    if(decoded.branchId){
-    fetchDepartments(decoded.branchId)
+        if(decoded.branchId){
+          fetchDepartments(decoded.branchId)
+        }
+      } catch (e) {
+        console.error("Invalid token in branches useEffect:", e);
+      }
     }
   },[])
   if (loading) {

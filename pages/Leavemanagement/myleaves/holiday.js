@@ -44,11 +44,11 @@ import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { format, addYears, startOfYear, endOfYear } from 'date-fns';
-import HolidaysByCalenderPage from '../../../components/leaves  management/users/holidayscalender';
+import HolidaysByCalenderPage from '../../../components/leaves-management/users/holidayscalender';
 import { zindexheader } from '@/store/authSlice';
 import { useDispatch } from 'react-redux';
 import Layout from '../../../components/Layout/Layout';
-import LeaveManagementTabs from '../../../components/leaves  management/leavessection';
+import LeaveManagementTabs from '../../../components/leaves-management/leavessection';
 
 const HolidayManagement = () => {
   let dispatch=useDispatch()

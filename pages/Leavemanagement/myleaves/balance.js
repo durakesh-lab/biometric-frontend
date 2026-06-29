@@ -19,8 +19,8 @@ import {
   FreeBreakfast
 } from '@mui/icons-material';
 import Layout from '../../../components/Layout/Layout';
-import LeaveManagementTabs from '../../../components/leaves  management/leavessection';
-import LeaveApplicationForm from '../../../components/leaves  management/applyleave';
+import LeaveManagementTabs from '../../../components/leaves-management/leavessection';
+import LeaveApplicationForm from '../../../components/leaves-management/applyleave';
 
 const LeaveBalanceCard = ({
   title,

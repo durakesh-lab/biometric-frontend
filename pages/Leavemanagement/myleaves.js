@@ -31,9 +31,9 @@ import {
   AccessTime,
   HelpOutline
 } from '@mui/icons-material';
-import LeaveHeader from '../../components/leaves  management/leavestofilter';
+import LeaveHeader from '../../components/leaves-management/leavestofilter';
 import Layout from '../../components/Layout/Layout';
-import LeaveManagementTabs from '../../components/leaves  management/leavessection';
+import LeaveManagementTabs from '../../components/leaves-management/leavessection';
 
 // Styled Components
 const LeaveCard = styled(Card)(({ theme }) => ({

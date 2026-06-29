@@ -52,9 +52,23 @@ const ProfilePage = () => {
   const [processing, setProcessing] = useState(false);
  
   useEffect(() => {
+    const token = localStorage.getItem("biometric_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    let data;
+    try {
+      data = jwtDecode(token);
+    } catch (e) {
+      console.error("Invalid token:", e);
+      localStorage.removeItem("biometric_token");
+      router.push("/login");
+      return;
+    }
+
     const fetchStaffProfile = async (id) => {
       try {
-       
         setLoading(true);
         const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/users/getuser/`+id);
         setStaffData(response.data);
@@ -65,8 +79,6 @@ const ProfilePage = () => {
         setLoading(false);
       }
     };
-let token=localStorage.getItem("biometric_token")
-  let data=jwtDecode(token)
     fetchStaffProfile(data.sub);
   }, []);
 

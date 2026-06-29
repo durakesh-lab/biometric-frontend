@@ -232,34 +232,6 @@ export const createcompany = createAsyncThunk(
     }
   }
 );
-export const editEmployeeAction = createAsyncThunk(
-  "auth/editEmployee",
-  async (obj , { rejectWithValue }) => {
-    obj.area=[obj.area]
-    let token=localStorage.getItem("biometric_token")
-
-    try {
-      const response = await fetch('http://localhost:7000/employee/editemployee/'+obj.id, {
-        method: 'POST',
-        headers:{
-          Authorization:token,
-          'Content-Type':"application/json"
-        },
-        body: JSON.stringify(obj),
-        
-      });
-      
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
 export const editDepartmentAction = createAsyncThunk(
   "auth/editDepartment",
   async (obj , { rejectWithValue }) => {
@@ -303,33 +275,6 @@ export const editStaffAction = createAsyncThunk(
         
       });
     
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-export const editPositionAction = createAsyncThunk(
-  "auth/editPosition",
-  async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
-
-    try {
-      const response = await fetch('http://localhost:7000/Position/editPosition/'+obj.id, {
-        method: 'POST',
-        headers:{
-          Authorization:token,
-          'Content-Type':"application/json"
-        },
-        body: JSON.stringify(obj),
-        
-      });
-      
       const data = await response.json();
       if (data.errors) {
         return rejectWithValue(data.errors[0].message);
@@ -558,22 +503,6 @@ const authSlice = createSlice({
       state.createdEmplyeeData=null
       state.error = action.payload || action.error.message;
     });
-        // Edit employee
-        builder.addCase(editEmployeeAction.pending, (state) => {
-          state.loading = true;
-          state.error = null;
-          state.editEmployeeData=null
-        });
-        builder.addCase(editEmployeeAction.fulfilled, (state, action) => {
-          state.loading = false;
-          state.editEmployeeData = action.payload // token from userRegister
-          state.error = null;
-        });
-        builder.addCase(editEmployeeAction.rejected, (state, action) => {
-          state.loading = false;
-          state.editEmployeeData=null
-          state.error = action.payload || action.error.message;
-        });
 
         // get position list
         builder.addCase(getPositionList.pending, (state) => {
@@ -702,22 +631,6 @@ const authSlice = createSlice({
                 builder.addCase(createcompany.rejected, (state, action) => {
                   state.loading = false;
                   state.createdcompanyData=null
-                  state.error = action.payload || action.error.message;
-                });
-                builder.addCase(editPositionAction.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.editPositionData=null
-                });
-                builder.addCase(editPositionAction.fulfilled, (state, action) => {
-                  console.log({state, action})
-                  state.loading = false;
-                  state.editPositionData = action.payload.data // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(editPositionAction.rejected, (state, action) => {
-                  state.loading = false;
-                  state.editPositionData=null
                   state.error = action.payload || action.error.message;
                 });
                 builder.addCase(editBranchAction.pending, (state) => {

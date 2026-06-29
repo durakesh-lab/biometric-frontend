@@ -52,7 +52,7 @@ import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { confirnDeleteAction, editBranchAction, getbranchList } from '@/store/authSlice';
 import Layout, { theme } from '../../../components/Layout/Layout';
-import MyComponent from '../../../components/deletepopup';
+import MyComponent from '../../../components/common/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import ViewBranchModal from '../../../components/Dashboard/viewbranch';

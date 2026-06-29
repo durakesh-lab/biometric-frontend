@@ -40,12 +40,12 @@ import {
   MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import SuccessSnackbar from '../successpopup/successpopup';
+import SuccessSnackbar from '../common/successpopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from 'react-redux';
 import { confirnDeleteAction, editCompanyAction } from '@/store/authSlice';
-import MyComponent from '../deletepopup';
+import MyComponent from '../common/deletepopup';
 import ViewCompanyModal from './viewcompany';
 import { useRouter } from 'next/router';
 

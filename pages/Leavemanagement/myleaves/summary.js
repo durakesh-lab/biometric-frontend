@@ -31,12 +31,13 @@ import {
   AccessTime,
   HelpOutline
 } from '@mui/icons-material';
-import LeaveHeader from '../../../components/leaves  management/leavestofilter';
+import LeaveHeader from '../../../components/leaves-management/leavestofilter';
 import Layout from '../../../components/Layout/Layout';
-import LeaveManagementTabs from '../../../components/leaves  management/leavessection';
-import LeaveApplicationForm from '../../../components/leaves  management/applyleave';
+import LeaveManagementTabs from '../../../components/leaves-management/leavessection';
+import LeaveApplicationForm from '../../../components/leaves-management/applyleave';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
+import { useRouter } from 'next/router';
 
 // Styled Components
 const LeaveCard = styled(Card)(({ theme }) => ({
@@ -72,6 +73,7 @@ const StatusBadge = styled('span')(({ theme, status }) => ({
 
 // Main Component
 export default function LeaveManagement() {
+  const router = useRouter();
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedLeaveType, setSelectedLeaveType] = useState(null);
@@ -154,9 +156,9 @@ export default function LeaveManagement() {
     {
       id: 'casual',
       name: 'Casual Leave',
-      available: data.casual_leaves.available,
+      available: data?.casual_leaves?.available ?? 0,
       booked: 0, // You can adjust if you have booked data
-      used: data.casual_leaves.used,
+      used: data?.casual_leaves?.used ?? 0,
       planned: 0, // Adjust if you have planned data
       color: 'primary',
       icon: <CalendarToday fontSize="small" />
@@ -164,9 +166,9 @@ export default function LeaveManagement() {
     {
       id: 'sick',
       name: 'Sick Leave',
-      available: data.sick_leaves.available,
+      available: data?.sick_leaves?.available ?? 0,
       booked: 0,
-      used: data.sick_leaves.used,
+      used: data?.sick_leaves?.used ?? 0,
       planned: 0,
       color: 'warning',
       icon: <AccessTime fontSize="small" />
@@ -174,9 +176,9 @@ export default function LeaveManagement() {
     {
       id: 'withoutpay',
       name: 'Leave Without Pay',
-      available: data.leaves_without_pay.available,
+      available: data?.leaves_without_pay?.available ?? 0,
       booked: 0,
-      used: data.leaves_without_pay.used,
+      used: data?.leaves_without_pay?.used ?? 0,
       planned: 0,
       color: 'error',
       icon: <HelpOutline fontSize="small" />
@@ -189,7 +191,19 @@ export default function LeaveManagement() {
       try {
        if(true){
         let token=localStorage.getItem("biometric_token")
-          let data=jwtDecode(token)
+        if (!token) {
+          router.push("/login");
+          return;
+        }
+        let data;
+        try {
+          data = jwtDecode(token);
+        } catch (e) {
+          console.error("Invalid token:", e);
+          localStorage.removeItem("biometric_token");
+          router.push("/login");
+          return;
+        }
      
          data = { companyId: data.companyId,branchId:data.branchId,username:data.username };
         var deleteresponse = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/leaves/myleaves`,data, {

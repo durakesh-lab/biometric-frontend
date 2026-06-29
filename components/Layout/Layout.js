@@ -3,11 +3,13 @@ import { Box, Toolbar, useMediaQuery } from "@mui/material";
 import { createTheme, ThemeProvider, CssBaseline } from "@mui/material";
 import "@fontsource/roboto";
 import "@fontsource/poppins";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/router";
 
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
-const drawerWidth = 220;
+const drawerWidth = 260;
 
 // Custom theme: Roboto (body) + Poppins (headings)
 export const theme = createTheme({
@@ -38,6 +40,7 @@ export const theme = createTheme({
 });
 
 export default function Layout({ children }) {
+  const router = useRouter();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -76,7 +79,17 @@ export default function Layout({ children }) {
               overflow: "hidden",
             }}
           >
-            {children}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={router.route}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.22, ease: "easeInOut" }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </Box>
         </Box>
       </Box>

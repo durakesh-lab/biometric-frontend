@@ -51,11 +51,11 @@ import {
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { confirnDeleteAction, editBranchAction, getbranchList } from '@/store/authSlice';
-import Layout, { theme } from './Layout/Layout';
-import MyComponent from './deletepopup';
+import Layout, { theme } from '../Layout/Layout';
+import MyComponent from '../common/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import ViewBranchModal from './Dashboard/viewbranch';
+import ViewBranchModal from '../Dashboard/viewbranch';
 import { useRouter } from 'next/router';
 import ReactPaginate from 'react-paginate';
  import Cookies from 'js-cookie';

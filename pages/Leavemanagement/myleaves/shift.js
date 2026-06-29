@@ -21,7 +21,7 @@ import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   isSameMonth, isSameWeek
 } from 'date-fns';
-import LeaveManagementTabs from '../../../components/leaves  management/leavessection';
+import LeaveManagementTabs from '../../../components/leaves-management/leavessection';
 import Layout from '../../../components/Layout/Layout';
 
 const ShiftManagementPage = () => {

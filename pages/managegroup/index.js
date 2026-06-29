@@ -459,7 +459,7 @@ validationSchema: yup.object({
   const handleDeleteGroup =async (id) => {
     if (id) {
        let token = localStorage.getItem("biometric_token");
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/groups/delete/`+id, {
+                const response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/groups/`+id, {
                   headers: { Authorization: token }
                 });
                 fetchgroup()

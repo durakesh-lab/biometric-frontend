@@ -5,7 +5,7 @@ import * as Yup from "yup";
 import Layout from "../../components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import { createbranch, createDepartment, createEmployee, createPosition, getbranchList, getDepartmentList, getPositionList } from "@/store/authSlice";
-import SuccessSnackbar from "../../components/successpopup/successpopup";
+import SuccessSnackbar from "../../components/common/successpopup";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 const theme = createTheme({

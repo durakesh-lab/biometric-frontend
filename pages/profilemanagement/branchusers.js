@@ -60,7 +60,7 @@ import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { confirnDeleteAction, editStaffAction, getStaffList } from '@/store/authSlice';
 import Layout, { theme } from '../../components/Layout/Layout';
-import MyComponent from '../../components/deletepopup';
+import MyComponent from '../../components/common/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import ViewStaffModal from '../../components/Dashboard/viewstaff';
@@ -432,7 +432,7 @@ const applyFilters = () => {
             });
            }
            else{
-                      var response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/users/deleteUser/${id}`, {
+                      var response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/users/${id}`, {
         headers: { Authorization: token }
       });
            }

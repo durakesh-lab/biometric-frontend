@@ -8,11 +8,11 @@ const LeaveManagementTabs = () => {
 
   // Map URL paths to tab values
   const tabRoutes = {
-    summary: '/Leavemanagement/myleaves/summary',
-    balance: '/Leavemanagement/myleaves/balance',
-    requests: '/Leavemanagement/myleaves/leaverequest',
-    shift: '/Leavemanagement/myleaves/shift',
-    holiday: '/Leavemanagement/myleaves/holiday'
+    summary: '/leavemanagement/myleaves/summary',
+    balance: '/leavemanagement/myleaves/balance',
+    requests: '/leavemanagement/myleaves/leaverequest',
+    shift: '/leavemanagement/myleaves/shift',
+    holiday: '/leavemanagement/myleaves/holiday'
   };
 
   // Set initial tab based on current route

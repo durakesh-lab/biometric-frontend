@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Grid, Paper, Typography, Box, Snackbar, Alert,  IconButton } from "@mui/material";
+import { Grid, Paper, Typography, Box, Snackbar, Alert,  IconButton, CircularProgress } from "@mui/material";
 import Layout from "../../components/Layout/Layout";
 // Dashboard components
 import DashboardHeader from "../../components/Dashboard/DashboardHeader";
@@ -25,20 +25,42 @@ export default function Dashboard() {
 let router=useRouter()
 let selector=useSelector((state)=>{return (state.auth)})
 let [userdata,setuserdata]=useState({})
+const [loading, setLoading] = useState(true);
 let data={}
 
   const from = searchParams.get('from');
-useEffect(()=>{
-  dispatch(getPositionList({page:1,page_size:10}))
-  setuserdata(jwtDecode(localStorage.getItem("biometric_token")))
-  console.log(jwtDecode(localStorage.getItem("biometric_token")),"??????????@@@@@@@")
-},[])
+useEffect(() => {
+  const token = localStorage.getItem("biometric_token");
+  if (!token) {
+    router.push("/login");
+    return;
+  }
+  try {
+    const decoded = jwtDecode(token);
+    setuserdata(decoded);
+    console.log(decoded, "??????????@@@@@@@");
+    dispatch(getPositionList({ page: 1, page_size: 10 }));
+    setLoading(false);
+  } catch (error) {
+    console.error("Invalid token:", error);
+    localStorage.removeItem("biometric_token");
+    router.push("/login");
+  }
+}, [])
 const handleCloseSnackbar = (event, reason) => {
   if (reason === 'clickaway') {
     return;
   }
   router.replace(pathname)
 };
+
+if (loading) {
+  return (
+    <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+      <CircularProgress />
+    </Box>
+  );
+}
   return (
     <Layout>
       

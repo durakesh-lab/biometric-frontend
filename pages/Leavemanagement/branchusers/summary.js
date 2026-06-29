@@ -18,12 +18,12 @@ import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import Layout from '../../../components/Layout/Layout';
-import ZohoHeader from '../../../components/leaves  management/users/topheader';
-import EmployeeGrid from '../../../components/leaves  management/users/userslistingrid';
-import { ZohoStyledTable } from '../../../components/leaves  management/users/reporteestable';
-import LeaveManagementView from '../../../components/leaves  management/users/onleaves';
-import LeaveRequestTracker from '../../../components/leaves  management/users/leaverequest';
-import HolidayManagement from '../../../components/leaves  management/users/holidays';
+import ZohoHeader from '../../../components/leaves-management/users/topheader';
+import EmployeeGrid from '../../../components/leaves-management/users/userslistingrid';
+import { ZohoStyledTable } from '../../../components/leaves-management/users/reporteestable';
+import LeaveManagementView from '../../../components/leaves-management/users/onleaves';
+import LeaveRequestTracker from '../../../components/leaves-management/users/leaverequest';
+import HolidayManagement from '../../../components/leaves-management/users/holidays';
 
 const LeaveManagementPage = () => {
   const theme = useTheme();

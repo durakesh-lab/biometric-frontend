@@ -35,8 +35,8 @@ import { onLogout, SelectCompanyBranchGlobal } from "@/store/authSlice";
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 // import { confirnDeleteAction, editCompanyAction, getCompanyList } from '@/store/authSlice';
 
-import BranchlistPage from "../branchcomponentForSelection";
-import CompanyListPage from "../companyforselection";
+import BranchlistPage from "../selectors/branchcomponentForSelection";
+import CompanyListPage from "../selectors/companyforselection";
 import Cookies from 'js-cookie';
 import VisibilityIcon from "@mui/icons-material/Visibility";
 

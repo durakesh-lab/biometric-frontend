@@ -38,9 +38,9 @@ import {
   FileUpload as ImportIcon,
 } from '@mui/icons-material';
 import ReactPaginate from 'react-paginate';
-import LeaveManagementTabs from '../../../components/leaves  management/leavessection';
+import LeaveManagementTabs from '../../../components/leaves-management/leavessection';
 import Layout from '../../../components/Layout/Layout';
-import LeaveApplicationForm from '../../../components/leaves  management/applyleave';
+import LeaveApplicationForm from '../../../components/leaves-management/applyleave';
 
 const LeaveRequestsTable = () => {
   const theme = useTheme();
