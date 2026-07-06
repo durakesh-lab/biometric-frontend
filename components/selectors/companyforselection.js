@@ -146,7 +146,7 @@ var allpermission={}
     { id: 'phoneNumber', label: 'Phone Number', sortable: true },
     { id: 'industry', label: 'Industry', sortable: true },
     { id: 'view', label: 'View', sortable: false },
-    ...((allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? [{ id: 'managebranchesw', label: 'Manage', sortable: false }]:[]),
+    { id: 'managebranchesw', label: 'Manage', sortable: false },
   ];
   // Fetch companies data
   const fetchCompanies = async (page=1,page_size=10) => {
@@ -714,21 +714,22 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                                 <ViewIcon />
                               </IconButton>
                             </TableCell>
-                              {(allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? 
                             <TableCell>
-                            
-  <Button 
-    variant="contained" 
-    size="small" 
-    sx={{ textTransform: 'capitalize',   boxShadow: 'none', // Removes button shadow
-    '&:hover': {
-      boxShadow: 'none', // Prevents shadow on hover too
-    } }}
-    onClick={() => handleManageBranches(company._id,company)}
-  >
-     Branches 
-  </Button>
-</TableCell> :"" }
+                              <Button 
+                                variant="contained" 
+                                size="small" 
+                                sx={{ 
+                                  textTransform: 'capitalize',   
+                                  boxShadow: 'none', 
+                                  '&:hover': {
+                                    boxShadow: 'none', 
+                                  } 
+                                }}
+                                onClick={() => handleManageBranches(company._id, company)}
+                              >
+                                Branches 
+                              </Button>
+                            </TableCell>
                           
                           </TableRow>
                         </>

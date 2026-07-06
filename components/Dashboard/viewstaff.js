@@ -162,7 +162,7 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
             backgroundColor: 'background.paper',
             zIndex: 1
           }}>
-            <Typography variant="h5">Staff Details</Typography>
+            <Typography variant="h5">Employee Details</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip 
                 label={staff.active_status || "Unknown"} 
@@ -201,7 +201,7 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
                 {staff.firstName || ""} {staff.lastName || ""}
               </Typography>
               <Typography variant="subtitle1" color="text.secondary">
-                {staff.role || "No role specified"}
+                {staff.employeeCode ? `Employee Code: ${staff.employeeCode}` : "Employee"}
               </Typography>
             </Box>
           </Box>
@@ -211,30 +211,20 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Section title="Basic Information" icon={<InfoIcon />}>
-                  <FieldRow 
-                    icon={<CodeIcon />}
-                    label="Staff ID" 
-                    value={staff._id}
+                  <FieldRow
+                    icon={<RoleIcon />}
+                    label="Employee Code"
+                    value={staff.employeeCode}
                   />
-                  <FieldRow 
-                    icon={<StaffIcon />}
-                    label="Username" 
-                    value={staff.username}
-                  />
-                  <FieldRow 
+                  <FieldRow
                     icon={<EmailIcon />}
-                    label="Email" 
+                    label="Email"
                     value={staff.email}
                   />
-                  <FieldRow 
+                  <FieldRow
                     icon={<PhoneIcon />}
-                    label="Mobile" 
+                    label="Mobile"
                     value={staff.mobile}
-                  />
-                  <FieldRow 
-                    icon={<RoleIcon />}
-                    label="Role" 
-                    value={staff.role}
                     last
                   />
                 </Section>
@@ -271,15 +261,20 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
                     label="Date of Joining" 
                     value={formatDate(staff.joining_date)}
                   />
-                  <FieldRow 
+                  <FieldRow
                     icon={<BranchIcon />}
-                    label="Department" 
+                    label="Department"
                     value={staff.dept_name}
                   />
-                  <FieldRow 
+                  <FieldRow
                     icon={<CodeIcon />}
-                    label="Department Code" 
+                    label="Department Code"
                     value={staff.dept_code}
+                  />
+                  <FieldRow
+                    icon={<CodeIcon />}
+                    label="Device User ID"
+                    value={staff.deviceUserId ? `#${staff.deviceUserId}` : "Not linked"}
                     last
                   />
                 </Section>
