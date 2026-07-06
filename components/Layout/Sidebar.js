@@ -35,12 +35,14 @@ const menuGroups = [
     heading: "GENERAL",
     items: [
       { label: "Dashboard", icon: "📊", color: "#10B981", link: "/dashboard" },
-      {
-        label: "Permissions",
-        icon: "🔑",
-        color: "#6366F1",
-        subItems: [{ label: "Manage Permission", link: "/permission" }],
-      },
+      // Hidden for now — Permissions / RBAC is deferred until after the device demo.
+      // Re-enable here when the roles/permissions phase resumes.
+      // {
+      //   label: "Permissions",
+      //   icon: "🔑",
+      //   color: "#6366F1",
+      //   subItems: [{ label: "Manage Permission", link: "/permission" }],
+      // },
       {
         label: "Organization",
         icon: "🏢",
@@ -68,22 +70,28 @@ const menuGroups = [
     ],
   },
   {
-    heading: "USER MANAGEMENT",
+    heading: "EMPLOYEE MANAGEMENT",
     items: [
+      // Hidden for now — "Manage Users / Manage Group" belongs to the deferred
+      // roles/permissions/grouping work and still uses the old User data.
+      // Re-enable here when that phase resumes.
+      // {
+      //   label: "Manage Users",
+      //   icon: "👥",
+      //   color: "#8B5CF6",
+      //   subItems: [{ label: "Manage Group", link: "/managegroup" }],
+      // },
       {
-        label: "Manage Users",
-        icon: "👥",
-        color: "#8B5CF6",
-        subItems: [{ label: "Manage Group", link: "/managegroup" }],
-      },
-      {
-        label: "Profile Management",
+        label: "Employees",
         icon: "🪪",
         color: "#14B8A6",
         subItems: [
           { label: "My Profile", link: "/profilemanagement/myprofile" },
-          { label: "My Branch Users", link: "/profilemanagement/branchusers" },
-          { label: "Users Profile", link: "/profilemanagement/allusers" },
+          // Hidden for now — redundant with Employee Directory while there is a
+          // single admin (no branch-scoped Managers). Re-enable when RBAC returns;
+          // it then becomes the Manager's own-branch view.
+          // { label: "Branch Employees", link: "/profilemanagement/branchusers" },
+          { label: "Employee Directory", link: "/profilemanagement/allusers" },
         ],
       },
     ],
@@ -128,7 +136,7 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
 
   // sub-items that require a company/branch selection before navigating
   const handleSubClick = (sub) => {
-    if (sub.label === "Manage Group" || sub.label === "Users Profile") {
+    if (sub.label === "Manage Group") {
       if (Cookies.get("usercompanyandbranch")) handleClickItem(sub.link);
       else dispatch(SelectCompanyBranchGlobal("open"));
     } else {

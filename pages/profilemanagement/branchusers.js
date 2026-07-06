@@ -49,7 +49,11 @@ import {
   Badge as RoleIcon,
   Work as DepartmentIcon,
   VisibilityOff,
-   ChevronRight as ChevronRightIcon,Group as GroupIcon
+  ChevronRight as ChevronRightIcon,
+  Group as GroupIcon,
+  Edit as EditIcon,
+  Lock as LockIcon,
+  LockOpen as LockOpenIcon
 } from '@mui/icons-material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -135,12 +139,11 @@ const StaffListPage = () => {
   const [newStaff, setNewStaff] = useState({
     firstName: '',
     lastName: '',
-    gender:"",
-    mobile:"",
+    gender: "",
+    mobile: "",
     email: '',
-    username: '',
-    password: '',
-    role: '',
+    employeeCode: '',
+    deviceUserId: '',
     active_status: 'Active',
     joining_date: '',
     date_of_birth: '',
@@ -188,9 +191,9 @@ const StaffListPage = () => {
     { id: 'firstName', label: 'First Name', sortable: true },
     { id: 'lastName', label: 'Last Name', sortable: true },
     { id: 'email', label: 'Email', sortable: true },
-    { id: 'role', label: 'Role', sortable: true },
+    { id: 'deviceUserId', label: 'Device ID', sortable: false },
     { id: 'active_status', label: 'Status', sortable: true },
-    { id: 'view', label: 'View', sortable: false },
+    { id: 'department', label: 'Department', sortable: false },
     { id: 'actions', label: 'Actions', sortable: false }
   ];
 
@@ -284,7 +287,7 @@ const fetchStaff = async () => {
 
     let token = localStorage.getItem("biometric_token");
     const response = await axios.post(
-     `${process.env.NEXT_PUBLIC_BASE_URL}/users/allusers`,
+     `${process.env.NEXT_PUBLIC_BASE_URL}/employees/list`,
       { branchId: selectedBranch, companyId: selectedCompany },
       {
         headers: { Authorization: token },
@@ -425,14 +428,14 @@ const applyFilters = () => {
     try {
       let token = localStorage.getItem("biometric_token");
          if(Array.isArray(id)){
-            
-               var data = { Ids: id, action_type: "delete" };
-            var response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/delete-bulk`,data, {
+
+               var data = { ids: id };
+            var response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/delete-bulk`,data, {
               headers: { Authorization: token }
             });
            }
            else{
-                      var response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/users/${id}`, {
+                      var response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/${id}`, {
         headers: { Authorization: token }
       });
            }
@@ -477,32 +480,50 @@ const applyFilters = () => {
     }
     handleMenuClose();
   };
-  const allowEdit= async() => {
-   let token = localStorage.getItem("biometric_token");
-         let Staffdata = {...selectedStaff, id: selectedStaff._id,editstatus:selectedStaff?.editstatus ? false:true};
-         const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/`+Staffdata.id, {
-        method: 'POST',
-        headers:{
-          Authorization:token,
-          'Content-Type':"application/json"
-        },
-        body: JSON.stringify(Staffdata),
-        
-      });
-    if(response.ok){
-       setOpenSnackbar({status: true, message: selectedStaff?.editstatus ? "edit disabled for user":"edit enabled for user"});
-       fetchStaff()
+  const handleAllowEditToggle = async (staffMember) => {
+    let token = localStorage.getItem("biometric_token");
+    let Staffdata = { ...staffMember, id: staffMember._id, editstatus: staffMember?.editstatus ? false : true };
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/` + Staffdata.id, {
+      method: 'POST',
+      headers: {
+        Authorization: token,
+        'Content-Type': "application/json"
+      },
+      body: JSON.stringify(Staffdata),
+    });
+    if (response.ok) {
+      setOpenSnackbar({ status: true, message: staffMember?.editstatus ? "edit disabled for user" : "edit enabled for user" });
+      fetchStaff();
     }
-    handleMenuClose();
-          }
+  };
+
+  // Open the Edit modal with the same fields as Add. Pre-load the employee's
+  // company/branch so the Company → Branch → Department dropdowns are populated.
+  const openEditEmployee = (staffMember) => {
+    setEmailError("");
+    setSelectedCompany(staffMember.companyId || null);
+    setSelectedBranch(staffMember.branchId || null);
+    if (staffMember.companyId) fetchBranches(staffMember.companyId);
+    if (staffMember.branchId) fetchDepartments(staffMember.branchId);
+    setCurrentStaff({
+      ...staffMember,
+      department: staffMember.dept_id || staffMember.deptId || '',
+    });
+    setEditModalOpen(true);
+  };
 
   const handleEditSubmit = async (values) => {
     try {
-      values = {...values, id: values._id};
-      dispatch(editStaffAction(values));
+      let token = localStorage.getItem("biometric_token");
+      await axios.put(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/${values._id}`, values, {
+        headers: { Authorization: token }
+      });
+      setOpenSnackbar({ status: true, message: 'Employee updated successfully' });
       setEditModalOpen(false);
+      fetchStaff();
     } catch (error) {
-      console.error('Error updating staff:', error);
+      console.error('Error updating employee:', error);
+      setOpenSnackbar(error.response?.data?.message || 'Error updating employee');
     }
   };
 
@@ -510,16 +531,29 @@ const applyFilters = () => {
   const handleAddStaff = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/register`, values, {
+      // Employee record only — NO username / password / role.
+      const apiValues = {
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email || undefined,
+        mobile: values.mobile || undefined,
+        gender: values.gender || undefined,
+        employeeCode: values.employeeCode || undefined,
+        deviceUserId: values.deviceUserId || undefined,
+        department: values.department || undefined,
+        companyId: values.companyId || selectedCompany,
+        branchId: values.branchId || selectedBranch,
+      };
+      await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees`, apiValues, {
         headers: { Authorization: token }
       });
-      
-      setOpenSnackbar({status: true, message: 'Staff added successfully'});
+
+      setOpenSnackbar({status: true, message: 'Employee added successfully'});
       setAddModalOpen(false);
       fetchStaff();
     } catch (error) {
-      console.error('Error adding staff:', error);
-      setOpenSnackbar(error.response?.data?.detail || 'Error adding staff');
+      console.error('Error adding employee:', error);
+      setOpenSnackbar(error.response?.data?.message || error.response?.data?.detail || 'Error adding employee');
     }
   };
 
@@ -549,31 +583,21 @@ router.push({
   query: { branchId: selectedBranch ,companyId:selectedCompany }
 });
 }
-  // Validation schema
+  // Validation schema — employees need only a name + branch. Email is OPTIONAL
+  // (employees have no login). Role/username/password are gone entirely.
   const validationSchema = Yup.object({
     firstName: Yup.string().required("Required"),
-    lastName: Yup.string().required("Required"),
-        gender: Yup.string().required("Required"),
-    mobile: Yup.string().required("Required"),
-          email: Yup.string()
-            .email("Invalid email")
-            .required("Required")
-            .test(
-              'email-exists',
-              'Email already exists',
-              () => !emailError // This will be updated by our debounced function
-            ),
-              username: Yup.string()
-                .required("Required")
-                .test(
-                  'username-exists',
-                  'username already exists',
-                  () => !usernameError // This will be updated by our debounced function
-                ),
-    // username: Yup.string().required("Required"),
-    // password: Yup.string().required("Required"),
-    role: Yup.string().required("Required"),
-    active_status: Yup.string().required("Required"),
+    lastName: Yup.string().notRequired(),
+    gender: Yup.string().notRequired(),
+    mobile: Yup.string().notRequired(),
+    email: Yup.string()
+      .email("Invalid email")
+      .notRequired()
+      .test(
+        'email-exists',
+        'Email already exists',
+        () => !emailError // This will be updated by our debounced function
+      ),
   });
 
   useEffect(() => {
@@ -680,23 +704,17 @@ const [showPassword, setShowPassword] = useState(false);
     // Debounced validation functions
     const checkFieldsExists = debounce(async (value,field,id) => {
       if (!value){
-        setUsernameError("")
          setEmailError("")
-         return 
+         return
       }
       try {
         let token = localStorage.getItem("biometric_token");
-        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/users/checkandverifyfields`,field=="username" ? { field:"username", username: value,id }:{ field:"email", email: value ,id}, {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`,{ field:"email", email: value ,id}, {
           headers: { Authorization: token }
         });
-        if(field=="username"){
-        setUsernameError(response.data.message ? 'username already exists' : '');
-        }
-        else{
-              setEmailError(response.data.message ? 'Email already exists' : '');
-        }
+        setEmailError(response.data.message ? 'Email already exists' : '');
       } catch (error) {
-        console.error('Error checking company ID:', error);
+        console.error('Error checking email:', error);
       }
     }, 1000);
 
@@ -707,7 +725,7 @@ const [showPassword, setShowPassword] = useState(false);
         try {
           let token = localStorage.getItem("biometric_token");
           const response = await axios.post(
-           `${process.env.NEXT_PUBLIC_BASE_URL}/users/import`, 
+           `${process.env.NEXT_PUBLIC_BASE_URL}/employees/import`,
             formData,
             {
               headers: { 
@@ -728,383 +746,203 @@ const [showPassword, setShowPassword] = useState(false);
     <>
       <Layout>
 
-        <Grid container spacing={3}>
+        <Box sx={{ my: 3 }}>
           {/* Header Section */}
-          <Grid item xs={12}>
-                     {/* <Breadcrumbs
-                separator={<ChevronRightIcon fontSize="small" />}
-                aria-label="breadcrumb"
-                sx={{ '& .MuiBreadcrumbs-separator': { mx: 1 } }}
-              >
-              <Box
-                component="a"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
-                }}
-                onClick={() => router.push("/company/companylist")}
-              >
-                <BusinessIcon sx={{ mr: 0.5, fontSize: 20 }} />
-                Companies
-              </Box>
-              
-              
-      
-                  <Box 
-                    component="a" 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      textDecoration: 'none', 
-                          cursor: 'pointer',
-              
-                      color: 'inherit',
-                      '&:hover': {
-                        textDecoration: 'underline'
-                      }
-                    }}
-                      onClick={() => router.push({pathname:"/company/branches",query:{id:router.query.companyId}})}
-              
-                  >
-                    <StoreIcon sx={{ mr: 0.5, fontSize: 20 }} />
-                    Branches
-                  </Box>
-         
-                <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-                  <GroupIcon sx={{ mr: 0.5, fontSize: 20 }} />
-                  Staff
-                </Typography>
-              </Breadcrumbs> */}
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={0} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
-              <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>
-                Staff List
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
+            <Box>
+              <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                Branch Employees
               </Typography>
-     
-<Box display="flex" alignItems="center" gap={1} sx={{ 
-  flexDirection: { xs: 'column', sm: 'row' },
-  width: '100%',
-  '& > *': {
-    width: { xs: '100%', sm: 'auto' },
-    mb: { xs: 1, sm: 0 }
-  }
-}}>
-  {showDelete && (
-    <Tooltip title={`Delete selected (${selected.length})`}>
-      <IconButton
-        color="error"
-        onClick={() => handleConfirmDelete(selected)}
-        sx={{ alignSelf: 'flex-start' }}
-      >
-        <DeleteIcon />
-        <Typography variant="caption" sx={{ ml: 0.5 }}>
-          ({selected.length})
-        </Typography>
-      </IconButton>
-    </Tooltip>
-  )}
-    <Dialog open={exportModalOpen} onClose={() => setExportModalOpen(false)}>
-  <DialogTitle>Export Employees</DialogTitle>
-  <DialogContent>
-    <DialogContentText>
-      Are you sure you want to export {staff.length} staff to a CSV file?
-    </DialogContentText>
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={() => setExportModalOpen(false)} color="primary">
-      Cancel
-    </Button>
-    <Button onClick={handleExportEmployees} color="primary" variant="contained">
-      Export
-    </Button>
-  </DialogActions>
-</Dialog>
-  {/* This Box will push everything to the right */}
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto', flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
-    {/* Export Button */}
-{/* <Button 
-  variant="outlined" 
-  color="primary"
-  startIcon={<GroupIcon />}
-  sx={{ textTransform: "none", width: { xs: '100%', sm: 'auto' } }}
-  onClick={() => handleManagegroups()}
->
-  Manage Group
-</Button> */}
-
-<Button
-  startIcon={<UploadIcon />}
-  onClick={() => setExportModalOpen(true)}
-  variant="outlined"
-  color="primary"
-  sx={{ textTransform: "none", width: { xs: '100%', sm: 'auto' } }}
->
-  Export
-</Button>
-
-
-    {/* Import Button */}
-    <Button
-      startIcon={<DownloadIcon />}
-      onClick={() => setImportModalOpen(true)}
-      variant="outlined"
-      color="primary"
-      sx={{ textTransform: "none",width: { xs: '100%', sm: 'auto' } }}
-    >
-      Import
-    </Button>
-
-    {/* Filter Button */}
-    <Button
-      startIcon={<FilterIcon />}
-      onClick={() => setFilterOpen(true)}
-      sx={{ 
-        backgroundColor: '#f5f5f5',
-        color: 'text.secondary',
-        '&:hover': { backgroundColor: '#e0e0e0' },width: { xs: '100%', sm: 'auto' },
-        textTransform: "none"
-      }}
-    >
-      <Typography variant="body2">Sort & Filter</Typography>
-    </Button>
-
-    {/* Role Filter - Full width on mobile */}
-    <FormControl size="small" sx={{ minWidth: 120, width: { xs: '100%', sm: 'auto' } }}>
-      <InputLabel>Role</InputLabel>
-      <Select
-        value={filters.role || ''}
-        label="Role"
-        onChange={(e) => {
-          handleFilterChange('role', e.target.value);
-          setPagination(prev => ({ ...prev, page: 1 }));
-        }}
-        sx={{ color: 'text.secondary' }}
-        startAdornment={
-          <InputAdornment position="start">
-            <RoleIcon fontSize="small" />
-          </InputAdornment>
-        }
-      >
-        <MenuItem value="">All Roles</MenuItem>
-        {roleTypes.map((role) => (
-          <MenuItem key={role} value={role}>{role}</MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-
-    {/* Department Filter - Full width on mobile */}
-    <FormControl size="small" sx={{ minWidth: 120, width: { xs: '100%', sm: 'auto' } }}>
-      <InputLabel>Department</InputLabel>
-      <Select
-        value={filters.department || ''}
-        label="Department"
-        onChange={(e) => handleFilterChange('department', e.target.value)}
-        sx={{ color: 'text.secondary' }}
-        startAdornment={
-          <InputAdornment position="start">
-            <DepartmentIcon fontSize="small" />
-          </InputAdornment>
-        }
-        disabled={loadingDepartments || !selectedBranch}
-      >
-        <MenuItem value="">All Departments</MenuItem>
-        {departments.map((dept) => (
-          <MenuItem key={dept._id} value={dept._id}>{dept.name}</MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-
-    {/* Search Field - Full width on mobile */}
-    <TextField
-      variant="outlined"
-      size="small"
-      placeholder="Search..."
-      value={search}
-      onChange={(e) => {
-        setSearch(e.target.value);
-        setPagination(prev => ({ ...prev, page: 1 }));
-      }}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon sx={{ color: 'text.secondary' }} />
-          </InputAdornment>
-        ),
-      }}
-      sx={{ width: { xs: '100%', sm: 200 } }}
-    />
-  </Box>
-</Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                Employees assigned to this branch
+              </Typography>
             </Box>
-          </Grid>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              {showDelete && (
+                <Tooltip title={`Delete selected (${selected.length})`}>
+                  <IconButton
+                    color="error"
+                    onClick={() => handleConfirmDelete(selected)}
+                  >
+                    <DeleteIcon />
+                    <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 600 }}>
+                      ({selected.length})
+                    </Typography>
+                  </IconButton>
+                </Tooltip>
+              )}
+              
+              <Dialog open={exportModalOpen} onClose={() => setExportModalOpen(false)}>
+                <DialogTitle>Export Employees</DialogTitle>
+                <DialogContent>
+                  <DialogContentText>
+                    Are you sure you want to export {staff.length} staff to a CSV file?
+                  </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setExportModalOpen(false)} color="primary">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleExportEmployees} color="primary" variant="contained">
+                    Export
+                  </Button>
+                </DialogActions>
+              </Dialog>
 
-          {/* Company Selection */}
-          {/* <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel id="company-select-label">Select Company</InputLabel>
-              <Select
-                labelId="company-select-label"
-                id="company-select"
-                value={selectedCompany || ''}
-                label="Select Company"
-                onChange={(e) => setSelectedCompany(e.target.value)}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <BusinessIcon />
-                  </InputAdornment>
-                }
-                disabled={loadingCompanies}
+              <Button
+                startIcon={<UploadIcon />}
+                onClick={() => setExportModalOpen(true)}
+                variant="outlined"
+                sx={{ 
+                  textTransform: "none", 
+                  borderColor: '#E5E7EB', 
+                  color: '#4B5563', 
+                  borderRadius: '6px',
+                  px: 2,
+                  '&:hover': { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' } 
+                }}
               >
-                {loadingCompanies ? (
-                  <MenuItem disabled>
-                    <CircularProgress size={24} />
-                  </MenuItem>
-                ) : (
-                  companies?.map((company) => (
-                    <MenuItem key={company._id} value={company._id}>
-                      {company.name}
-                    </MenuItem>
-                  ))
-                )}
-              </Select>
-            </FormControl>
-          </Grid> */}
+                Export
+              </Button>
 
-          {/* Branch Selection - Only show if company is selected */}
-          {/* {selectedCompany && (
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel id="branch-select-label">Select Branch</InputLabel>
-                <Select
-                  labelId="branch-select-label"
-                  id="branch-select"
-                  value={selectedBranch || ''}
-                  label="Select Branch"
-                  onChange={(e) => setSelectedBranch(e.target.value)}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <BranchIcon />
-                    </InputAdornment>
-                  }
-                  disabled={loadingBranches}
-                >
-                  {loadingBranches ? (
-                    <MenuItem disabled>
-                      <CircularProgress size={24} />
-                    </MenuItem>
-                  ) : branches.length === 0 ? (
-                    <MenuItem disabled>
-                      No branches available
-                    </MenuItem>
-                  ) : (
-                    branches.map((branch) => (
-                      <MenuItem key={branch._id} value={branch._id}>
-                        {branch.name}
-                      </MenuItem>
-                    ))
-                  )}
-                </Select>
-              </FormControl>
-            </Grid>
-          )} */}
-          <Grid item xs={12} sm={6}>
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      border: '1px solid #ccc',
-      borderRadius: 1,
-      padding: '8px 12px',
-      minHeight: '56px',
-      backgroundColor: '#f9f9f9',
-    }}
-  >
-    <BusinessIcon sx={{ marginRight: 1 }} />
-    <Typography variant="body1">
-      {loadingCompanies
-        ? 'Loading company...'
-        : companies.find((c) => c._id === selectedCompany)?.name || 'No company selected'}
-    </Typography>
-  </Box>
-</Grid>
+              <Button
+                startIcon={<DownloadIcon />}
+                onClick={() => setImportModalOpen(true)}
+                variant="outlined"
+                sx={{ 
+                  textTransform: "none", 
+                  borderColor: '#E5E7EB', 
+                  color: '#4B5563', 
+                  borderRadius: '6px',
+                  px: 2,
+                  '&:hover': { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' } 
+                }}
+              >
+                Import
+              </Button>
 
-{selectedCompany && (
-  <Grid item xs={12} sm={6}>
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        border: '1px solid #ccc',
-        borderRadius: 1,
-        padding: '8px 12px',
-        minHeight: '56px',
-        backgroundColor: '#f9f9f9',
-      }}
-    >
-      <StoreIcon sx={{ marginRight: 1 }} />
-      <Typography variant="body1">
-        {loadingBranches
-          ? 'Loading branch...'
-          : branches.find((b) => b._id === selectedBranch)?.name || 'No branch selected'}
-      </Typography>
-    </Box>
-  </Grid>
-)}
-          {/* Staff Table - Only show if branch is selected */}
+              <Button
+                onClick={() => { setAddModalOpen(true); setUsernameError(""); setEmailError(""); }}
+                variant="contained"
+                sx={{ 
+                  textTransform: "none", 
+                  backgroundColor: '#0E9F6E', 
+                  color: '#FFFFFF', 
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  boxShadow: 'none',
+                  px: 2.5,
+                  py: 1,
+                  '&:hover': { backgroundColor: '#047857', boxShadow: 'none' }
+                }}
+              >
+                + Add Employee
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Staff Table - Render directly if branch is selected */}
           {selectedBranch ? (
-            <>
-              <Grid item xs={12}>
-            <Box sx={{ overflowX: 'auto' }}>
-  <TableContainer
-    elevation={0}
-    component={Paper}
-    sx={{
-      height: {
-        // xs: 'auto',
-           xs: 600,
-        sm: 300,
-        md: 350,
-      },
-      maxHeight: '80vh',
-      overflowY: 'auto',
-      '&::-webkit-scrollbar': {
-        width: '6px',
-        height: '6px', // for horizontal scrollbar
-      },
-      '&::-webkit-scrollbar-track': {
-        background: '#f1f1f1',
-        borderRadius: '10px',
-      },
-      '&::-webkit-scrollbar-thumb': {
-        background: '#888',
-        borderRadius: '10px',
-        '&:hover': {
-          background: '#555',
-        },
-      },
-      scrollbarWidth: 'thin', // Firefox
-      scrollbarColor: '#888 #f1f1f1', // Firefox
-    }}
-  >                  <Table>
+            <Paper elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden', mb: 3 }}>
+              {/* Filters row inside the card */}
+              <Box sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center', borderBottom: '1px solid #E5E7EB', backgroundColor: '#FFFFFF', flexWrap: 'wrap' }}>
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  placeholder="Search name / email / role..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: '#9CA3AF' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ 
+                    width: 300,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px',
+                      '& fieldset': { borderColor: '#E5E7EB' },
+                      '&:hover fieldset': { borderColor: '#D1D5DB' },
+                    }
+                  }}
+                />
+
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <Select
+                    value={filters.active_status || ''}
+                    displayEmpty
+                    onChange={(e) => {
+                      handleFilterChange('active_status', e.target.value);
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                    sx={{ 
+                      borderRadius: '8px',
+                      color: '#4B5563',
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D1D5DB' },
+                    }}
+                  >
+                    <MenuItem value="">All status</MenuItem>
+                    <MenuItem value="Active">Active</MenuItem>
+                    <MenuItem value="Inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {/* Optional Department Filter */}
+                <FormControl size="small" sx={{ minWidth: 160 }}>
+                  <Select
+                    value={filters.department || ''}
+                    displayEmpty
+                    onChange={(e) => handleFilterChange('department', e.target.value)}
+                    sx={{ 
+                      borderRadius: '8px',
+                      color: '#4B5563',
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D1D5DB' },
+                    }}
+                    disabled={loadingDepartments || !selectedBranch}
+                  >
+                    <MenuItem value="">All Departments</MenuItem>
+                    {departments.map((dept) => (
+                      <MenuItem key={dept._id} value={dept._id}>{dept.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              <Box sx={{ overflowX: 'auto' }}>
+                <TableContainer
+                  elevation={0}
+                  sx={{
+                    height: { xs: 600, sm: 400, md: 450 },
+                    maxHeight: '70vh',
+                    overflowY: 'auto',
+                  }}
+                >
+                  <Table>
                     <TableHead>
-                      <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
+                      <TableRow sx={{ backgroundColor: '#F9FAFB' }}>
                         {columns.map((column) => (
                           <TableCell 
                             key={column.id}
                             sx={{ 
                               position: 'sticky',
                               top: 0,
-                              backgroundColor: '#F3F4F6',
+                              backgroundColor: '#F9FAFB',
                               zIndex: 1,
                               whiteSpace: 'nowrap',
                               textAlign: column.id === 'checkbox' ? 'left' : 'center',
                               verticalAlign: 'middle',
                               padding: column.id === 'checkbox' ? '0 0 0 16px' : '16px',
+                              fontWeight: 600,
+                              color: '#4B5563',
+                              borderBottom: '1px solid #E5E7EB',
                             }}
                           >
                             {column.sortable ? (
@@ -1112,7 +950,7 @@ const [showPassword, setShowPassword] = useState(false);
                                 display="flex" 
                                 alignItems="center" 
                                 justifyContent="center"
-                                sx={{ cursor: 'pointer', color: 'text.secondary' }}
+                                sx={{ cursor: 'pointer' }}
                                 onClick={() => handleSort(column.id)}
                               >
                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -1129,11 +967,11 @@ const [showPassword, setShowPassword] = useState(false);
                                 )}
                               </Box>
                             ) : column.id === 'checkbox' ? (
-                  <Checkbox
-  indeterminate={selected.length > 0 && selected.length < staff.length}
-  checked={staff.length > 0 && selected.length === staff.length}
-  onChange={handleSelectAll}
-/>
+                              <Checkbox
+                                indeterminate={selected.length > 0 && selected.length < staff.length}
+                                checked={staff.length > 0 && selected.length === staff.length}
+                                onChange={handleSelectAll}
+                              />
                             ) : (
                               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                 {column.label}
@@ -1148,103 +986,110 @@ const [showPassword, setShowPassword] = useState(false);
                       {loading ? (
                         <TableRow>
                           <TableCell colSpan={columns.length} align="center">
-                            <CircularProgress 
-                              size={60} 
-                              thickness={4}
-                              sx={{ 
-                                color: (theme) => theme.palette.primary.main,
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)'
-                              }}
-                            />
+                            <CircularProgress size={40} sx={{ my: 4 }} />
                           </TableCell>
                         </TableRow>
                       ) : staff.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={columns.length} align="center">
+                          <TableCell colSpan={columns.length} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                             No staff found for selected branch
                           </TableCell>
                         </TableRow>
                       ) : (
                         staff.map((staffMember, index) => {
-                         const isSelected = selected.includes(staffMember._id);
+                          const isSelected = selected.includes(staffMember._id);
                           return (
                             <TableRow
-                              key={staffMember.id}
+                              key={staffMember._id}
                               hover
                               selected={isSelected}
                               sx={{
                                 '& > td': {
-                                  padding: '8px 16px',
-                                  height: '40px'
+                                  padding: '12px 16px',
                                 }
                               }}
                             >
                               <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
-                               <Checkbox
-          checked={isSelected}
-          onChange={(event) => handleSelect(event, staffMember._id)} // Pass _id here
-        />
+                                <Checkbox
+                                  checked={isSelected}
+                                  onChange={(event) => handleSelect(event, staffMember._id)}
+                                />
                               </TableCell>
                               
-                              <TableCell>{getSerialNumber(index)}</TableCell>
-                              <TableCell>{staffMember.firstName}</TableCell>
-                              <TableCell>{staffMember.lastName}</TableCell>
-                              <TableCell>{staffMember.email}</TableCell>
-                              <TableCell>{staffMember.role}</TableCell>
-                              <TableCell>
+                              <TableCell align="center">{getSerialNumber(index)}</TableCell>
+                              <TableCell align="center">{staffMember.firstName}</TableCell>
+                              <TableCell align="center">{staffMember.lastName}</TableCell>
+                              <TableCell align="center">{staffMember.email}</TableCell>
+                              <TableCell align="center">
+                                {staffMember.deviceUserId ? (
+                                  <Box
+                                    sx={{
+                                      display: 'inline-block',
+                                      padding: '4px 8px',
+                                      borderRadius: '6px',
+                                      backgroundColor: '#DEF7EC',
+                                      color: '#03543F',
+                                      fontSize: '12px',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    #{staffMember.deviceUserId}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                                    Not linked
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell align="center">
                                 <Box 
                                   sx={{
                                     display: 'inline-block',
                                     padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    backgroundColor: staffMember.active_status === 'Active' ? '#e6f7ee' : '#ffebee',
-                                    color: staffMember.active_status === 'Active' ? '#00a65a' : '#f44336'
+                                    borderRadius: '6px',
+                                    backgroundColor: staffMember.active_status === 'Active' ? '#DEF7EC' : '#FDE8E8',
+                                    color: staffMember.active_status === 'Active' ? '#03543F' : '#9B1C1C',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
                                   }}
                                 >
                                   {staffMember.active_status}
                                 </Box>
                               </TableCell>
+                              <TableCell align="center">{staffMember.dept_name || '-'}</TableCell>
                               
-                              <TableCell>
-                                <IconButton 
-                                  sx={{ color: 'text.secondary' }}
-                                  onClick={() => handleViewClick(staffMember)}
-                                >
-                                  <ViewIcon />
-                                </IconButton>
-                              </TableCell>
-                              
-                              <TableCell>
-                                <IconButton
-                                  aria-label="more"
-                                  aria-controls="long-menu"
-                                  aria-haspopup="true"
-                                  onClick={(e) => handleMenuClick(e, staffMember)}
-                                  sx={{ color: 'text.secondary' }}
-                                >
-                                  <MoreVertIcon />
-                                </IconButton>
-                                <Menu
-                                  id="long-menu"
-                                  anchorEl={anchorEl}
-                                  keepMounted
-                                  open={openMenu && selectedStaff?.id === staffMember.id}
-                                  onClose={handleMenuClose}
-                                  PaperProps={{
-                                    style: {
-                                      width: '20ch',
-                                      boxShadow: 'none',
-                                    },
-                                    elevation: 0,
-                                  }}
-                                >
-                                  <MenuItem onClick={handleEdit}>Edit</MenuItem>
-                                  <MenuItem onClick={allowEdit}>{selectedStaff?.editstatus ? "Don't Allow Edit" :"Allow Edit"} </MenuItem>
-                                  <MenuItem onClick={() => handleConfirmDelete(selectedStaff._id)}>Delete</MenuItem>
-                                </Menu>
+                              <TableCell align="center">
+                                <Box display="flex" justifyContent="center" gap={0.5}>
+                                  <Tooltip title="View Details">
+                                    <IconButton 
+                                      size="small"
+                                      sx={{ color: '#9CA3AF', '&:hover': { color: '#4B5563' } }}
+                                      onClick={() => handleViewClick(staffMember)}
+                                    >
+                                      <ViewIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  
+                                  <Tooltip title="Edit Profile">
+                                    <IconButton
+                                      size="small"
+                                      sx={{ color: '#9CA3AF', '&:hover': { color: '#4B5563' } }}
+                                      onClick={() => openEditEmployee(staffMember)}
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+
+                                  <Tooltip title="Delete">
+                                    <IconButton 
+                                      size="small"
+                                      sx={{ color: '#EF4444', '&:hover': { color: '#DC2626' } }}
+                                      onClick={() => handleConfirmDelete(staffMember._id)}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
                               </TableCell>
                             </TableRow>
                           );
@@ -1253,98 +1098,100 @@ const [showPassword, setShowPassword] = useState(false);
                     </TableBody>
                   </Table>
                 </TableContainer>
-                  </Box>
-              </Grid>
+              </Box>
 
               {/* Pagination */}
-      <Grid item xs={12}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-          {/* Rows per page dropdown aligned to the left */}
-          <Box display="flex" justifyContent="flex-start" alignItems="center">
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Rows per page</InputLabel>
-              <Select
-                value={pagination.page_size}
-                label="Rows per page"
-                onChange={handlePageSizeChange}
-                sx={{ color: 'text.secondary' }}
-              >
-                {[5, 10, 25, 50, 100].map((size) => (
-                  <MenuItem key={size} value={size}>
-                    {size}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-      
-          {/* React Paginate - Centered */}
-          <Box 
-           sx={{
-          '& .pagination li.selected a': {
-            backgroundColor: theme.palette.primary.main,
-            color: theme.palette.primary.contrastText,
-            borderColor: theme.palette.primary.main,
-            fontWeight: 500,
-            fontSize: theme.typography.fontSize,
-          },
-          '& .pagination li a': {
-            fontSize: theme.typography.body2.fontSize,
-              color: theme.palette.text.primary,
-      
-          },
-        }}
-          >
-            <ReactPaginate
-              previousLabel={'Previous'}
-              nextLabel={'Next'}
-              breakLabel={'...'}
-              breakClassName={'break-me'}
-              pageCount={pagination.total_pages}
-              marginPagesDisplayed={2}
-              pageRangeDisplayed={3}
-              onPageChange={({ selected }) => handlePageChange(selected + 1)}
-              containerClassName={'pagination'}
-              activeClassName={'selected'}
-              previousClassName={'previous'}
-              nextClassName={'next'}
-              disabledClassName={'disabled'}
-              forcePage={pagination.page - 1}
-              pageClassName={'page-item'}
-              pageLinkClassName={'page-link'}
-              previousLinkClassName={'page-link'}
-              nextLinkClassName={'page-link'}
-            />
-          </Box>
-      
-          {/* Empty box to balance the layout */}
-          <Box sx={{ width: 120 }} /> {/* This matches the width of the rows selector */}
-        </Box>
-      </Grid>
-            </>
-          ) : (
-            <Grid item xs={12}>
-              <Box 
-                display="flex" 
-                justifyContent="center" 
-                alignItems="center" 
-                minHeight="200px"
-                sx={{ 
-                  backgroundColor: '#f5f5f5',
-                  borderRadius: 1,
-                  p: 4,
-                  textAlign: 'center'
-                }}
-              >
-                <Typography variant="h6" color="textSecondary">
-                  {selectedCompany 
-                    ? (loadingBranches ? 'Loading branches...' : 'Please select a branch to view staff')
-                    : 'Please select a company first'}
+              <Box display="flex" justifyContent="space-between" alignItems="center" p={2} sx={{ borderTop: '1px solid #E5E7EB', backgroundColor: '#FFFFFF' }}>
+                <Box display="flex" alignItems="center">
+                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                    <Select
+                      value={pagination.page_size}
+                      onChange={handlePageSizeChange}
+                      sx={{ borderRadius: '6px', color: 'text.secondary' }}
+                    >
+                      {[5, 10, 25, 50, 100].map((size) => (
+                        <MenuItem key={size} value={size}>
+                          {size} per page
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+            
+                <Box 
+                  sx={{
+                    '& .pagination': {
+                      display: 'flex',
+                      listStyle: 'none',
+                      padding: 0,
+                      margin: 0,
+                      gap: '4px',
+                    },
+                    '& .pagination li a': {
+                      padding: '6px 12px',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      color: '#4B5563',
+                      textDecoration: 'none',
+                      display: 'inline-block',
+                    },
+                    '& .pagination li.selected a': {
+                      backgroundColor: '#0E9F6E',
+                      color: '#FFFFFF',
+                      borderColor: '#0E9F6E',
+                      fontWeight: 600,
+                    },
+                    '& .pagination li.disabled a': {
+                      opacity: 0.5,
+                      cursor: 'not-allowed',
+                    }
+                  }}
+                >
+                  <ReactPaginate
+                    previousLabel={'‹'}
+                    nextLabel={'›'}
+                    breakLabel={'...'}
+                    pageCount={pagination.total_pages}
+                    marginPagesDisplayed={2}
+                    pageRangeDisplayed={3}
+                    onPageChange={({ selected }) => handlePageChange(selected + 1)}
+                    containerClassName={'pagination'}
+                    activeClassName={'selected'}
+                    previousClassName={'previous'}
+                    nextClassName={'next'}
+                    disabledClassName={'disabled'}
+                    forcePage={pagination.page - 1}
+                  />
+                </Box>
+                
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Showing {staff.length} of {pagination.count}
                 </Typography>
               </Box>
-            </Grid>
+            </Paper>
+          ) : (
+            <Box 
+              display="flex" 
+              justifyContent="center" 
+              alignItems="center" 
+              minHeight="200px"
+              sx={{ 
+                backgroundColor: '#f5f5f5',
+                borderRadius: 1,
+                p: 4,
+                textAlign: 'center'
+              }}
+            >
+              <Typography variant="h6" color="textSecondary">
+                {selectedCompany 
+                  ? (loadingBranches ? 'Loading branches...' : 'Please select a branch to view staff')
+                  : 'Please select a company first'}
+              </Typography>
+            </Box>
           )}
-        </Grid>
+        </Box>
 
         {/* Filter Modal */}
         <Dialog open={filterOpen} onClose={() => setFilterOpen(false)} maxWidth="md" fullWidth>
@@ -1381,36 +1228,6 @@ const [showPassword, setShowPassword] = useState(false);
               
               <Grid item xs={12} sm={6} md={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Role</InputLabel>
-              <Select
-  value={filters.role || ''}
-  label="Role"
-  onChange={(e) => {
-    handleFilterChange('role', e.target.value);
-    setPagination(prev => ({
-      ...prev,
-      page: 1  // Reset to page 1 when role filter changes
-    }));
-  }}
-  sx={{ color: 'text.secondary' }}
-  startAdornment={
-    <InputAdornment position="start">
-      <RoleIcon fontSize="small" />
-    </InputAdornment>
-  }
->
-                    <MenuItem value="">All Roles</MenuItem>
-                    {roleTypes.map((role) => (
-                      <MenuItem key={role} value={role}>
-                        {role}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl fullWidth>
                   <InputLabel>Department</InputLabel>
                   <Select
                     value={filters.department}
@@ -1420,9 +1237,7 @@ const [showPassword, setShowPassword] = useState(false);
                   >
                     <MenuItem value="">All Departments</MenuItem>
                     {departments.map((dept) => (
-                      <MenuItem key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </MenuItem>
+                      <MenuItem key={dept._id} value={dept._id}>{dept.name}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -1501,7 +1316,7 @@ const [showPassword, setShowPassword] = useState(false);
             scrollbarWidth: 'thin',
             scrollbarColor: '#888 #f1f1f1',
           }}>
-            <Typography variant="h5" gutterBottom>Edit Staff</Typography>
+            <Typography variant="h5" gutterBottom>Edit Employee</Typography>
             <Divider sx={{ mb: 3 }} />
             <Formik
               initialValues={currentStaff}
@@ -1509,16 +1324,16 @@ const [showPassword, setShowPassword] = useState(false);
               onSubmit={handleEditSubmit}
               enableReinitialize
             >
-              {({ values, errors, touched, handleChange }) => (
+              {({ values, errors, touched, handleChange, setFieldValue }) => (
                 <Form>
-                  <Grid container spacing={3}>
-                    {console.log({values, errors, touched})}
-                    <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Basic Information</Typography>
-                      <Divider />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
+                  {/* Same "Attendance Profile Only" banner as Add, for consistency */}
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1.5, bgcolor:'#E6F6F0', color:'#03543F', p:2, borderRadius:'8px', mb:3 }}>
+                    <Typography variant="body2" sx={{ fontWeight:500, fontSize:'13.5px', lineHeight:1.5 }}>
+                      🔒 <strong>Attendance Profile Only.</strong> This record is used to map attendance logs from biometric hardware. This employee will not receive credentials to log into the web portal.
+                    </Typography>
+                  </Box>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
                         label="First Name*"
@@ -1534,7 +1349,7 @@ const [showPassword, setShowPassword] = useState(false);
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Last Name*"
+                        label="Last Name"
                         name="lastName"
                         value={values.lastName}
                         onChange={handleChange}
@@ -1543,29 +1358,10 @@ const [showPassword, setShowPassword] = useState(false);
                         variant="outlined"
                       />
                     </Grid>
-                            <Grid item xs={12} md={6}>
-                                                       <TextField
-                                                         fullWidth
-                                                         select
-                                                         label="Gender"
-                                                         name="gender"
-                                                         value={values.gender}
-                                                         onChange={handleChange}
-                                                         error={touched.gender && Boolean(errors.gender)}
-                                                         helperText={touched.gender && errors.gender}
-                                                         variant="outlined"
-                                                       >
-                                                         {genders.map((option) => (
-                                                           <MenuItem key={option.value} value={option.value}>
-                                                             {option.label}
-                                                           </MenuItem>
-                                                         ))}
-                                                       </TextField>
-                                                     </Grid>
-                                                      <Grid item xs={12} md={6}>
+                                                      <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Mobile*"
+                        label="Mobile (optional)"
                         name="mobile"
                         value={values.mobile}
                         onChange={handleChange}
@@ -1574,184 +1370,150 @@ const [showPassword, setShowPassword] = useState(false);
                         variant="outlined"
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Email*"
+                        label="Email (optional)"
                         name="email"
                         value={values.email}
                          onChange={(e)=>{handleChange(e);if(editcheckfield.email!=e.target.value){ checkFieldsExists(e.target.value,"email")} } }
 
                         error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
     helperText={
-      (touched.email && errors.email) || 
+      (touched.email && errors.email) ||
       emailError
     }
                         variant="outlined"
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Username*"
-                        name="username"
-                        value={values.username}
-                       onChange={(e)=>{handleChange(e);if(editcheckfield.username!=e.target.value){ checkFieldsExists(e.target.value,"username")} } }
-
-                          error={(touched.username && Boolean(errors.username)) || Boolean(usernameError)}
-    helperText={
-      (touched.username && errors.username) || 
-      usernameError
-    }
+                        label="Employee Code (optional)"
+                        name="employeeCode"
+                        value={values.employeeCode || ''}
+                        onChange={handleChange}
+                        placeholder="e.g. EMP-1006"
                         variant="outlined"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
                     </Grid>
-                    
-                   {/* <Grid item xs={12} md={6}>
-  <TextField
-    fullWidth
-    label="Password*"
-    name="password"
-    type={showPassword ? "text" : "password"}
-    value={values.password}
-    onChange={handleChange}
-    error={touched.password && Boolean(errors.password)}
-    helperText={touched.password && errors.password}
-    variant="outlined"
-    InputProps={{
-      endAdornment: (
-        <InputAdornment position="end">
-          <IconButton
-            aria-label="toggle password visibility"
-            onClick={() => setShowPassword(!showPassword)}
-            edge="end"
-          >
-            {showPassword ? <VisibilityOff /> : <ViewIcon />}
-          </IconButton>
-        </InputAdornment>
-      ),
-    }}
-  />
-</Grid> */}
 
-
-                    
-                    
-                    <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Employment Details</Typography>
-                      <Divider />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
+                    {/* Company → Branch → Department (same as Add) */}
+                    <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
-                        <InputLabel>Role*</InputLabel>
+                        <InputLabel>Company*</InputLabel>
                         <Select
-                          name="role"
-                          value={values.role}
-                          label="Role*"
-                          onChange={handleChange}
-                          error={touched.role && Boolean(errors.role)}
+                          name="companyId"
+                          value={values.companyId || selectedCompany || ''}
+                          label="Company*"
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setFieldValue('companyId', v);
+                            setFieldValue('branchId', '');
+                            setFieldValue('department', '');
+                            setSelectedCompany(v);
+                          }}
+                          sx={{ borderRadius: '8px' }}
                         >
-                          {roleTypes.map((role) => (
-                            <MenuItem key={role} value={role}>
-                              {role}
-                            </MenuItem>
+                          {companies.map((c) => (
+                            <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
                           ))}
                         </Select>
                       </FormControl>
                     </Grid>
-                    
-                    <Grid item xs={12} md={6}>
+
+                    <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
-                        <InputLabel>Status*</InputLabel>
+                        <InputLabel>Branch*</InputLabel>
                         <Select
-                          name="active_status"
-                          value={values.active_status}
-                          label="Status*"
-                          onChange={handleChange}
-                          error={touched.active_status && Boolean(errors.active_status)}
+                          name="branchId"
+                          value={values.branchId || selectedBranch || ''}
+                          label="Branch*"
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setFieldValue('branchId', v);
+                            setFieldValue('department', '');
+                            setSelectedBranch(v);
+                          }}
+                          disabled={loadingBranches || !(values.companyId || selectedCompany)}
+                          sx={{ borderRadius: '8px' }}
                         >
-                          {statusTypes.map((status) => (
-                            <MenuItem key={status} value={status}>
-                              {status}
-                            </MenuItem>
+                          {branches.map((b) => (
+                            <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>
                           ))}
                         </Select>
                       </FormControl>
                     </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-             <TextField
-  fullWidth
-  label="Joining Date"
-  name="joining_date"
-  type="date"
-  value={values.joining_date}
-  onChange={handleChange}
-  InputLabelProps={{
-    shrink: true,
-  }}
-  inputProps={{
-    max: getTodayDate() // Can't select dates after today
-  }}
-  variant="outlined"
-/>
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                     <TextField
-  fullWidth
-  label="Date of Birth"
-  name="date_of_birth"
-  type="date"
-  value={values.date_of_birth}
-  onChange={handleChange}
-  InputLabelProps={{
-    shrink: true,
-  }}
-  inputProps={{
-    max: getMinBirthDate() // Must be at least 18 years ago
-  }}
-  variant="outlined"
-/>
-                    </Grid>
-                    
-                    <Grid item xs={12}>
+
+                    <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
                         <InputLabel>Department</InputLabel>
                         <Select
                           name="department"
-                          value={values.dept_id}
+                          value={values.department || ''}
                           label="Department"
                           onChange={handleChange}
-                          disabled={loadingDepartments}
+                          disabled={loadingDepartments || !(values.branchId || selectedBranch)}
+                          sx={{ borderRadius: '8px' }}
                         >
                           {departments.length ? departments.map((dept) => (
-                            <MenuItem key={dept._id} value={dept._id}>
-                              {dept.name}
-                            </MenuItem>
-                          )) :   (
-                    <MenuItem disabled>
-                      No department available
-                    </MenuItem>
-                  ) 
-                           }
+                            <MenuItem key={dept._id} value={dept._id}>{dept.name}</MenuItem>
+                          )) : (
+                            <MenuItem disabled>No departments available</MenuItem>
+                          )}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Device User ID (optional)"
+                        name="deviceUserId"
+                        value={values.deviceUserId || ''}
+                        onChange={handleChange}
+                        placeholder="map in Enrollment"
+                        variant="outlined"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Status*</InputLabel>
+                        <Select
+                          name="active_status"
+                          value={values.active_status || 'Active'}
+                          label="Status*"
+                          onChange={handleChange}
+                          sx={{ borderRadius: '8px' }}
+                        >
+                          {statusTypes.map((status) => (
+                            <MenuItem key={status} value={status}>{status}</MenuItem>
+                          ))}
                         </Select>
                       </FormControl>
                     </Grid>
 
                     <Grid item xs={12}>
                       <Button
-  fullWidth
-  type="submit" // ✅ Let Formik handle the submit
-  variant="contained"
-  color="primary"
-  sx={{ mr: 3, textTransform: "none" }}
->
-  Update Staff
-</Button>
-
-
+                        fullWidth
+                        type="submit"
+                        variant="contained"
+                        sx={{
+                          textTransform: "none",
+                          backgroundColor: '#0E9F6E',
+                          color: '#FFFFFF',
+                          borderRadius: '8px',
+                          fontWeight: 600,
+                          py: 1.2,
+                          boxShadow: 'none',
+                          '&:hover': { backgroundColor: '#047857', boxShadow: 'none' }
+                        }}
+                      >
+                        Update Employee
+                      </Button>
                     </Grid>
                   </Grid>
                 </Form>
@@ -1772,13 +1534,14 @@ const [showPassword, setShowPassword] = useState(false);
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '80%',
+            width: '90%',
             maxWidth: 600,
             bgcolor: 'background.paper',
             p: 4,
             maxHeight: '90vh',
             overflowY: 'auto',
-            borderRadius: 2,
+            borderRadius: '12px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
             '&::-webkit-scrollbar': {
               width: '6px',
             },
@@ -1794,41 +1557,50 @@ const [showPassword, setShowPassword] = useState(false);
               }
             },
             scrollbarWidth: 'thin',
-            scrollbarColor: '#888 #f1f1f1',
           }}>
-            <Typography variant="h5" gutterBottom>Add New Staff</Typography>
+            {/* Modal Title & Header */}
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                Add Employee Record
+              </Typography>
+              <IconButton 
+                onClick={() => setAddModalOpen(false)}
+                size="small"
+                sx={{ color: '#9CA3AF', '&:hover': { color: '#4B5563' } }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            
             <Divider sx={{ mb: 3 }} />
+
             <Formik
               initialValues={newStaff}
               validationSchema={validationSchema}
               onSubmit={handleAddStaff}
             >
-              {({ values, errors, touched, handleChange }) => (
+              {({ values, errors, touched, handleChange, setFieldValue }) => (
                 <Form>
-                  {console.log({values, errors, touched})}
-                  {console.log(usernameError,"????usernameErrorrr")}
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Basic Information</Typography>
-                      <Divider />
-                    </Grid>
-                     <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Username*"
-                        name="username"
-                        value={values.username}
-                        onChange={(e)=>{handleChange(e); checkFieldsExists(e.target.value,"username") } }
+                  {/* Attendance sync banner */}
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1.5,
+                      bgcolor: '#E6F6F0', 
+                      color: '#03543F', 
+                      p: 2, 
+                      borderRadius: '8px', 
+                      mb: 3 
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '13.5px', lineHeight: 1.5 }}>
+                      🔒 <strong>Attendance Profile Only.</strong> This record is used to map attendance logs from biometric hardware. This employee will not receive credentials to log into the web portal.
+                    </Typography>
+                  </Box>
 
-                         error={(touched.username && Boolean(errors.username)) || Boolean(usernameError)}
-    helperText={
-      (touched.username && errors.username) || 
-      usernameError
-    }
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
                         label="First Name*"
@@ -1838,177 +1610,103 @@ const [showPassword, setShowPassword] = useState(false);
                         error={touched.firstName && Boolean(errors.firstName)}
                         helperText={touched.firstName && errors.firstName}
                         variant="outlined"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
                     </Grid>
                     
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Last Name*"
+                        label="Last Name"
                         name="lastName"
                         value={values.lastName}
                         onChange={handleChange}
                         error={touched.lastName && Boolean(errors.lastName)}
                         helperText={touched.lastName && errors.lastName}
                         variant="outlined"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
                     </Grid>
-                      <Grid item xs={12} md={6}>
-                                                       <TextField
-                                                         fullWidth
-                                                         select
-                                                         label="Gender"
-                                                         name="gender"
-                                                         value={values.gender}
-                                                         onChange={handleChange}
-                                                         error={touched.gender && Boolean(errors.gender)}
-                                                         helperText={touched.gender && errors.gender}
-                                                         variant="outlined"
-                                                       >
-                                                         {genders.map((option) => (
-                                                           <MenuItem key={option.value} value={option.value}>
-                                                             {option.label}
-                                                           </MenuItem>
-                                                         ))}
-                                                       </TextField>
-                                                     </Grid>
-                                                   
-                    <Grid item xs={12}>
+
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Email*"
+                        label="Email (optional)"
                         name="email"
                         value={values.email}
-                      onChange={(e)=>{handleChange(e); checkFieldsExists(e.target.value,"email") } }
-                          error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
-    helperText={
-      (touched.email && errors.email) || 
-      emailError
-    }
+                        onChange={(e) => {
+                          handleChange(e);
+                          checkFieldsExists(e.target.value, "email");
+                        }}
+                        error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
+                        helperText={(touched.email && errors.email) || emailError}
                         variant="outlined"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
                     </Grid>
-                    
-                    <Grid item xs={12} md={6}>
+
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Mobile*"
+                        label="Mobile (optional)"
                         name="mobile"
                         value={values.mobile}
                         onChange={handleChange}
                         error={touched.mobile && Boolean(errors.mobile)}
                         helperText={touched.mobile && errors.mobile}
                         variant="outlined"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
                     </Grid>
-                    
-      <Grid item xs={12} md={6}>
-  <TextField
-    fullWidth
-    label="Password*"
-    name="password"
-    type={showPassword ? "text" : "password"}
-    value={values.password}
-    onChange={handleChange}
-    error={touched.password && Boolean(errors.password)}
-    helperText={touched.password && errors.password}
-    variant="outlined"
-    InputProps={{
-      endAdornment: (
-        <InputAdornment position="end">
-          <IconButton
-            aria-label="toggle password visibility"
-            onClick={() => setShowPassword(!showPassword)}
-            edge="end"
-          >
-            {showPassword ? <VisibilityOff /> : <ViewIcon />}
-          </IconButton>
-        </InputAdornment>
-      ),
-    }}
-  />
-</Grid>
-                    
-                    <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Employment Details</Typography>
-                      <Divider />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
+
+                    {/* Company → Branch → Department: selectable right here, no context switch */}
+                    <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
-                        <InputLabel>Role*</InputLabel>
+                        <InputLabel>Company*</InputLabel>
                         <Select
-                          name="role"
-                          value={values.role}
-                          label="Role*"
-                          onChange={handleChange}
-                          error={touched.role && Boolean(errors.role)}
+                          name="companyId"
+                          value={values.companyId || selectedCompany || ''}
+                          label="Company*"
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setFieldValue('companyId', v);
+                            setFieldValue('branchId', '');
+                            setFieldValue('department', '');
+                            setSelectedCompany(v);
+                          }}
+                          sx={{ borderRadius: '8px' }}
                         >
-                          {roleTypes.map((role) => (
-                            <MenuItem key={role} value={role}>
-                              {role}
-                            </MenuItem>
+                          {companies.map((c) => (
+                            <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
                           ))}
                         </Select>
                       </FormControl>
                     </Grid>
-                    
-                    <Grid item xs={12} md={6}>
+
+                    <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
-                        <InputLabel>Status*</InputLabel>
+                        <InputLabel>Branch*</InputLabel>
                         <Select
-                          name="active_status"
-                          value={values.active_status}
-                          label="Status*"
-                          onChange={handleChange}
-                          error={touched.active_status && Boolean(errors.active_status)}
+                          name="branchId"
+                          value={values.branchId || selectedBranch || ''}
+                          label="Branch*"
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setFieldValue('branchId', v);
+                            setFieldValue('department', '');
+                            setSelectedBranch(v);
+                          }}
+                          disabled={loadingBranches || !(values.companyId || selectedCompany)}
+                          sx={{ borderRadius: '8px' }}
                         >
-                          {statusTypes.map((status) => (
-                            <MenuItem key={status} value={status}>
-                              {status}
-                            </MenuItem>
+                          {branches.map((b) => (
+                            <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>
                           ))}
                         </Select>
                       </FormControl>
                     </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                    <TextField
-  fullWidth
-  label="Joining Date"
-  name="joining_date"
-  type="date"
-  value={values.joining_date}
-  onChange={handleChange}
-  InputLabelProps={{
-    shrink: true,
-  }}
-  inputProps={{
-    max: getTodayDate() // Can't select dates after today
-  }}
-  variant="outlined"
-/>
-                    </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-         <TextField
-  fullWidth
-  label="Date of Birth"
-  name="date_of_birth"
-  type="date"
-  value={values.date_of_birth}
-  onChange={handleChange}
-  InputLabelProps={{
-    shrink: true,
-  }}
-  inputProps={{
-    max: getMinBirthDate() // Must be at least 18 years ago
-  }}
-  variant="outlined"
-/>
-                    </Grid>
-                    
-                    <Grid item xs={12}>
+
+                    <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
                         <InputLabel>Department</InputLabel>
                         <Select
@@ -2016,35 +1714,64 @@ const [showPassword, setShowPassword] = useState(false);
                           value={values.department}
                           label="Department"
                           onChange={handleChange}
-                          disabled={loadingDepartments}
+                          disabled={loadingDepartments || !(values.branchId || selectedBranch)}
+                          sx={{ borderRadius: '8px' }}
                         >
                           {departments.length ? departments.map((dept) => (
                             <MenuItem key={dept._id} value={dept._id}>
                               {dept.name}
                             </MenuItem>
-                          )) :  (
-                    <MenuItem disabled>
-                      No department available
-                    </MenuItem>
-                  ) }
+                          )) : (
+                            <MenuItem disabled>No departments available</MenuItem>
+                          )}
                         </Select>
                       </FormControl>
                     </Grid>
 
-                    <Grid item xs={12}>
-  
-
- <Button
-            
+                    <Grid item xs={12} sm={6}>
+                      <TextField
                         fullWidth
-                          type="submit"                     
-                        variant="contained"
-                        color="primary"
-                      sx={{ mr: 3,textTransform:"none" }}
-                      >
-                        Add Staff
-                      </Button>
+                        label="Employee Code (optional)"
+                        name="employeeCode"
+                        value={values.employeeCode || ''}
+                        onChange={handleChange}
+                        placeholder="e.g. EMP-1006"
+                        variant="outlined"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                      />
+                    </Grid>
 
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Device User ID (optional)"
+                        name="deviceUserId"
+                        value={values.deviceUserId || ''}
+                        onChange={handleChange}
+                        placeholder="leave blank — map in Enrollment"
+                        variant="outlined"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Button
+                        fullWidth
+                        type="submit"                     
+                        variant="contained"
+                        sx={{ 
+                          textTransform: "none",
+                          backgroundColor: '#0E9F6E',
+                          color: '#FFFFFF',
+                          borderRadius: '8px',
+                          fontWeight: 600,
+                          py: 1.2,
+                          boxShadow: 'none',
+                          '&:hover': { backgroundColor: '#047857', boxShadow: 'none' }
+                        }}
+                      >
+                        Add Employee
+                      </Button>
                     </Grid>
                   </Grid>
                 </Form>
@@ -2052,34 +1779,6 @@ const [showPassword, setShowPassword] = useState(false);
             </Formik>
           </Box>
         </Modal>
-
-        {/* Floating Add Button - Only show when branch is selected */}
-        {selectedBranch && (
-          <Box
-            sx={{
-              position: 'fixed',
-              bottom: 32,
-              right: 32,
-              zIndex: 1000,
-            }}
-          >
-            <Fab 
-              color="primary" 
-              aria-label="add"
-                  onClick={() =>{setAddModalOpen(true); setUsernameError("");setEmailError("")}}
-              sx={{
-                backgroundColor: 'primary.main',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'primary.dark',
-                },
-                boxShadow: 3,
-              }}
-            >
-              <AddIcon />
-            </Fab>
-          </Box>
-        )}
 
 {/* import staff files */}
  
