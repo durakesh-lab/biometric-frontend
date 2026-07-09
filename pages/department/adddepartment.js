@@ -96,9 +96,14 @@ console.log({createdDepartmentData,select2},"678")
   };
   const dispatch = useDispatch();
   const handleSubmit = async (values) => {
-
-    setLoading(true)
-    dispatch(createDepartment({ obj: values }));
+    setLoading(true);
+    try {
+      await dispatch(createDepartment({ obj: values })).unwrap();
+    } catch (error) {
+      console.error('Error creating department:', error);
+    } finally {
+      setLoading(false);
+    }
   };
   
   const [positionsLoading, setPositionsLoading] = useState(true);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
 Table, 
   TableBody, 
@@ -50,7 +50,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
-import { confirnDeleteAction, editBranchAction, getbranchList } from '@/store/authSlice';
+import { confirnDeleteAction, editBranchAction } from '@/store/authSlice';
 import Layout, { theme } from '../../../components/Layout/Layout';
 import MyComponent from '../../../components/common/deletepopup';
 import { Formik, Form } from "formik";
@@ -74,7 +74,6 @@ const BranchlistPage = () => {
   const [showDelete, setShowDelete] = useState(false);
   const dispatch = useDispatch();
   const deletepopup = useSelector((state) => state.auth);
-  const { getBranchListData } = useSelector(state => state.auth);
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
   // Pagination state
@@ -133,8 +132,9 @@ const BranchlistPage = () => {
 
   useEffect(()=>{
     console.log(router.query.id,"55555555555")
-    setSelectedCompany(router.query.id)
-    
+    if (router.query.id) {
+      setSelectedCompany(router.query.id);
+    }
   },[router.query.id])
 
 
@@ -240,11 +240,11 @@ const BranchlistPage = () => {
       setNewBranch(prev => ({ ...prev, companyId: selectedCompany }));
       // Find and set the company name for breadcrumbs
       const company = companies.find(c => c._id === selectedCompany);
-      if (company) {
-        setSelectedCompanyName(company.name);
-      }
+      setSelectedCompanyName(company?.name || '');
+    } else {
+      setSelectedCompanyName('');
     }
-  }, [selectedCompany, pagination.page, pagination.page_size, sorting, search, deletepopup.editBranchData]);
+  }, [selectedCompany, companies, pagination.page, pagination.page_size, sorting, search, deletepopup.editBranchData]);
 
   // Handle select all
   const handleSelectAll = (event) => {
@@ -405,8 +405,13 @@ const BranchlistPage = () => {
   const handleAddBranch = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/branch`, values, {
-        headers: { Authorization: token }
+      const authHeader = token?.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      const payload = {
+        ...values,
+        companyId: selectedCompany,
+      };
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/branch`, payload, {
+        headers: { Authorization: authHeader }
       });
       
       setOpenSnackbar({status: true, message: 'Branch added successfully'});
@@ -453,20 +458,16 @@ const BranchlistPage = () => {
     }, 3000);
   }, []);
 
-  useEffect(() => {
-    dispatch(getbranchList());
-  }, [dispatch]);
-
 const handleManageBranches=(id)=>{
 router.push({
   pathname: '/company/branches/departments',
-  query: { id: id ,companyId:router.query.id }
+  query: { id: id ,companyId:selectedCompany }
 });
 }
 const handleManageEmployees=(id)=>{
 router.push({
   pathname: '/company/branches/staff',
-  query: { id: id ,companyId:router.query.id }
+  query: { id: id ,companyId:selectedCompany }
 });
 }
 
@@ -511,6 +512,21 @@ router.push({
         console.error('Error checking company ID:', error);
       }
     }, 1000);
+
+  const openAddBranchModal = () => {
+    setbranchCodeError("");
+    setNewBranch({
+      branchCode: "",
+      name: "",
+      manager: "",
+      address: "",
+      phoneNumber: "",
+      email: "",
+      companyId: selectedCompany || ""
+    });
+    setAddModalOpen(true);
+  };
+
   return (
     <>
       <Layout>
@@ -557,6 +573,25 @@ router.push({
               </Box>
               
               <Box display="flex" alignItems="center" gap={1}>
+                {selectedCompany && (
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={openAddBranchModal}
+                    sx={{
+                      textTransform: 'none',
+                      boxShadow: 'none',
+                      backgroundColor: '#0E9F6E',
+                      '&:hover': {
+                        backgroundColor: '#0b7d57',
+                        boxShadow: 'none',
+                      },
+                    }}
+                  >
+                    Add Branch
+                  </Button>
+                )}
+
                 {showDelete && (
                   <Tooltip title={`Delete selected (${selected.length})`}>
                     <IconButton
@@ -605,11 +640,10 @@ router.push({
           </Grid>
 
           {/* Company Selection */}
-          {/* <Grid item xs={12}>
+          <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <InputLabel id="company-select-label">Select Company</InputLabel>
               <Select
-              
                 labelId="company-select-label"
                 id="company-select"
                 value={selectedCompany || ''}
@@ -626,6 +660,8 @@ router.push({
                   <MenuItem disabled>
                     <CircularProgress size={24} />
                   </MenuItem>
+                ) : companies.length === 0 ? (
+                  <MenuItem disabled>No companies available</MenuItem>
                 ) : (
                   companies.map((company) => (
                     <MenuItem key={company._id} value={company._id}>
@@ -635,27 +671,7 @@ router.push({
                 )}
               </Select>
             </FormControl>
-          </Grid> */}
-<Grid item xs={12}>
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      border: '1px solid #ccc',
-      borderRadius: 1,
-      padding: '8px 12px',
-      minHeight: '56px',
-      backgroundColor: '#f9f9f9',
-    }}
-  >
-    <BusinessIcon sx={{ marginRight: 1 }} />
-    <Typography variant="body1">
-      {loadingCompanies
-        ? 'Loading...'
-        : companies.find(c => c._id === selectedCompany)?.name || 'No company selected'}
-    </Typography>
-  </Box>
-</Grid>
+          </Grid>
 
           {/* Branch Table - Only show if company is selected */}
           {selectedCompany ? (
@@ -824,7 +840,7 @@ router.push({
     } }}
                                   onClick={() => handleManageBranches(branch._id)}
                                 >
-                                   Departments 
+                                   Manage Departments 
                                 </Button>
                               </TableCell>
                               <TableCell>
@@ -1241,6 +1257,7 @@ router.push({
               initialValues={newBranch}
               validationSchema={validationSchema}
               onSubmit={handleAddBranch}
+              enableReinitialize
             >
               {({ values, errors, touched, handleChange }) => (
                 <Form>
@@ -1248,6 +1265,18 @@ router.push({
                     <Grid item xs={12}>
                       <Typography variant="h6" gutterBottom>Branch Information</Typography>
                       <Divider />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Company"
+                        value={selectedCompanyName || ''}
+                        variant="outlined"
+                        InputProps={{
+                          readOnly: true,
+                        }}
+                      />
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
@@ -1364,7 +1393,7 @@ router.push({
             <Fab 
               color="primary" 
               aria-label="add"
-              onClick={() =>{ setAddModalOpen(true);setbranchCodeError("")} }
+              onClick={openAddBranchModal}
               sx={{
                 backgroundColor: 'primary.main',
                 color: 'white',

@@ -2,6 +2,44 @@ import { port } from '@/config';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
+const getAuthHeader = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const token = localStorage.getItem('biometric_token');
+  if (!token) {
+    return '';
+  }
+
+  return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+};
+
+const parseApiResponse = async (response) => {
+  let data = {};
+
+  try {
+    data = await response.json();
+  } catch (error) {
+    data = {};
+  }
+
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.error ||
+      response.statusText ||
+      `Request failed with status ${response.status}`;
+    throw new Error(Array.isArray(message) ? message.join(', ') : message);
+  }
+
+  if (data?.errors?.length) {
+    throw new Error(data.errors[0].message || 'Request failed');
+  }
+
+  return data;
+};
+
 // ---------------------------------
 // 1) Thunk for login
 // ---------------------------------
@@ -109,22 +147,17 @@ export const createEmployee = createAsyncThunk(
   "auth/createEmployee",
   async ({ obj }, { rejectWithValue }) => {
     obj.area=[obj.area]
-    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch('http://localhost:7000/employee/addemployee', {
         method: 'POST',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -135,22 +168,17 @@ export const createEmployee = createAsyncThunk(
 export const createDepartment = createAsyncThunk(
   "auth/createDepartment",
   async ({ obj }, { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch(obj?.url=="createposition" ?'http://localhost:7000/position/addposition': 'http://localhost:7000/department/adddepartment', {
         method: 'POST',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -160,22 +188,17 @@ export const createDepartment = createAsyncThunk(
 export const createPosition = createAsyncThunk(
   "auth/createPosition",
   async ({ obj }, { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch('http://localhost:7000/position/addposition', {
         method: 'POST',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -185,22 +208,17 @@ export const createPosition = createAsyncThunk(
 export const createbranch = createAsyncThunk(
   "auth/createbranch",
   async ({ obj }, { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch('http://localhost:7000/area/addArea', {
         method: 'POST',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -210,22 +228,17 @@ export const createbranch = createAsyncThunk(
 export const createcompany = createAsyncThunk(
   "auth/createcompany",
   async ({ obj }, { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
         method: 'POST',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -235,24 +248,17 @@ export const createcompany = createAsyncThunk(
 export const editDepartmentAction = createAsyncThunk(
   "auth/editDepartment",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
-
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/department/`+obj.id, {
         method: 'PUT',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
-      
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -262,24 +268,18 @@ export const editDepartmentAction = createAsyncThunk(
 export const editStaffAction = createAsyncThunk(
   "auth/editStaffAction",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
-
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/`+obj.id, {
         method: 'POST',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
     
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -289,22 +289,17 @@ export const editStaffAction = createAsyncThunk(
 export const editCompanyAction = createAsyncThunk(
   "auth/editCompanyAction",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/company/`+obj.id, {
         method: 'PUT',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -314,24 +309,17 @@ export const editCompanyAction = createAsyncThunk(
 export const editBranchAction = createAsyncThunk(
   "auth/editBranchAction",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
-
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/`+obj.id, {
         method: 'PUT',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },
         body: JSON.stringify(obj),
         
       });
-      
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -341,22 +329,15 @@ export const editBranchAction = createAsyncThunk(
 export const getPositionList = createAsyncThunk(
   "auth/getPositionList",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
-
     try {
       const response = await fetch('http://localhost:7000/position/getPositionList/', {
         method: 'GET',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },        
       });
-      
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -366,22 +347,15 @@ export const getPositionList = createAsyncThunk(
 export const getbranchList = createAsyncThunk(
   "auth/getbranchList",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
-
     try {
       const response = await fetch('http://localhost:7000/area/getAreaList/', {
         method: 'GET',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },        
       });
-      
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -391,22 +365,15 @@ export const getbranchList = createAsyncThunk(
 export const getDepartmentList = createAsyncThunk(
   "auth/getDepartmentList",
   async (obj , { rejectWithValue }) => {
-    let token=localStorage.getItem("biometric_token")
-
     try {
       const response = await fetch('http://localhost:7000/department/getdepartmentList/', {
         method: 'GET',
         headers:{
-          Authorization:token,
+          Authorization:getAuthHeader(),
           'Content-Type':"application/json"
         },        
       });
-      
-      const data = await response.json();
-      if (data.errors) {
-        return rejectWithValue(data.errors[0].message);
-      }
-
+      const data = await parseApiResponse(response);
       return data;
     } catch (error) {
       return rejectWithValue(error.message);

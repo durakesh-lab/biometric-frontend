@@ -3,7 +3,7 @@ html, body {
     padding: 0;
     margin: 0;
     background-color: #F8F9FA; /* matches theme.background.default */
-    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
   
   * {

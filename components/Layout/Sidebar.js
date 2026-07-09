@@ -49,7 +49,7 @@ const menuGroups = [
         color: "#2563EB",
         subItems: [
           { label: "All Company", link: "/company/companylist" },
-          { label: "Branches", link: "/branch/branchlist" },
+          { label: "Branches", link: "/company/branches" },
           { label: "Departments", link: "/department/departmentlist" },
         ],
       },

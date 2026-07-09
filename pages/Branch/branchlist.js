@@ -1414,8 +1414,8 @@ const handleSelect = (event, id) => {
 
   const handleEditSubmit = async (values) => {
     try {
-      values={...values,id:values._id}
-      dispatch(editBranchAction(values));
+      const payload = { ...values, id: values._id };
+      await dispatch(editBranchAction(payload)).unwrap();
       setEditModalOpen(false);
     } catch (error) {
       console.error('Error updating branch:', error);

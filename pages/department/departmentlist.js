@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -46,7 +46,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
-import { confirnDeleteAction, editDepartmentAction, getDepartmentList } from '@/store/authSlice';
+import { confirnDeleteAction, editDepartmentAction } from '@/store/authSlice';
 import Layout from '../../components/Layout/Layout';
 import MyComponent from '../../components/common/deletepopup';
 import { Formik, Form } from "formik";
@@ -71,7 +71,6 @@ const DepartmentlistPage = () => {
   const [showDelete, setShowDelete] = useState(false);
   const dispatch = useDispatch();
   const deletepopup = useSelector((state) => state.auth);
-  const { getDepartmentListData } = useSelector(state => state.auth);
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
   // Pagination state
@@ -375,8 +374,8 @@ const DepartmentlistPage = () => {
 
   const handleEditSubmit = async (values) => {
     try {
-      values={...values,id:values._id}
-      dispatch(editDepartmentAction(values));
+      const payload = { ...values, id: values._id };
+      await dispatch(editDepartmentAction(payload)).unwrap();
       setEditModalOpen(false);
     } catch (error) {
       console.error('Error updating department:', error);
@@ -424,10 +423,6 @@ const DepartmentlistPage = () => {
       setLoading(false);
     }, 3000);
   }, []);
-
-  useEffect(() => {
-    dispatch(getDepartmentList());
-  }, [dispatch]);
 
   return (
     <>

@@ -115,9 +115,14 @@ console.log(createdcompanyData,"????????????")
     setOpen(false);
   };
   const handleSubmit = async (values) => {
-
-    setLoading(true)
-    dispatch(createcompany({ obj: values }));
+    setLoading(true);
+    try {
+      await dispatch(createcompany({ obj: values })).unwrap();
+    } catch (error) {
+      console.error('Error creating company:', error);
+    } finally {
+      setLoading(false);
+    }
   };
   
   const [positionsLoading, setPositionsLoading] = useState(true);
@@ -176,7 +181,7 @@ return (
                       <TextField
                         fullWidth
                         label="Company Id*"
-                        name="name"
+                        name="companyId"
                         value={values.companyId}
                         onChange={handleChange}
                         error={touched.companyId && Boolean(errors.companyId)}

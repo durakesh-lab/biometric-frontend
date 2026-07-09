@@ -1,482 +1,587 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, verifyTwoFactorCode } from '../../src/store/authSlice';
+import axios from 'axios';
+import { useRouter } from 'next/router';
 import {
+  Alert,
+  Avatar,
   Box,
   Button,
+  CircularProgress,
+  Grid,
+  Paper,
+  Snackbar,
+  Stack,
   TextField,
   Typography,
-  Paper,
-  Link,
-  Grid,
-  Avatar,
-  Fade,
-  Slide,
-  Grow,
-  Zoom,
-  Snackbar,
-  Alert,
-  CircularProgress
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
-import { useRouter } from 'next/router';
-import { motion } from 'framer-motion';
-import axios from 'axios';
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import { loginUser } from '../../src/store/authSlice';
+
+const heroFeatures = [
+  {
+    icon: FingerprintIcon,
+    title: 'Fast sign-in',
+    description: 'Quick access for daily attendance tasks.',
+  },
+  {
+    icon: LockOutlinedIcon,
+    title: '2FA ready',
+    description: 'Extra protection for staff accounts.',
+  },
+];
 
 export default function Login() {
   const dispatch = useDispatch();
-  const { loading, errorlogin, token, requires2FA, twoFactorError } = useSelector((state) => state.auth);
+  const { loading, errorlogin, token, twoFactorError } = useSelector((state) => state.auth);
   const router = useRouter();
+  const theme = useTheme();
+
   const [email, setEmail] = useState('');
-    const [twoFactorLoading, settwoFactorLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
-  const [activeText, setActiveText] = useState(0);
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
 
-  const heroTexts = [
-    "Precision Attendance Tracking",
-    "Seamless Biometric Integration",
-    "Real-time Attendance Analytics",
-    "Automated Workforce Management"
-  ];
+  const isTwoFactorStep = Boolean(token?.multifactorauth);
+  const snackbarMessage = localError || errorlogin || twoFactorError || '';
 
-  // Show snackbar when error occurs
   useEffect(() => {
-    if (errorlogin || twoFactorError) {
+    if (errorlogin || twoFactorError || localError) {
       setOpenSnackbar(true);
     }
-  }, [errorlogin, twoFactorError]);
+  }, [errorlogin, twoFactorError, localError]);
 
-  const handleCloseSnackbar = (event, reason) => {
+  useEffect(() => {
+    if (token?.access_token && !token?.multifactorauth) {
+      localStorage.setItem('biometric_token', token.access_token);
+      router.push({
+        pathname: '/dashboard',
+        query: { from: 'login' },
+      });
+    }
+  }, [token, router]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousRootHeight = root.style.height;
+    const previousBodyHeight = body.style.height;
+
+    root.style.overflow = 'hidden';
+    root.style.height = '100%';
+    body.style.overflow = 'hidden';
+    body.style.height = '100%';
+
+    return () => {
+      root.style.overflow = previousRootOverflow;
+      root.style.height = previousRootHeight;
+      body.style.overflow = previousBodyOverflow;
+      body.style.height = previousBodyHeight;
+    };
+  }, []);
+
+  const handleCloseSnackbar = (_event, reason) => {
     if (reason === 'clickaway') {
       return;
     }
     setOpenSnackbar(false);
   };
 
-  // Rotate hero texts
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveText((prev) => (prev + 1) % heroTexts.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Redirect to dashboard if token exists in localStorage
-  // useEffect(() => {
-  //   if (localStorage.getItem("biometric_token")) {
-  //     router.push({
-  //       pathname: '/dashboard',
-  //       query: { from: "login" }
-  //     });
-  //   }
-  // }, []);
-
   const handleLogin = (e) => {
     e.preventDefault();
+    setLocalError('');
     dispatch(loginUser({ email, password }));
   };
 
-  const handleVerifyCode =async (e) => {
-    settwoFactorLoading(true)
+  const handleVerifyCode = async (e) => {
     e.preventDefault();
-    // dispatch(verifyTwoFactorCode({ token:token?.access_token, code }));
-     var deleteresponse = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/verifycode`,{ username:email, password, code }, {
-            headers: { Authorization: token?.access_token }
-          });
-            if(deleteresponse.data.status){
-               localStorage.setItem("biometric_token", deleteresponse.data.access_token);
-     router.push({
-        pathname: '/dashboard',
-        query: { from: "login" }
-      });
-  }
+    setLocalError('');
+
+    if (!token?.multifactorauth) {
+      setLocalError('Please sign in again to request a verification code.');
+      return;
+    }
+
+    setTwoFactorLoading(true);
+
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/auth/verifycode`,
+        { username: email, password, code }
+      );
+
+      const verification = response.data;
+
+      if (verification?.status && verification?.access_token) {
+        localStorage.setItem('biometric_token', verification.access_token);
+        router.push({
+          pathname: '/dashboard',
+          query: { from: 'login' },
+        });
+        return;
+      }
+
+      throw new Error(verification?.message || 'Verification failed. Please try again.');
+    } catch (error) {
+      setLocalError(
+        error?.response?.data?.message ||
+          error?.message ||
+          'Unable to verify the code. Please try again.'
+      );
+    } finally {
+      setTwoFactorLoading(false);
+    }
   };
 
-  // Store token and redirect after successful login
-  useEffect(() => {
-    if (token?.access_token && !token?.multifactorauth) {
-      localStorage.setItem("biometric_token", token.access_token);
-      router.push({
-        pathname: '/dashboard',
-        query: { from: "login" }
-      });
+  const handleResendCode = () => {
+    if (!email || !password) {
+      setLocalError('Enter your email and password first to resend the code.');
+      return;
     }
-  }, [token]);
+
+    setLocalError('');
+    dispatch(loginUser({ email, password }));
+  };
+
+  const fieldSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 3,
+      backgroundColor: '#F8FBFA',
+      transition: 'all 0.2s ease',
+      '& fieldset': {
+        borderColor: 'rgba(15, 23, 42, 0.12)',
+      },
+      '&:hover fieldset': {
+        borderColor: alpha(theme.palette.primary.main, 0.35),
+      },
+      '&.Mui-focused': {
+        backgroundColor: '#FFFFFF',
+        boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.08)}`,
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: theme.palette.primary.main,
+        borderWidth: 1.5,
+      },
+    },
+    '& .MuiInputLabel-root': {
+      color: theme.palette.text.secondary,
+    },
+  };
+
+  const codeFieldSx = {
+    ...fieldSx,
+    '& .MuiOutlinedInput-input': {
+      textAlign: 'center',
+      letterSpacing: '0.3em',
+      fontSize: '1.1rem',
+      fontWeight: 700,
+    },
+  };
+
+  const buttonSx = {
+    py: 1.35,
+    borderRadius: 3,
+    fontSize: '1rem',
+    fontWeight: 700,
+    textTransform: 'none',
+    color: '#FFFFFF',
+    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, #0A7C57 100%)`,
+    boxShadow: '0 18px 35px rgba(14, 159, 110, 0.22)',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    '&:hover': {
+      background: `linear-gradient(135deg, #0B8F64 0%, #0A6F4E 100%)`,
+      boxShadow: '0 20px 42px rgba(14, 159, 110, 0.28)',
+      transform: 'translateY(-1px)',
+    },
+    '&.Mui-disabled': {
+      color: 'rgba(255, 255, 255, 0.88)',
+      background: alpha(theme.palette.primary.main, 0.65),
+    },
+  };
 
   return (
-    <Grid container component="main" sx={{ height: '100vh', overflow: 'hidden' }}>
-      {/* Left Section - Hero Image with Animated Text */}
-      <Grid
-        item
-        xs={false}
-        sm={6}
-        md={7}
+    <Box
+      component="main"
+      sx={{
+        position: 'relative',
+        minHeight: '100svh',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        px: { xs: 2, sm: 3 },
+        py: { xs: 2, sm: 3 },
+        background: `
+          radial-gradient(circle at top left, ${alpha(theme.palette.primary.main, 0.12)} 0, transparent 30%),
+          radial-gradient(circle at 85% 15%, rgba(15, 23, 42, 0.05) 0, transparent 16%),
+          linear-gradient(180deg, #F5FBF8 0%, #EDF7F2 100%)
+        `,
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        '&::-webkit-scrollbar': {
+          width: 0,
+          height: 0,
+          display: 'none',
+        },
+      }}
+    >
+      <Paper
+        elevation={0}
         sx={{
-          position: 'relative',
-          display: { xs: 'none', sm: 'flex' },
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'primary.main',
-          overflow: 'hidden'
+          width: '100%',
+          maxWidth: 1060,
+          overflow: 'hidden',
+          borderRadius: { xs: 4, md: 6 },
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+          boxShadow: '0 24px 70px rgba(15, 23, 42, 0.1)',
+          backgroundColor: '#FFFFFF',
         }}
       >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'linear-gradient(135deg, #1976d2 0%, #0d47a1 100%)',
-            zIndex: 1
-          }}
-        />
-        
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            zIndex: 2
-          }}
-        >
-          <img
-            src="/images/biometric-technology-concept-illustration_114360-8724.avif"
-            alt="Biometric Technology"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: 0.15
+        <Grid container sx={{ minHeight: { md: 560 } }}>
+          <Grid
+            item
+            xs={12}
+            md={5}
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              position: 'relative',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              p: 5,
+              color: '#FFFFFF',
+              background: 'linear-gradient(160deg, #0E9F6E 0%, #0B8F64 46%, #09614A 100%)',
             }}
-          />
-        </motion.div>
-        
-        <Box
-          sx={{
-            position: 'relative',
-            zIndex: 3,
-            textAlign: 'center',
-            px: 4,
-            color: 'common.white'
-          }}
-        >
-          <motion.div
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8 }}
           >
-            <FingerprintIcon sx={{ fontSize: 80, mb: 2 }} />
-          </motion.div>
-          
-          <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <Typography variant="h3" sx={{ fontWeight: 700, mb: 3 }}>
-              Biometric Attendance
-            </Typography>
-          </motion.div>
-          
-          <Box sx={{ height: 80, position: 'relative' }}>
-            {heroTexts.map((text, index) => (
-              <motion.div
-                key={text}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ 
-                  opacity: index === activeText ? 1 : 0,
-                  y: index === activeText ? 0 : 20
-                }}
-                transition={{ duration: 0.5 }}
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  left: 0
-                }}
-              >
-                <Typography variant="h5" sx={{ fontWeight: 400 }}>
-                  {text}
-                </Typography>
-              </motion.div>
-            ))}
-          </Box>
-        </Box>
-      </Grid>
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                pointerEvents: 'none',
+                background:
+                  'radial-gradient(circle at 18% 20%, rgba(255,255,255,0.12) 0, transparent 22%), radial-gradient(circle at 88% 18%, rgba(255,255,255,0.08) 0, transparent 18%), radial-gradient(circle at 72% 76%, rgba(255,255,255,0.08) 0, transparent 22%)',
+              }}
+            />
 
-      {/* Right Section - Login Form */}
-      <Grid
-        item
-        xs={12}
-        sm={6}
-        md={5}
-        component={Paper}
-        elevation={6}
-        square
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: (theme) => theme.palette.grey[50]
-        }}
-      >
-        {!token?.multifactorauth ? (
-          <Zoom in={true} style={{ transitionDelay: '300ms' }}>
-            <Box
-              sx={{
-                my: 8,
-                mx: 4,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                width: '100%',
-                maxWidth: 400
-              }}
-            >
-              <Avatar 
-                sx={{ 
-                  m: 1, 
-                  bgcolor: 'primary.main',
-                  width: 56,
-                  height: 56
-                }}
-              >
-                <LockOutlinedIcon fontSize="medium" />
-              </Avatar>
-              
-              <Typography 
-                component="h1" 
-                variant="h4" 
-                sx={{ 
-                  mb: 3, 
-                  fontWeight: 700,
-                  color: (theme) => theme.palette.primary.main
-                }}
-              >
-                Welcome Back
-              </Typography>
-              
-              <Box 
-                component="form" 
-                onSubmit={handleLogin} 
-                sx={{ 
-                  width: '100%',
-                  mt: 3
-                }}
-              >
-                <Fade in={true} style={{ transitionDelay: '400ms' }}>
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    id="email"
-                    label="Email Address"
-                    name="email"
-                    autoComplete="email"
-                    autoFocus
-                    variant="outlined"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2
-                      }
-                    }}
-                  />
-                </Fade>
-                
-                <Fade in={true} style={{ transitionDelay: '500ms' }}>
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    name="password"
-                    label="Password"
-                    type="password"
-                    id="password"
-                    variant="outlined"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2
-                      }
-                    }}
-                  />
-                </Fade>
-                
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  sx={{ 
-                    mt: 3, 
-                    mb: 2, 
-                    py: 1.5,
-                    borderRadius: 2,
-                    fontSize: '1rem',
-                    textTransform: 'none',
-                    boxShadow: 'none',
-                    '&:hover': {
-                      boxShadow: 'none'
-                    }
-                  }}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} />
-                      Signing In...
-                    </>
-                  ) : 'Sign In'}
-                </Button>
-              </Box>
-            </Box>
-          </Zoom>
-        ) : (
-          <Zoom in={true} style={{ transitionDelay: '300ms' }}>
-            <Box
-              sx={{
-                my: 8,
-                mx: 4,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                width: '100%',
-                maxWidth: 500
-              }}
-            >
-              <Avatar 
-                sx={{ 
-                  m: 1, 
-                  bgcolor: 'primary.main',
-                  width: 56,
-                  height: 56
-                }}
-              >
-                <LockOutlinedIcon fontSize="medium" />
-              </Avatar>
-              
-              <Typography 
-                component="h1" 
-                variant="h4" 
-                sx={{ 
-                  mb: 3, 
-                  fontWeight: 700,
-                  color: (theme) => theme.palette.primary.main
-                }}
-              >
-                Two-Factor Authentication
-              </Typography>
-              
-              <Typography variant="body1" sx={{ mb: 2, textAlign: 'center' }}>
-                We've sent a 6-digit verification code to your email.
-                Please enter it below to complete your login.
-              </Typography>
-              
-              <Box 
-                component="form" 
-                onSubmit={handleVerifyCode} 
-                sx={{ 
-                  width: '100%',
-                  mt: 3
-                }}
-              >
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  id="verificationCode"
-                  label="Verification Code"
-                  name="verificationCode"
-                  variant="outlined"
-                  autoFocus
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  inputProps={{
-                    maxLength: 6,
-                    inputMode: 'numeric',
-                    pattern: '[0-9]*'
-                  }}
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Avatar
                   sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2
-                    }
+                    width: 56,
+                    height: 56,
+                    bgcolor: alpha(theme.palette.common.white, 0.14),
+                    color: '#FFFFFF',
+                    boxShadow: '0 18px 30px rgba(0, 0, 0, 0.1)',
                   }}
-                />
-                
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  sx={{ 
-                    mt: 3, 
-                    mb: 2, 
-                    py: 1.5,
-                    borderRadius: 2,
-                    fontSize: '1rem',
-                    textTransform: 'none',
-                    boxShadow: 'none',
-                    '&:hover': {
-                      boxShadow: 'none'
-                    }
-                  }}
-                  disabled={twoFactorLoading}
                 >
-                  {twoFactorLoading ? (
-                    <>
-                      <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} />
-                      Verifying...
-                    </>
-                  ) : 'Verify Code'}
-                </Button>
-
-
-                
-                <Box sx={{ textAlign: 'center', mt: 2 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Didn't receive a code?{' '}
-                    <Link 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        dispatch(loginUser({ email, password }));
-                      }}
-                      sx={{ cursor: 'pointer' }}
-                    >
-                      Resend Code
-                    </Link>
+                  <FingerprintIcon />
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="overline"
+                    sx={{
+                      display: 'block',
+                      color: alpha(theme.palette.common.white, 0.8),
+                      letterSpacing: '0.2em',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    Secure Portal
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 800,
+                      letterSpacing: '-0.04em',
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    Biometric Attendance
                   </Typography>
                 </Box>
               </Box>
-            </Box>
-          </Zoom>
-        )}
-      </Grid>
 
-      {/* Error Snackbar */}
+              <Typography
+                sx={{
+                  mt: 2.5,
+                  maxWidth: 330,
+                  color: alpha(theme.palette.common.white, 0.9),
+                  fontSize: '1rem',
+                  lineHeight: 1.75,
+                }}
+              >
+                Fast, secure sign in for attendance and workforce access.
+              </Typography>
+            </Box>
+
+            <Stack spacing={1.2} sx={{ position: 'relative', zIndex: 1 }}>
+              {heroFeatures.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <Box
+                    key={feature.title}
+                    sx={{
+                      display: 'flex',
+                      gap: 1.5,
+                      p: 1.5,
+                      borderRadius: 3,
+                      backgroundColor: alpha(theme.palette.common.white, 0.09),
+                      border: `1px solid ${alpha(theme.palette.common.white, 0.12)}`,
+                      backdropFilter: 'blur(10px)',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 2.25,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: alpha(theme.palette.common.white, 0.12),
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon sx={{ fontSize: 20, color: '#FFFFFF' }} />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.98rem' }}>
+                        {feature.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: alpha(theme.palette.common.white, 0.82), lineHeight: 1.5 }}
+                      >
+                        {feature.description}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Stack>
+          </Grid>
+
+          <Grid
+            item
+            xs={12}
+            md={7}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              px: { xs: 2.5, sm: 4, md: 6 },
+              py: { xs: 3.5, sm: 4.5, md: 5 },
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #FBFCFB 100%)',
+            }}
+          >
+            <Box sx={{ width: '100%', maxWidth: 460 }}>
+              <Box
+                sx={{
+                  display: { xs: 'flex', md: 'none' },
+                  alignItems: 'center',
+                  gap: 1.5,
+                  mb: 3,
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                    color: theme.palette.primary.main,
+                  }}
+                >
+                  <FingerprintIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
+                    Biometric Attendance
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Secure portal sign in
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 3 }}>
+                <Box>
+                  <Typography
+                    component="h1"
+                    variant="h4"
+                    sx={{
+                      fontWeight: 800,
+                      letterSpacing: '-0.04em',
+                    }}
+                  >
+                    {isTwoFactorStep ? 'Verify Code' : 'Welcome Back'}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      mt: 1,
+                      color: 'text.secondary',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {isTwoFactorStep
+                      ? 'Enter the 6-digit code sent to your email.'
+                      : 'Sign in to continue.'}
+                  </Typography>
+                </Box>
+
+                <Avatar
+                  sx={{
+                    width: 50,
+                    height: 50,
+                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                    color: theme.palette.primary.main,
+                  }}
+                >
+                  <LockOutlinedIcon />
+                </Avatar>
+              </Box>
+
+              <Box component="form" onSubmit={isTwoFactorStep ? handleVerifyCode : handleLogin}>
+                <Stack spacing={2}>
+                  {!isTwoFactorStep ? (
+                    <>
+                      <TextField
+                        required
+                        fullWidth
+                        id="email"
+                        label="Email Address"
+                        name="email"
+                        autoComplete="email"
+                        autoFocus
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        sx={fieldSx}
+                      />
+
+                      <TextField
+                        required
+                        fullWidth
+                        name="password"
+                        label="Password"
+                        type="password"
+                        id="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        sx={fieldSx}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <TextField
+                        required
+                        fullWidth
+                        id="verificationCode"
+                        label="Verification Code"
+                        name="verificationCode"
+                        autoFocus
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        inputProps={{
+                          maxLength: 6,
+                          inputMode: 'numeric',
+                          pattern: '[0-9]*',
+                          autoComplete: 'one-time-code',
+                        }}
+                        sx={codeFieldSx}
+                      />
+
+                      <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+                        Check your email and enter the code to continue.
+                      </Typography>
+                    </>
+                  )}
+
+                  <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    endIcon={
+                      !loading && !twoFactorLoading ? <ArrowForwardRoundedIcon sx={{ fontSize: 18 }} /> : undefined
+                    }
+                    sx={buttonSx}
+                    disabled={loading || twoFactorLoading}
+                  >
+                    {loading || twoFactorLoading ? (
+                      <>
+                        <CircularProgress size={22} color="inherit" sx={{ mr: 1 }} />
+                        {isTwoFactorStep ? 'Verifying...' : 'Signing In...'}
+                      </>
+                    ) : isTwoFactorStep ? (
+                      'Verify Code'
+                    ) : (
+                      'Sign In'
+                    )}
+                  </Button>
+
+                  {isTwoFactorStep && (
+                    <Button
+                      type="button"
+                      variant="text"
+                      onClick={handleResendCode}
+                      disabled={loading || twoFactorLoading}
+                      sx={{
+                        alignSelf: 'center',
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        color: theme.palette.primary.main,
+                        '&:hover': {
+                          backgroundColor: alpha(theme.palette.primary.main, 0.06),
+                        },
+                      }}
+                    >
+                      Resend code
+                    </Button>
+                  )}
+                </Stack>
+              </Box>
+
+              <Typography
+                variant="caption"
+                sx={{
+                  mt: 2.25,
+                  display: 'block',
+                  color: 'text.secondary',
+                }}
+              >
+                Authorized access only.
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
+        <Alert
+          onClose={handleCloseSnackbar}
           severity="error"
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ width: '100%', borderRadius: 2 }}
         >
-          {errorlogin || twoFactorError}
+          {snackbarMessage}
         </Alert>
       </Snackbar>
-    </Grid>
+    </Box>
   );
 }

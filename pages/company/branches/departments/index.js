@@ -115,6 +115,7 @@ const DepartmentlistPage = () => {
     name: '',
     dept_code: '',
     branchId: '',
+    company_id: '',
     otherDetails: ''
   });
 
@@ -255,7 +256,7 @@ const DepartmentlistPage = () => {
   useEffect(() => {
     if (selectedBranch) {
       fetchDepartments();
-      setNewDepartment(prev => ({ ...prev, branchId: selectedBranch }));
+      setNewDepartment(prev => ({ ...prev, branchId: selectedBranch, company_id: selectedCompany || prev.company_id || '' }));
     }
   }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, filters, deletepopup.editDepartmentData]);
 
@@ -421,12 +422,25 @@ const handleSelect = (event, id) => {
   const handleAddDepartment = async (values) => {
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/department`, values, {
-        headers: { Authorization: token }
+      const authHeader = token?.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      const payload = {
+        ...values,
+        branchId: values.branchId || selectedBranch || '',
+        company_id: values.company_id || selectedCompany || '',
+      };
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/department`, payload, {
+        headers: { Authorization: authHeader }
       });
       
       setOpenSnackbar({status: true, message: 'Department added successfully'});
       setAddModalOpen(false);
+      setNewDepartment({
+        name: '',
+        dept_code: '',
+        branchId: selectedBranch || '',
+        company_id: selectedCompany || '',
+        otherDetails: ''
+      });
       fetchDepartments();
     } catch (error) {
       console.error('Error adding department:', error);
@@ -482,10 +496,11 @@ const handleSelect = (event, id) => {
           setdeptCodeError("")
            return 
         }
-        try {
-          let token = localStorage.getItem("biometric_token");
-          const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/department/checkandverifyfields`, { field:"dept_code", dept_code: value }, {
-            headers: { Authorization: token }
+      try {
+        let token = localStorage.getItem("biometric_token");
+        const authHeader = token?.startsWith("Bearer ") ? token : `Bearer ${token}`;
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/department/checkandverifyfields`, { field:"dept_code", dept_code: value }, {
+            headers: { Authorization: authHeader }
           });
           if(field=="dept_code"){
           setdeptCodeError(response.data.message ? 'dept code already exists' : '');
@@ -497,6 +512,18 @@ const handleSelect = (event, id) => {
           console.error('Error checking company ID:', error);
         }
       }, 1000);
+
+  const openAddDepartmentModal = () => {
+    setdeptCodeError("");
+    setNewDepartment({
+      name: '',
+      dept_code: '',
+      branchId: selectedBranch || '',
+      company_id: selectedCompany || '',
+      otherDetails: ''
+    });
+    setAddModalOpen(true);
+  };
   return (
     <>
  <Layout>
@@ -570,6 +597,25 @@ const handleSelect = (event, id) => {
 
 
               <Box display="flex" alignItems="center" gap={1}>
+                {selectedBranch && (
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={openAddDepartmentModal}
+                    sx={{
+                      textTransform: 'none',
+                      boxShadow: 'none',
+                      backgroundColor: '#0E9F6E',
+                      '&:hover': {
+                        backgroundColor: '#0b7d57',
+                        boxShadow: 'none',
+                      },
+                    }}
+                  >
+                    Add Department
+                  </Button>
+                )}
+
                 {showDelete && (
                   <Tooltip title={`Delete selected (${selected.length})`}>
                     <IconButton
@@ -1208,6 +1254,7 @@ const handleSelect = (event, id) => {
               initialValues={newDepartment}
               validationSchema={validationSchema}
               onSubmit={handleAddDepartment}
+              enableReinitialize
             >
               {({ values, errors, touched, handleChange }) => (
                 <Form>
@@ -1215,6 +1262,18 @@ const handleSelect = (event, id) => {
                     <Grid item xs={12}>
                       <Typography variant="h6" gutterBottom>Department Information</Typography>
                       <Divider />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Branch"
+                        value={branches.find((branch) => branch._id === selectedBranch)?.name || ''}
+                        variant="outlined"
+                        InputProps={{
+                          readOnly: true,
+                        }}
+                      />
                     </Grid>
                     
                     <Grid item xs={12} md={6}>
@@ -1294,7 +1353,7 @@ const handleSelect = (event, id) => {
             <Fab 
               color="primary" 
               aria-label="add"
-              onClick={() => setAddModalOpen(true)}
+              onClick={openAddDepartmentModal}
               sx={{
                 backgroundColor: 'primary.main',
                 color: 'white',

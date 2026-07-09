@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -316,6 +316,7 @@ const handleSelect = (event, id) => {
   const handleConfirmDelete = (id) => {
     dispatch(confirnDeleteAction("sure"));
     sessionStorage.setItem("deleteIds", JSON.stringify(id));
+    handleMenuClose();
   };
 
   // Handle delete
@@ -323,17 +324,18 @@ const handleSelect = (event, id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("biometric_token");
+      const authHeader = token?.startsWith("Bearer ") ? token : `Bearer ${token}`;
      if(Array.isArray(id)){
       
          var data = { companyIds: id, action_type: "delete" };
       var deleteresponse = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/company/delete-bulk`,data, {
-        headers: { Authorization: token }
+        headers: { Authorization: authHeader }
       });
      }
      else{
   //  var data = { companyIds: Array.isArray(id) ? id : [id], action_type: "delete" };
-      var deleteresponse = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/company/`+id, {id}, {
-        headers: { Authorization: token }
+      var deleteresponse = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/company/`+id, {
+        headers: { Authorization: authHeader }
       });
      }
       if(deleteresponse?.data.detail) {
@@ -382,8 +384,8 @@ const handleSelect = (event, id) => {
 
   const handleEditSubmit = async (values) => {
     try {
-      values={...values,id:values._id}
-      dispatch(editCompanyAction(values));
+      const payload = { ...values, id: values._id };
+      await dispatch(editCompanyAction(payload)).unwrap();
       setEditModalOpen(false);
     } catch (error) {
       console.error('Error updating company:', error);
@@ -450,8 +452,6 @@ const handleSelect = (event, id) => {
   };
 
 
-  // add company
-let [addModalOpen,setAddModalOpen]=useState(false)
 const industries = [
   { label: 'Information Technology', value: 'Information Technology' },
   { label: 'Finance', value: 'Finance' },
@@ -462,6 +462,7 @@ const industries = [
   { label: 'Other', value: 'Other' }
 ];
 const handleManageBranches=(id)=>{
+handleMenuClose();
 router.push({
   pathname: '/company/branches',
   query: { id: id }
@@ -518,6 +519,23 @@ const checkCompanyIdExists = debounce(async (value,field) => {
               </Typography>
               
               <Box display="flex" alignItems="center" gap={1}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => router.push('/company/addcompany')}
+                  sx={{
+                    textTransform: 'none',
+                    boxShadow: 'none',
+                    backgroundColor: '#0E9F6E',
+                    '&:hover': {
+                      backgroundColor: '#0b7d57',
+                      boxShadow: 'none',
+                    },
+                  }}
+                >
+                  Add Company
+                </Button>
+
                 {showDelete && (
                   <Tooltip title={`Delete selected (${selected.length})`}>
                     <IconButton
@@ -686,11 +704,11 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                     </TableRow>
                   ) : ( companies.length &&
                     companies.map((company, index) => {
-                      const isSelected = selected.indexOf(company.id) !== -1;
+                      const isSelected = selected.indexOf(company._id) !== -1;
                       return (
                         <>  
                           <TableRow
-                            key={company.id}
+                            key={company._id}
                             hover
                             selected={isSelected}
                             sx={{
@@ -726,7 +744,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                                 <ViewIcon />
                               </IconButton>
                             </TableCell>
-                              {(allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? 
+                              {(allpermission?.length && rolepermission?.permission?.includes(allpermission?.[1]?._id)) ? 
                             <TableCell>
                             
   <Button 
@@ -755,7 +773,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                                 id="long-menu"
                                 anchorEl={anchorEl}
                                 keepMounted
-                                open={openMenu}
+                                open={openMenu && selectedCompany?._id === company._id}
                                 onClose={handleMenuClose}
                                 PaperProps={{
                                   style: {
@@ -765,11 +783,11 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                                   elevation: 0,
                                 }}
                               >
-                                {(allpermission.length && rolepermission?.sub_permission?.includes(allpermission[0]?.subPermissions[2]?._id)) ? 
-
-                                <MenuItem onClick={handleEdit}>Edit</MenuItem> :""}
-                                {(allpermission.length && rolepermission?.sub_permission?.includes(allpermission[0]?.subPermissions[1]?._id)) ? 
-                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem> :""}
+                                <MenuItem onClick={() => handleManageBranches(company._id)}>
+                                  Manage Branches
+                                </MenuItem>
+                                <MenuItem onClick={handleEdit}>Edit</MenuItem>
+                                <MenuItem onClick={() => handleConfirmDelete(selectedCompany?._id)}>Delete</MenuItem>
                               </Menu>
                             </TableCell>
                           </TableRow>
@@ -954,8 +972,225 @@ const checkCompanyIdExists = debounce(async (value,field) => {
           onClose={() => setViewModalOpen(false)}
         />
 
+        {/* Edit Company Modal */}
+        <Modal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          aria-labelledby="edit-company-modal"
+          aria-describedby="edit-company-form"
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '80%',
+              maxWidth: 900,
+              bgcolor: 'background.paper',
+              p: 4,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              borderRadius: 2,
+              '&::-webkit-scrollbar': {
+                width: '6px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: '#f1f1f1',
+                borderRadius: '10px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: '#888',
+                borderRadius: '10px',
+                '&:hover': {
+                  background: '#555',
+                },
+              },
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#888 #f1f1f1',
+            }}
+          >
+            <Typography variant="h5" gutterBottom>Edit Company</Typography>
+            <Divider sx={{ mb: 3 }} />
+
+            <Formik
+              initialValues={initialValues}
+              validationSchema={validationSchema}
+              onSubmit={handleEditSubmit}
+              enableReinitialize
+            >
+              {({ values, errors, touched, handleChange }) => (
+                <Form>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Company Id*"
+                        name="companyId"
+                        value={values.companyId}
+                        onChange={(e) => {
+                          handleChange(e);
+                          if (editcheckfield.companyId !== e.target.value) {
+                            checkCompanyIdExists(e.target.value, 'companyId');
+                          }
+                        }}
+                        error={(touched.companyId && Boolean(errors.companyId)) || Boolean(companyIdError)}
+                        helperText={(touched.companyId && errors.companyId) || companyIdError}
+                        variant="outlined"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Company Name*"
+                        name="name"
+                        value={values.name}
+                        onChange={handleChange}
+                        error={touched.name && Boolean(errors.name)}
+                        helperText={touched.name && errors.name}
+                        variant="outlined"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Owner*"
+                        name="owner"
+                        value={values.owner}
+                        onChange={handleChange}
+                        error={touched.owner && Boolean(errors.owner)}
+                        helperText={touched.owner && errors.owner}
+                        variant="outlined"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Mailing Address*"
+                        name="mailingAddress"
+                        value={values.mailingAddress}
+                        onChange={handleChange}
+                        error={touched.mailingAddress && Boolean(errors.mailingAddress)}
+                        helperText={touched.mailingAddress && errors.mailingAddress}
+                        variant="outlined"
+                        multiline
+                        rows={3}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Email*"
+                        name="email"
+                        value={values.email}
+                        onChange={(e) => {
+                          handleChange(e);
+                          if (editcheckfield.email !== e.target.value) {
+                            checkCompanyIdExists(e.target.value, 'company_email');
+                          }
+                        }}
+                        error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
+                        helperText={(touched.email && errors.email) || emailError}
+                        variant="outlined"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Phone Number*"
+                        name="phoneNumber"
+                        value={values.phoneNumber}
+                        onChange={handleChange}
+                        error={touched.phoneNumber && Boolean(errors.phoneNumber)}
+                        helperText={touched.phoneNumber && errors.phoneNumber}
+                        variant="outlined"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Nominal Capital*"
+                        name="nominalCapital"
+                        value={values.nominalCapital || ''}
+                        onChange={handleChange}
+                        error={touched.nominalCapital && Boolean(errors.nominalCapital)}
+                        helperText={touched.nominalCapital && errors.nominalCapital}
+                        variant="outlined"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Industry*"
+                        name="industry"
+                        value={values.industry || ''}
+                        onChange={handleChange}
+                        error={touched.industry && Boolean(errors.industry)}
+                        helperText={touched.industry && errors.industry}
+                        variant="outlined"
+                      >
+                        {industries.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Website"
+                        name="website"
+                        value={values.website || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Company Description"
+                        name="companyDescription"
+                        value={values.companyDescription || ''}
+                        onChange={handleChange}
+                        variant="outlined"
+                        multiline
+                        rows={4}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Button
+                        fullWidth
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        size="large"
+                        sx={{ mt: 3, textTransform: 'none' }}
+                      >
+                        UPDATE COMPANY
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Form>
+              )}
+            </Formik>
+          </Box>
+        </Modal>
+
         {/* Success Snackbar */}
         <SuccessSnackbar open={open} handleClose={handleClose} />
+        <MyComponent />
         
         {/* Delete Confirmation Popup */}
 

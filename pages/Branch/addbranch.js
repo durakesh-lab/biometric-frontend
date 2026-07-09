@@ -88,9 +88,14 @@ const EmployeeForm = () => {
   };
   const dispatch = useDispatch();
   const handleSubmit = async (values) => {
-
-    setLoading(true)
-    dispatch(createbranch({ obj: values }));
+    setLoading(true);
+    try {
+      await dispatch(createbranch({ obj: values })).unwrap();
+    } catch (error) {
+      console.error('Error creating branch:', error);
+    } finally {
+      setLoading(false);
+    }
   };
   
   const [positionsLoading, setPositionsLoading] = useState(true);

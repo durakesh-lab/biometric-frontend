@@ -1,16 +1,28 @@
 import axios from "axios";
 
+const getAuthHeader = () => {
+    if (typeof window === "undefined") {
+        return "";
+    }
+
+    const token = localStorage.getItem("biometric_token");
+    if (!token) {
+        return "";
+    }
+
+    return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+};
 
 export const PostApi = async (api, token, data,type) => {
-    token=localStorage.getItem("biometric_token")
+    const authHeader = getAuthHeader();
     try {
         let requestOptions = {
             method: 'POST',
             body: data,
             headers:type ?  {
-                "Authorization": `${token}`,
+                "Authorization": authHeader,
             } :{
-                "Authorization": `Bearer ${token}`,
+                "Authorization": authHeader,
                 'Content-Type':'application/json'
             },
             redirect: 'follow'
@@ -26,9 +38,9 @@ export const PostApi = async (api, token, data,type) => {
 }
 
 export const GetApi = async (api, derivedtoken) => {
-     token=localStorage.getItem("biometric_token")
+     const authHeader = getAuthHeader();
     try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}${api}`, { headers: { "Authorization": `${token}`} })
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}${api}`, { headers: { "Authorization": authHeader } })
         return res.data
     }
     catch (err) {
