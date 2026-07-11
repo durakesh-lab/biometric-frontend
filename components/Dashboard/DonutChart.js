@@ -115,10 +115,12 @@ export default function DonutChart() {
         backgroundColor: "#fff",
         p: 2,
         width: "100%",
-        maxWidth: { xs: '100%', sm: 250 },
+        maxWidth: "100%",
         display: "flex",
         flexDirection: "column",
-        height: { xs: 'auto', sm: "320px" }
+        height: "auto",
+        minHeight: 320,
+        boxSizing: "border-box"
       }}
     >
       {/* Top Title */}

@@ -80,7 +80,7 @@ if (loading) {
           </Box>
       <Box sx={{ mb: 2 }}>
         {/* TOP ROW: Greeting Card, Quick Stats, Donut Chart */}
-        <Grid container spacing={2}>
+        <Grid container spacing={2} alignItems="flex-start">
           {/* Greeting Card (left) */}
           <Grid item xs={12} md={3}>
     <DashboardHeader userdata={userdata} />
@@ -88,7 +88,7 @@ if (loading) {
 
           {/* Quick Stats (middle) */}
           <Grid item xs={12} md={6} lg={6}>
-            <Grid container spacing={2} sx={{ height: "100%" }}>
+            <Grid container spacing={2} sx={{ height: "100%", width: "100%" }}>
             <Grid item xs={4}>
   <Paper
     elevation={0}
@@ -115,8 +115,6 @@ if (loading) {
     elevation={0}
     sx={{
       p: 1,
-      color:"color",
-      margin: '0px 12px' ,
       height: "50px",
       display: "flex",
       flexDirection: "column",
@@ -177,27 +175,27 @@ if (loading) {
 
 
         {/* BOTTOM ROW: Employee Status, Events, Birthdays */}
-        <Grid container spacing={2} sx={{ mt: 2 }}>
+        <Grid container spacing={2} sx={{ mt: 2 }} alignItems="stretch">
   {/* Employee Status (left) - takes full width on mobile, 6/12 on desktop */}
-  <Grid item xs={12} md={6}>
-    <Paper elevation={0} sx={{ p: 2, height: '60%' }}>
+  <Grid item xs={12} md={6} sx={{ display: "flex" }}>
+    <Paper elevation={0} sx={{ p: 2, height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <EmployeeStatusTable />
     </Paper>
   </Grid>
 
   {/* Right column - Events and Birthdays */}
-  <Grid item xs={12} md={6}>
-    <Grid container spacing={2}>
+  <Grid item xs={12} md={6} sx={{ display: "flex" }}>
+    <Grid container spacing={2} alignItems="stretch" sx={{ width: '100%' }}>
       {/* Events and Meetings - top right */}
-      <Grid item xs={12} md={6}>
-        <Paper elevation={0} sx={{ p: 2, height: '100%' }}>
+      <Grid item xs={12} md={6} sx={{ display: "flex" }}>
+        <Paper elevation={0} sx={{ p: 2, height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
           <EventsAndMeetings />
         </Paper>
       </Grid>
       
       {/* Birthdays - bottom right */}
-      <Grid item xs={12} md={6}>
-        <Paper elevation={0} sx={{ p: 2, height: '100%' }}>
+      <Grid item xs={12} md={6} sx={{ display: "flex" }}>
+        <Paper elevation={0} sx={{ p: 2, height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
           <Birthdays />
         </Paper>
       </Grid>

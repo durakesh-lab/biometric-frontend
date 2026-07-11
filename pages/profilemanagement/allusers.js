@@ -26,13 +26,14 @@ import {
   Typography,
   Tooltip,
   Divider,
+  Collapse,
   Modal,
   CircularProgress,
   Snackbar,
   Alert,
   Fab,
   DialogContentText,
-  Breadcrumbs
+  Chip
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -53,7 +54,8 @@ import {
   Group as GroupIcon,
   Edit as EditIcon,
   Lock as LockIcon,
-  LockOpen as LockOpenIcon
+  LockOpen as LockOpenIcon,
+  TableView as TableViewIcon
 } from '@mui/icons-material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -93,6 +95,10 @@ const StaffListPage = () => {
   // State for departments
   const [departments, setDepartments] = useState([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [filterBranches, setFilterBranches] = useState([]);
+  const [loadingFilterBranches, setLoadingFilterBranches] = useState(false);
+  const [filterDepartments, setFilterDepartments] = useState([]);
+  const [loadingFilterDepartments, setLoadingFilterDepartments] = useState(false);
 
   // State for table data and UI
   const [staff, setStaff] = useState([]);
@@ -116,8 +122,8 @@ const StaffListPage = () => {
 
   // Sorting state
   const [sorting, setSorting] = useState({
-    field: 'id',
-    direction: 'desc'
+    field: 'firstName',
+    direction: 'asc'
   });
 
   // Search state
@@ -126,6 +132,7 @@ const StaffListPage = () => {
   // Filter modal state
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
+    company: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -136,8 +143,9 @@ const StaffListPage = () => {
     ordering: ""
   });
 
-  // All branches (for the Directory's Branch filter dropdown)
-  const [allBranches, setAllBranches] = useState([]);
+  // Directory view mode
+  const [viewMode, setViewMode] = useState('table');
+  const [treeExpanded, setTreeExpanded] = useState({});
 
   // Add staff modal state
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -198,10 +206,95 @@ const StaffListPage = () => {
     { id: 'email', label: 'Email', sortable: true },
     { id: 'deviceUserId', label: 'Device ID', sortable: false },
     { id: 'active_status', label: 'Status', sortable: true },
-    { id: 'branch', label: 'Branch', sortable: false },
-    { id: 'department', label: 'Department', sortable: false },
+    { id: 'branch_name', label: 'Branch', sortable: true },
+    { id: 'dept_name', label: 'Department', sortable: true },
     { id: 'actions', label: 'Actions', sortable: false }
   ];
+
+  const sortOptions = [
+    { label: 'First Name', value: 'firstName' },
+    { label: 'Last Name', value: 'lastName' },
+    { label: 'Email', value: 'email' },
+    { label: 'Status', value: 'active_status' },
+    { label: 'Branch', value: 'branch_name' },
+    { label: 'Department', value: 'dept_name' },
+  ];
+
+  const treeData = useMemo(() => {
+    const companyMap = new Map();
+
+    staff.forEach((employee) => {
+      const companyKey = employee.companyId || employee.company_Id || 'unassigned-company';
+      const branchKey = employee.branchId || employee.branch_name || 'unassigned-branch';
+      const deptKey = employee.dept_id || employee.deptId || employee.dept_name || 'unassigned-dept';
+
+      const companyName = employee.company_name || 'Unassigned Company';
+      const branchName = employee.branch_name || 'Unassigned Branch';
+      const deptName = employee.dept_name || 'Unassigned Department';
+
+      if (!companyMap.has(companyKey)) {
+        companyMap.set(companyKey, {
+          key: companyKey,
+          name: companyName,
+          count: 0,
+          branches: new Map(),
+        });
+      }
+
+      const companyNode = companyMap.get(companyKey);
+      companyNode.count += 1;
+      if (companyName && companyNode.name === 'Unassigned Company') {
+        companyNode.name = companyName;
+      }
+
+      if (!companyNode.branches.has(branchKey)) {
+        companyNode.branches.set(branchKey, {
+          key: branchKey,
+          name: branchName,
+          count: 0,
+          departments: new Map(),
+        });
+      }
+
+      const branchNode = companyNode.branches.get(branchKey);
+      branchNode.count += 1;
+      if (branchName && branchNode.name === 'Unassigned Branch') {
+        branchNode.name = branchName;
+      }
+
+      if (!branchNode.departments.has(deptKey)) {
+        branchNode.departments.set(deptKey, {
+          key: deptKey,
+          name: deptName,
+          count: 0,
+          employees: [],
+        });
+      }
+
+      const deptNode = branchNode.departments.get(deptKey);
+      deptNode.count += 1;
+      if (deptName && deptNode.name === 'Unassigned Department') {
+        deptNode.name = deptName;
+      }
+      deptNode.employees.push(employee);
+    });
+
+    return Array.from(companyMap.values()).map((company) => ({
+      ...company,
+      branches: Array.from(company.branches.values()).map((branch) => ({
+        ...branch,
+        departments: Array.from(branch.departments.values()),
+      })),
+    }));
+  }, [staff]);
+
+  const isTreeNodeExpanded = (key) => treeExpanded[key] ?? true;
+  const toggleTreeNode = (key) => {
+    setTreeExpanded((prev) => ({
+      ...prev,
+      [key]: !(prev[key] ?? true),
+    }));
+  };
 
   // Fetch companies data
   const fetchCompanies = async () => {
@@ -215,7 +308,7 @@ const StaffListPage = () => {
         }
       );
       
-      setCompanies(response.data?.data);
+      setCompanies(response.data?.data || []);
       setLoadingCompanies(false);
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -223,18 +316,29 @@ const StaffListPage = () => {
     }
   };
 
-  // Fetch ALL branches (across companies) for the Directory's Branch filter.
-  const fetchAllBranches = async () => {
+  const fetchFilterBranches = async (companyId = '') => {
+    if (!companyId) {
+      setFilterBranches([]);
+      return [];
+    }
+
     try {
+      setLoadingFilterBranches(true);
       let token = localStorage.getItem("biometric_token");
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/branch`, {
-          headers: { Authorization: token }
+        `${process.env.NEXT_PUBLIC_BASE_URL}/company/${companyId}/branches`,
+        {
+          headers: { Authorization: token },
+          params: { page: 1, page_size: 1000 }
         }
       );
-      setAllBranches(response.data?.data || []);
+
+      return Array.isArray(response.data) ? response.data : response.data?.data || [];
     } catch (error) {
-      console.error('Error fetching all branches:', error);
+      console.error('Error fetching filter branches:', error);
+      return [];
+    } finally {
+      setLoadingFilterBranches(false);
     }
   };
 
@@ -252,7 +356,7 @@ const StaffListPage = () => {
         }
       );
       
-      setBranches(response.data?.data);
+      setBranches(Array.isArray(response.data) ? response.data : response.data?.data || []);
       setLoadingBranches(false);
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -262,7 +366,10 @@ const StaffListPage = () => {
 
   // Fetch departments data
   const fetchDepartments = async (branchId) => {
-    if (!branchId) return;
+    if (!branchId) {
+      setDepartments([]);
+      return;
+    }
     
     try {
       setLoadingDepartments(true);
@@ -274,11 +381,38 @@ const StaffListPage = () => {
         }
       );
       
-      setDepartments(response.data?.data);
+      setDepartments(Array.isArray(response.data) ? response.data : response.data?.data || []);
       setLoadingDepartments(false);
     } catch (error) {
       console.error('Error fetching departments:', error);
       setLoadingDepartments(false);
+    }
+  };
+
+  const fetchFilterDepartments = async (branchId = '') => {
+    if (!branchId) {
+      setFilterDepartments([]);
+      return [];
+    }
+
+    try {
+      setLoadingFilterDepartments(true);
+      let token = localStorage.getItem("biometric_token");
+      const endpoint = branchId
+        ? `${process.env.NEXT_PUBLIC_BASE_URL}/department/${branchId}`
+        : `${process.env.NEXT_PUBLIC_BASE_URL}/department`;
+
+      const response = await axios.get(endpoint, {
+        headers: { Authorization: token },
+        params: { page: 1, page_size: 1000 }
+      });
+
+      return Array.isArray(response.data) ? response.data : response.data?.data || [];
+    } catch (error) {
+      console.error('Error fetching filter departments:', error);
+      return [];
+    } finally {
+      setLoadingFilterDepartments(false);
     }
   };
 
@@ -288,19 +422,25 @@ const fetchStaff = async () => {
   // Employee Directory shows EVERY employee — no branch selection required.
   try {
     setLoading(true);
+    const isTreeView = viewMode === 'tree';
 
     // Construct query params - use current pagination state
     const params = {
-      page: pagination.page,
-      page_size: pagination.page_size,
+      page: isTreeView ? 1 : pagination.page,
+      page_size: isTreeView ? 1000 : pagination.page_size,
       search: search,
-      ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field,
-      ...filters
+      firstName: filters.firstName || undefined,
+      lastName: filters.lastName || undefined,
+      email: filters.email || undefined,
+      branch: filters.branch || undefined,
+      department: filters.department || undefined,
+      active_status: filters.active_status || undefined,
+      ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field
     };
 
     // Remove empty filters
     Object.keys(params).forEach(key => {
-      if (params[key] === '' || params[key] === null) {
+      if (params[key] == null || params[key] === '') {
         delete params[key];
       }
     });
@@ -308,19 +448,19 @@ const fetchStaff = async () => {
     let token = localStorage.getItem("biometric_token");
     const response = await axios.post(
       `${process.env.NEXT_PUBLIC_BASE_URL}/employees/list-all`,
-      {},
+      { companyId: filters.company || undefined },
       {
         headers: { Authorization: token },
         params
       }
     );
     
-    setStaff(response.data?.data);
-    setPagination({
-      ...pagination,
-      total_pages: Math.ceil(response.data.count / pagination.page_size),
-      count: response.data.count
-    });
+    setStaff(response.data?.data || []);
+    setPagination((prev) => ({
+      ...prev,
+      total_pages: Math.ceil((response.data?.count || 0) / prev.page_size),
+      count: response.data?.count || 0
+    }));
     setLoading(false);
   } catch (error) {
     console.error('Error fetching staff:', error);
@@ -330,7 +470,6 @@ const fetchStaff = async () => {
 
   useEffect(() => {
     fetchCompanies();
-    fetchAllBranches();
   }, []);
 
   useEffect(() => {
@@ -341,16 +480,44 @@ const fetchStaff = async () => {
     }
   }, [selectedCompany]);
 
+  useEffect(() => {
+    const loadFilterBranches = async () => {
+      if (!filters.company) {
+        setFilterBranches([]);
+        setFilterDepartments([]);
+        return;
+      }
+
+      const branchesList = await fetchFilterBranches(filters.company);
+      setFilterBranches(branchesList || []);
+    };
+
+    loadFilterBranches();
+  }, [filters.company]);
+
+  useEffect(() => {
+    const loadFilterDepartments = async () => {
+      const departmentsList = await fetchFilterDepartments(filters.branch || '');
+      if (departmentsList) {
+        setFilterDepartments(departmentsList);
+      }
+    };
+
+    loadFilterDepartments();
+  }, [filters.branch]);
+
   // Load the full directory on mount + whenever paging / filters / search change.
   useEffect(() => {
     fetchStaff();
-  }, [pagination.page, filters, pagination.page_size, sorting, search, deletepopup?.edituserdata]);
+  }, [pagination.page, filters, pagination.page_size, sorting, search, viewMode, deletepopup?.edituserdata]);
 
   // Keep the department list + add-form branch in sync when a branch is picked in the Add modal.
   useEffect(() => {
     if (selectedBranch) {
       fetchDepartments(selectedBranch);
       setNewStaff(prev => ({ ...prev, branchId: selectedBranch }));
+    } else {
+      setDepartments([]);
     }
   }, [selectedBranch]);
 
@@ -387,6 +554,10 @@ const handleSelect = (event, id) => {
       field: field,
       direction: isAsc ? 'desc' : 'asc'
     });
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
   };
 
   // Handle page change
@@ -401,32 +572,47 @@ const handleSelect = (event, id) => {
 
   // Handle filter change
   const handleFilterChange = (name, value) => {
-    setFilters({
-      ...filters,
-      [name]: value
-    });
+    setFilters(prev => ({
+      ...prev,
+      ...(name === 'company' ? { branch: '', department: '' } : {}),
+      [name]: value,
+      ...(name === 'branch' ? { department: '' } : {})
+    }));
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
   };
 
   // Apply filters
 const applyFilters = () => {
-  setFilterOpen(false);
-  setPagination(prev => ({
-    ...prev,
-    page: 1  // Reset to page 1 when filters change
-  }));
   fetchStaff();
+  setFilterOpen(false);
 };
   // Reset filters
   const resetFilters = () => {
     setFilters({
+      company: '',
       firstName: '',
       lastName: '',
       email: '',
       role: '',
       department: '',
       active_status: '',
+      branch: '',
       ordering: ""
     });
+    setFilterBranches([]);
+    setFilterDepartments([]);
+    setSearch('');
+    setSorting({
+      field: 'firstName',
+      direction: 'asc'
+    });
+    setPagination(prev => ({
+      ...prev,
+      page: 1
+    }));
   };
 
   let [editcheckfield,seteditcheckfield]=useState({})
@@ -777,11 +963,8 @@ const [showPassword, setShowPassword] = useState(false);
           {/* Header Section */}
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
             <Box>
-              <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600, color: 'text.primary' }}>
                 Employee Directory
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                Complete directory of organization employees
               </Typography>
             </Box>
             
@@ -833,6 +1016,66 @@ const [showPassword, setShowPassword] = useState(false);
                 Export
               </Button>
 
+              <Button
+                startIcon={<FilterIcon />}
+                onClick={() => setFilterOpen(true)}
+                variant="outlined"
+                sx={{ 
+                  textTransform: "none", 
+                  borderColor: '#E5E7EB', 
+                  color: '#4B5563', 
+                  borderRadius: '6px',
+                  px: 2,
+                  '&:hover': { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' } 
+                }}
+              >
+                Sort & Filter
+              </Button>
+
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  backgroundColor: '#FFFFFF',
+                }}
+              >
+                <Button
+                  startIcon={<TableViewIcon />}
+                  onClick={() => setViewMode('table')}
+                  sx={{
+                    borderRadius: 0,
+                    textTransform: 'none',
+                    px: 2,
+                    color: viewMode === 'table' ? '#FFFFFF' : '#4B5563',
+                    backgroundColor: viewMode === 'table' ? '#0E9F6E' : '#FFFFFF',
+                    '&:hover': {
+                      backgroundColor: viewMode === 'table' ? '#047857' : '#F9FAFB',
+                    },
+                  }}
+                >
+                  Table View
+                </Button>
+                <Button
+                  startIcon={<BranchIcon />}
+                  onClick={() => setViewMode('tree')}
+                  sx={{
+                    borderRadius: 0,
+                    textTransform: 'none',
+                    px: 2,
+                    borderLeft: '1px solid #E5E7EB',
+                    color: viewMode === 'tree' ? '#FFFFFF' : '#4B5563',
+                    backgroundColor: viewMode === 'tree' ? '#0E9F6E' : '#FFFFFF',
+                    '&:hover': {
+                      backgroundColor: viewMode === 'tree' ? '#047857' : '#F9FAFB',
+                    },
+                  }}
+                >
+                  Tree View
+                </Button>
+              </Box>
+
               {/* <Button
                 startIcon={<DownloadIcon />}
                 onClick={() => setImportModalOpen(true)}
@@ -877,7 +1120,7 @@ const [showPassword, setShowPassword] = useState(false);
                 <TextField
                   variant="outlined"
                   size="small"
-                  placeholder="Search name / email / role..."
+                  placeholder="Search name / email / code..."
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -899,6 +1142,30 @@ const [showPassword, setShowPassword] = useState(false);
                     }
                   }}
                 />
+
+                <FormControl size="small" sx={{ minWidth: 160 }}>
+                  <Select
+                    value={filters.company || ''}
+                    displayEmpty
+                    onChange={(e) => {
+                      handleFilterChange('company', e.target.value);
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                    sx={{
+                      borderRadius: '8px',
+                      color: '#4B5563',
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D1D5DB' },
+                    }}
+                  >
+                    <MenuItem value="">Select Company</MenuItem>
+                    {companies.map((company) => (
+                      <MenuItem key={company._id} value={company._id}>
+                        {company.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
                 <FormControl size="small" sx={{ minWidth: 140 }}>
                   <Select
@@ -936,9 +1203,10 @@ const [showPassword, setShowPassword] = useState(false);
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
                       '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D1D5DB' },
                     }}
+                    disabled={!filters.company || loadingFilterBranches}
                   >
-                    <MenuItem value="">All Branches</MenuItem>
-                    {allBranches.map((b) => (
+                    <MenuItem value="">{filters.company ? 'All Branches' : 'Select Company First'}</MenuItem>
+                    {filterBranches.map((b) => (
                       <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>
                     ))}
                   </Select>
@@ -956,35 +1224,36 @@ const [showPassword, setShowPassword] = useState(false);
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
                       '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#D1D5DB' },
                     }}
-                    disabled={loadingDepartments || !selectedBranch}
+                    disabled={!filters.branch || loadingFilterDepartments}
                   >
-                    <MenuItem value="">All Departments</MenuItem>
-                    {departments.map((dept) => (
+                    <MenuItem value="">{filters.branch ? 'All Departments' : 'Select Branch First'}</MenuItem>
+                    {filterDepartments.map((dept) => (
                       <MenuItem key={dept._id} value={dept._id}>{dept.name}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
               </Box>
 
+              <Box sx={{ display: viewMode === 'table' ? 'block' : 'none' }}>
               <Box sx={{ overflowX: 'auto' }}>
                 <TableContainer
                   elevation={0}
                   sx={{
-                    height: { xs: 600, sm: 400, md: 450 },
-                    maxHeight: '70vh',
+                    height: { xs: 600, sm: 300, md: 350 },
+                    maxHeight: '80vh',
                     overflowY: 'auto',
                   }}
                 >
                   <Table>
                     <TableHead>
-                      <TableRow sx={{ backgroundColor: '#F9FAFB' }}>
+                      <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
                         {columns.map((column) => (
                           <TableCell 
                             key={column.id}
                             sx={{ 
                               position: 'sticky',
                               top: 0,
-                              backgroundColor: '#F9FAFB',
+                              backgroundColor: '#F3F4F6',
                               zIndex: 1,
                               whiteSpace: 'nowrap',
                               textAlign: column.id === 'checkbox' ? 'left' : 'center',
@@ -1053,9 +1322,10 @@ const [showPassword, setShowPassword] = useState(false);
                               key={staffMember._id}
                               hover
                               selected={isSelected}
-                              sx={{
-                                '& > td': {
-                                  padding: '12px 16px',
+                            sx={{
+                              '& > td': {
+                                  padding: '8px 16px',
+                                  height: '40px',
                                 }
                               }}
                             >
@@ -1110,37 +1380,39 @@ const [showPassword, setShowPassword] = useState(false);
                               <TableCell align="center">{staffMember.dept_name || '-'}</TableCell>
                               
                               <TableCell align="center">
-                                <Box display="flex" justifyContent="center" gap={0.5}>
-                                  <Tooltip title="View Details">
-                                    <IconButton 
-                                      size="small"
-                                      sx={{ color: '#9CA3AF', '&:hover': { color: '#4B5563' } }}
-                                      onClick={() => handleViewClick(staffMember)}
-                                    >
-                                      <ViewIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-                                  
-                                  <Tooltip title="Edit Profile">
-                                    <IconButton
-                                      size="small"
-                                      sx={{ color: '#9CA3AF', '&:hover': { color: '#4B5563' } }}
-                                      onClick={() => openEditEmployee(staffMember)}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-
-                                  <Tooltip title="Delete">
-                                    <IconButton 
-                                      size="small"
-                                      sx={{ color: '#EF4444', '&:hover': { color: '#DC2626' } }}
-                                      onClick={() => handleConfirmDelete(staffMember._id)}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-                                </Box>
+                                <IconButton
+                                  aria-label="more"
+                                  aria-controls="long-menu"
+                                  aria-haspopup="true"
+                                  onClick={(e) => handleMenuClick(e, staffMember)}
+                                  sx={{ color: 'text.secondary' }}
+                                >
+                                  <MoreVertIcon />
+                                </IconButton>
+                                <Menu
+                                  id="long-menu"
+                                  anchorEl={anchorEl}
+                                  keepMounted
+                                  open={openMenu && selectedStaff?._id === staffMember._id}
+                                  onClose={handleMenuClose}
+                                  PaperProps={{
+                                    style: {
+                                      width: '20ch',
+                                      boxShadow: 'none',
+                                    },
+                                    elevation: 0,
+                                  }}
+                                >
+                                  <MenuItem onClick={() => { handleMenuClose(); handleViewClick(staffMember); }}>
+                                    View Details
+                                  </MenuItem>
+                                  <MenuItem onClick={() => { handleMenuClose(); openEditEmployee(staffMember); }}>
+                                    Edit Profile
+                                  </MenuItem>
+                                  <MenuItem onClick={() => { handleMenuClose(); handleConfirmDelete(staffMember._id); }}>
+                                    Delete
+                                  </MenuItem>
+                                </Menu>
                               </TableCell>
                             </TableRow>
                           );
@@ -1152,17 +1424,19 @@ const [showPassword, setShowPassword] = useState(false);
               </Box>
 
               {/* Pagination */}
-              <Box display="flex" justifyContent="space-between" alignItems="center" p={2} sx={{ borderTop: '1px solid #E5E7EB', backgroundColor: '#FFFFFF' }}>
-                <Box display="flex" alignItems="center">
-                  <FormControl size="small" sx={{ minWidth: 100 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} sx={{ px: 2, pb: 2 }}>
+                <Box display="flex" justifyContent="flex-start" alignItems="center">
+                  <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <InputLabel>Rows per page</InputLabel>
                     <Select
                       value={pagination.page_size}
+                      label="Rows per page"
                       onChange={handlePageSizeChange}
-                      sx={{ borderRadius: '6px', color: 'text.secondary' }}
+                      sx={{ color: 'text.secondary' }}
                     >
                       {[5, 10, 25, 50, 100].map((size) => (
                         <MenuItem key={size} value={size}>
-                          {size} per page
+                          {size}
                         </MenuItem>
                       ))}
                     </Select>
@@ -1177,22 +1451,24 @@ const [showPassword, setShowPassword] = useState(false);
                       padding: 0,
                       margin: 0,
                       gap: '4px',
+                      alignItems: 'center',
                     },
                     '& .pagination li a': {
                       padding: '6px 12px',
                       border: '1px solid #E5E7EB',
                       borderRadius: '6px',
                       cursor: 'pointer',
-                      fontSize: '13px',
-                      color: '#4B5563',
+                      fontSize: theme.typography.body2.fontSize,
+                      color: theme.palette.text.primary,
                       textDecoration: 'none',
                       display: 'inline-block',
                     },
                     '& .pagination li.selected a': {
-                      backgroundColor: '#0E9F6E',
-                      color: '#FFFFFF',
-                      borderColor: '#0E9F6E',
-                      fontWeight: 600,
+                      backgroundColor: theme.palette.primary.main,
+                      color: theme.palette.primary.contrastText,
+                      borderColor: theme.palette.primary.main,
+                      fontWeight: 500,
+                      fontSize: theme.typography.fontSize,
                     },
                     '& .pagination li.disabled a': {
                       opacity: 0.5,
@@ -1201,8 +1477,8 @@ const [showPassword, setShowPassword] = useState(false);
                   }}
                 >
                   <ReactPaginate
-                    previousLabel={'‹'}
-                    nextLabel={'›'}
+                    previousLabel={'Previous'}
+                    nextLabel={'Next'}
                     breakLabel={'...'}
                     pageCount={pagination.total_pages}
                     marginPagesDisplayed={2}
@@ -1217,10 +1493,358 @@ const [showPassword, setShowPassword] = useState(false);
                   />
                 </Box>
                 
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Showing {staff.length} of {pagination.count}
-                </Typography>
+                <Box sx={{ width: 120 }} />
               </Box>
+              </Box>
+
+              {viewMode === 'tree' && (
+                <Box sx={{ p: 2, backgroundColor: '#FFFFFF' }}>
+                  {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                      <CircularProgress size={40} />
+                    </Box>
+                  ) : treeData.length === 0 ? (
+                    <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
+                      No employees found
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '70vh', overflowY: 'auto', pr: 1 }}>
+                      {treeData.map((company) => {
+                        const companyNodeKey = `company-${company.key}`;
+                        const companyOpen = isTreeNodeExpanded(companyNodeKey);
+
+                        return (
+                          <Paper
+                            key={companyNodeKey}
+                            variant="outlined"
+                            sx={{
+                              borderColor: '#E5E7EB',
+                              borderRadius: '12px',
+                              overflow: 'hidden',
+                              boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)',
+                            }}
+                          >
+                            <Box
+                              onClick={() => toggleTreeNode(companyNodeKey)}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 2,
+                                p: 2,
+                                cursor: 'pointer',
+                                background: 'linear-gradient(90deg, #F0FDF4 0%, #FFFFFF 70%)',
+                              }}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                                <Box
+                                  sx={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '12px',
+                                    bgcolor: '#D1FAE5',
+                                    color: '#047857',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  <BusinessIcon fontSize="small" />
+                                </Box>
+                                <Box sx={{ minWidth: 0 }}>
+                                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#111827' }} noWrap>
+                                    {company.name}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                    {company.count} employees
+                                  </Typography>
+                                </Box>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Chip
+                                  size="small"
+                                  label={`${company.branches.length} branches`}
+                                  sx={{
+                                    bgcolor: '#ECFDF5',
+                                    color: '#047857',
+                                    fontWeight: 600,
+                                  }}
+                                />
+                                <ChevronRightIcon
+                                  sx={{
+                                    color: '#6B7280',
+                                    transform: companyOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s ease',
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+
+                            <Collapse in={companyOpen} timeout="auto" unmountOnExit>
+                              <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                {company.branches.map((branch) => {
+                                  const branchNodeKey = `branch-${company.key}-${branch.key}`;
+                                  const branchOpen = isTreeNodeExpanded(branchNodeKey);
+
+                                  return (
+                                    <Paper
+                                      key={branchNodeKey}
+                                      variant="outlined"
+                                      sx={{
+                                        borderColor: '#E5E7EB',
+                                        borderRadius: '10px',
+                                        overflow: 'hidden',
+                                        backgroundColor: '#FFFFFF',
+                                      }}
+                                    >
+                                      <Box
+                                        onClick={() => toggleTreeNode(branchNodeKey)}
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          gap: 2,
+                                          px: 2,
+                                          py: 1.5,
+                                          cursor: 'pointer',
+                                          backgroundColor: '#F8FAFC',
+                                        }}
+                                      >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+                                          <Box
+                                            sx={{
+                                              width: 36,
+                                              height: 36,
+                                              borderRadius: '10px',
+                                              bgcolor: '#DBEAFE',
+                                              color: '#1D4ED8',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              flexShrink: 0,
+                                            }}
+                                          >
+                                            <BranchIcon fontSize="small" />
+                                          </Box>
+                                          <Box sx={{ minWidth: 0 }}>
+                                            <Typography variant="body1" sx={{ fontWeight: 700, color: '#111827' }} noWrap>
+                                              {branch.name}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                              {branch.count} employees
+                                            </Typography>
+                                          </Box>
+                                        </Box>
+
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <Chip
+                                            size="small"
+                                            label={`${branch.departments.length} departments`}
+                                            sx={{
+                                              bgcolor: '#EFF6FF',
+                                              color: '#1D4ED8',
+                                              fontWeight: 600,
+                                            }}
+                                          />
+                                          <ChevronRightIcon
+                                            sx={{
+                                              color: '#6B7280',
+                                              transform: branchOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                                              transition: 'transform 0.2s ease',
+                                            }}
+                                          />
+                                        </Box>
+                                      </Box>
+
+                                      <Collapse in={branchOpen} timeout="auto" unmountOnExit>
+                                        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                          {branch.departments.map((dept) => {
+                                            const deptNodeKey = `dept-${company.key}-${branch.key}-${dept.key}`;
+                                            const deptOpen = isTreeNodeExpanded(deptNodeKey);
+
+                                            return (
+                                              <Box
+                                                key={deptNodeKey}
+                                                sx={{
+                                                  borderLeft: '3px solid #E5E7EB',
+                                                  borderRadius: '8px',
+                                                  backgroundColor: '#F9FAFB',
+                                                  overflow: 'hidden',
+                                                }}
+                                              >
+                                                <Box
+                                                  onClick={() => toggleTreeNode(deptNodeKey)}
+                                                  sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    gap: 2,
+                                                    px: 2,
+                                                    py: 1.25,
+                                                    cursor: 'pointer',
+                                                  }}
+                                                >
+                                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+                                                    <Box
+                                                      sx={{
+                                                        width: 34,
+                                                        height: 34,
+                                                        borderRadius: '10px',
+                                                        bgcolor: '#FCE7F3',
+                                                        color: '#BE185D',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        flexShrink: 0,
+                                                      }}
+                                                    >
+                                                      <DepartmentIcon fontSize="small" />
+                                                    </Box>
+                                                    <Box sx={{ minWidth: 0 }}>
+                                                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#111827' }} noWrap>
+                                                        {dept.name}
+                                                      </Typography>
+                                                      <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                                        {dept.count} employees
+                                                      </Typography>
+                                                    </Box>
+                                                  </Box>
+
+                                                  <ChevronRightIcon
+                                                    sx={{
+                                                      color: '#6B7280',
+                                                      transform: deptOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                                                      transition: 'transform 0.2s ease',
+                                                    }}
+                                                  />
+                                                </Box>
+
+                                                <Collapse in={deptOpen} timeout="auto" unmountOnExit>
+                                                  <Box sx={{ p: 2, pt: 0, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                                                    {dept.employees.map((employee) => (
+                                                      <Paper
+                                                        key={employee._id}
+                                                        variant="outlined"
+                                                        sx={{
+                                                          p: 1.5,
+                                                          borderRadius: '10px',
+                                                          borderColor: '#E5E7EB',
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          justifyContent: 'space-between',
+                                                          gap: 2,
+                                                        }}
+                                                      >
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                                                          <Box
+                                                            sx={{
+                                                              width: 40,
+                                                              height: 40,
+                                                              borderRadius: '999px',
+                                                              bgcolor: '#DBEAFE',
+                                                              color: '#1D4ED8',
+                                                              display: 'flex',
+                                                              alignItems: 'center',
+                                                              justifyContent: 'center',
+                                                              flexShrink: 0,
+                                                            }}
+                                                          >
+                                                            <PersonIcon fontSize="small" />
+                                                          </Box>
+
+                                                          <Box sx={{ minWidth: 0 }}>
+                                                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#111827' }} noWrap>
+                                                              {employee.firstName} {employee.lastName}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ color: '#6B7280' }} noWrap>
+                                                              {employee.email}
+                                                            </Typography>
+                                                            <Box sx={{ display: 'flex', gap: 1, mt: 0.75, flexWrap: 'wrap' }}>
+                                                              <Chip
+                                                                size="small"
+                                                                label={employee.dept_name || dept.name}
+                                                                sx={{
+                                                                  bgcolor: '#EFF6FF',
+                                                                  color: '#1D4ED8',
+                                                                  fontWeight: 600,
+                                                                }}
+                                                              />
+                                                              <Chip
+                                                                size="small"
+                                                                label={employee.deviceUserId ? `Device #${employee.deviceUserId}` : 'Not linked'}
+                                                                sx={{
+                                                                  bgcolor: employee.deviceUserId ? '#DEF7EC' : '#F3F4F6',
+                                                                  color: employee.deviceUserId ? '#03543F' : '#6B7280',
+                                                                  fontWeight: 600,
+                                                                }}
+                                                              />
+                                                              <Chip
+                                                                size="small"
+                                                                label={employee.active_status || 'Inactive'}
+                                                                sx={{
+                                                                  bgcolor: employee.active_status === 'Active' ? '#DEF7EC' : '#FDE8E8',
+                                                                  color: employee.active_status === 'Active' ? '#03543F' : '#9B1C1C',
+                                                                  fontWeight: 600,
+                                                                }}
+                                                              />
+                                                            </Box>
+                                                          </Box>
+                                                        </Box>
+
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                          <Tooltip title="View Details">
+                                                            <IconButton
+                                                              size="small"
+                                                              sx={{ color: '#9CA3AF', '&:hover': { color: '#4B5563' } }}
+                                                              onClick={() => handleViewClick(employee)}
+                                                            >
+                                                              <ViewIcon fontSize="small" />
+                                                            </IconButton>
+                                                          </Tooltip>
+
+                                                          <Tooltip title="Edit Profile">
+                                                            <IconButton
+                                                              size="small"
+                                                              sx={{ color: '#9CA3AF', '&:hover': { color: '#4B5563' } }}
+                                                              onClick={() => openEditEmployee(employee)}
+                                                            >
+                                                              <EditIcon fontSize="small" />
+                                                            </IconButton>
+                                                          </Tooltip>
+
+                                                          <Tooltip title="Delete">
+                                                            <IconButton
+                                                              size="small"
+                                                              sx={{ color: '#EF4444', '&:hover': { color: '#DC2626' } }}
+                                                              onClick={() => handleConfirmDelete(employee._id)}
+                                                            >
+                                                              <DeleteIcon fontSize="small" />
+                                                            </IconButton>
+                                                          </Tooltip>
+                                                        </Box>
+                                                      </Paper>
+                                                    ))}
+                                                  </Box>
+                                                </Collapse>
+                                              </Box>
+                                            );
+                                          })}
+                                        </Box>
+                                      </Collapse>
+                                    </Paper>
+                                  );
+                                })}
+                              </Box>
+                            </Collapse>
+                          </Paper>
+                        );
+                      })}
+                    </Box>
+                  )}
+                </Box>
+              )}
             </Paper>
           )}
         </Box>
@@ -1257,7 +1881,44 @@ const [showPassword, setShowPassword] = useState(false);
                   onChange={(e) => handleFilterChange('email', e.target.value)}
                 />
               </Grid>
-              
+
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Company</InputLabel>
+                  <Select
+                    value={filters.company}
+                    label="Company"
+                    onChange={(e) => handleFilterChange('company', e.target.value)}
+                  >
+                    <MenuItem value="">Select Company</MenuItem>
+                    {companies.map((company) => (
+                      <MenuItem key={company._id} value={company._id}>
+                        {company.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Branch</InputLabel>
+                  <Select
+                    value={filters.branch}
+                    label="Branch"
+                    onChange={(e) => handleFilterChange('branch', e.target.value)}
+                    disabled={!filters.company || loadingFilterBranches}
+                  >
+                    <MenuItem value="">{filters.company ? 'All Branches' : 'Select Company First'}</MenuItem>
+                    {filterBranches.map((branch) => (
+                      <MenuItem key={branch._id} value={branch._id}>
+                        {branch.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
               <Grid item xs={12} sm={6} md={4}>
                 <FormControl fullWidth>
                   <InputLabel>Department</InputLabel>
@@ -1265,10 +1926,10 @@ const [showPassword, setShowPassword] = useState(false);
                     value={filters.department}
                     label="Department"
                     onChange={(e) => handleFilterChange('department', e.target.value)}
-                    disabled={loadingDepartments || !selectedBranch}
+                    disabled={!filters.branch || loadingFilterDepartments}
                   >
-                    <MenuItem value="">All Departments</MenuItem>
-                    {departments.map((dept) => (
+                    <MenuItem value="">{filters.branch ? 'All Departments' : 'Select Branch First'}</MenuItem>
+                    {filterDepartments.map((dept) => (
                       <MenuItem key={dept._id} value={dept._id}>
                         {dept.name}
                       </MenuItem>
@@ -1276,7 +1937,56 @@ const [showPassword, setShowPassword] = useState(false);
                   </Select>
                 </FormControl>
               </Grid>
-              
+
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Sort Field</InputLabel>
+                  <Select
+                    value={sorting.field}
+                    label="Sort Field"
+                    onChange={(e) => {
+                      setSorting(prev => ({
+                        ...prev,
+                        field: e.target.value
+                      }));
+                      setPagination(prev => ({
+                        ...prev,
+                        page: 1
+                      }));
+                    }}
+                  >
+                    {sortOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Sort Direction</InputLabel>
+                  <Select
+                    value={sorting.direction}
+                    label="Sort Direction"
+                    onChange={(e) => {
+                      setSorting(prev => ({
+                        ...prev,
+                        direction: e.target.value
+                      }));
+                      setPagination(prev => ({
+                        ...prev,
+                        page: 1
+                      }));
+                    }}
+                  >
+                    <MenuItem value="asc">Ascending</MenuItem>
+                    <MenuItem value="desc">Descending</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
               <Grid item xs={12} sm={6} md={4}>
                 <FormControl fullWidth>
                   <InputLabel>Status</InputLabel>

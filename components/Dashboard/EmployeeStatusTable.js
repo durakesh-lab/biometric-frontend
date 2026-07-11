@@ -108,16 +108,32 @@ const CompanyListTable = () => {
 
   // Columns configuration
   const columns = [
-    { id: 'srNo', label: 'SN.', sortable: false },
-    { id: 'companyId', label: 'Company ID', sortable: true },
-    { id: 'name', label: 'Company Name', sortable: true },
-    { id: 'email', label: 'Email', sortable: true },
-    { id: 'phoneNumber', label: 'Phone', sortable: true },
-    { id: 'industry', label: 'Industry', sortable: true },
-    { id: 'view', label: 'View', sortable: false },
-        { id: 'managebranches', label: 'Manage', sortable: false },
+    { id: 'srNo', label: 'SN.', sortable: false, minWidth: 70, align: 'center' },
+    { id: 'companyId', label: 'Company ID', sortable: true, minWidth: 120, align: 'center' },
+    { id: 'name', label: 'Company Name', sortable: true, minWidth: 220, align: 'left' },
+    { id: 'email', label: 'Email', sortable: true, minWidth: 280, align: 'left' },
+    { id: 'phoneNumber', label: 'Phone', sortable: true, minWidth: 140, align: 'center' },
+    { id: 'industry', label: 'Industry', sortable: true, minWidth: 140, align: 'center' },
+    { id: 'view', label: 'View', sortable: false, minWidth: 90, align: 'center' },
+    { id: 'managebranches', label: 'Manage', sortable: false, minWidth: 150, align: 'center' },
     // { id: 'actions', label: 'Actions', sortable: false }
   ];
+
+  const getCellSx = (column) => ({
+    minWidth: column.minWidth,
+    whiteSpace: 'nowrap',
+    verticalAlign: 'middle',
+    padding: '8px 16px',
+    textAlign: column.align || 'left',
+  });
+
+  const renderCellValue = (value) => (
+    <Tooltip title={value || '--'} arrow>
+      <Typography variant="body2" noWrap sx={{ width: '100%' }}>
+        {value || '--'}
+      </Typography>
+    </Tooltip>
+  );
 
   const handleManageBranches=(id)=>{
 router.push({
@@ -420,33 +436,33 @@ router.push({
           sx={{
             height: "270px",
             width: '100%',
-            overflow: 'auto',
+            overflowX: 'auto',
+            overflowY: 'auto',
             position: 'relative',
             mt: 2,
-                  overflowY: 'auto',
-      '&::-webkit-scrollbar': {
-        width: '6px',
-        height: '6px', // for horizontal scrollbar
-      },
-      '&::-webkit-scrollbar-track': {
-        background: '#f1f1f1',
-        borderRadius: '10px',
-      },
-      '&::-webkit-scrollbar-thumb': {
-        background: '#888',
-        borderRadius: '10px',
-        '&:hover': {
-          background: '#555',
-        },
-      },
-      scrollbarWidth: 'thin', // Firefox
-      scrollbarColor: '#888 #f1f1f1', // Firefox
+            '&::-webkit-scrollbar': {
+              width: '6px',
+              height: '6px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+              borderRadius: '10px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: '10px',
+              '&:hover': {
+                background: '#555',
+              },
+            },
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#888 #f1f1f1',
           }}
-        >
+          >
           <Table sx={{
-            minWidth: 800,
-            width: '100%',
-            tableLayout: 'fixed'
+            minWidth: 1210,
+            width: 'max-content',
+            tableLayout: 'auto'
           }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
@@ -454,17 +470,21 @@ router.push({
                   <TableCell
                     key={column.id}
                     sx={{
-                      whiteSpace: 'nowrap',
-                      textAlign: column.id === 'checkbox' ? 'left' : 'center',
+                      ...getCellSx(column),
+                      position: 'sticky',
+                      top: 0,
+                      backgroundColor: '#F3F4F6',
+                      zIndex: 1,
+                      textAlign: column.align || 'center',
                       verticalAlign: 'middle',
-                      padding: column.id === 'checkbox' ? '0 0 0 16px' : '16px'
+                      padding: '14px 16px',
                     }}
                   >
                     {column.sortable ? (
                       <Box
                         display="flex"
                         alignItems="center"
-                        justifyContent="center"
+                        justifyContent={column.align === 'left' ? 'flex-start' : 'center'}
                         sx={{ cursor: 'pointer', color: 'text.secondary' }}
                         onClick={() => handleSort(column.id)}
                       >
@@ -504,9 +524,9 @@ router.push({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} align="center">
-                    Loading...
-                  </TableCell>
+                      <TableCell colSpan={columns.length} align="center">
+                        Loading...
+                      </TableCell>
                 </TableRow>
               ) : companies.length === 0 ? (
                 <TableRow>
@@ -538,20 +558,21 @@ router.push({
                         />
                       </TableCell> */}
 
-                      <TableCell>{getSerialNumber(index)}</TableCell>
-                      <TableCell>{company.companyId}</TableCell>
-                      <TableCell>{company.name}</TableCell>
+                      <TableCell sx={getCellSx(columns[0])}>{getSerialNumber(index)}</TableCell>
+                      <TableCell sx={getCellSx(columns[1])}>{renderCellValue(company.companyId)}</TableCell>
+                      <TableCell sx={getCellSx(columns[2])}>{renderCellValue(company.name)}</TableCell>
                       {/* <TableCell>{company.owner}</TableCell> */}
-                      <TableCell>{company.email}</TableCell>
-                      <TableCell>{company.phoneNumber}</TableCell>
-                      <TableCell>
+                      <TableCell sx={getCellSx(columns[3])}>{renderCellValue(company.email)}</TableCell>
+                      <TableCell sx={getCellSx(columns[4])}>{renderCellValue(company.phoneNumber)}</TableCell>
+                      <TableCell sx={getCellSx(columns[5])}>
                         <Chip
-                          label={company.industry}
+                          label={company.industry || '--'}
                           color="primary"
                           size="small"
+                          sx={{ maxWidth: '100%' }}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={getCellSx(columns[6])}>
                         <IconButton
                           sx={{ color: 'text.secondary' }}
                           onClick={() => handleViewClick(company)}
@@ -559,7 +580,7 @@ router.push({
                           <ViewIcon />
                         </IconButton>
                       </TableCell>
-                          <TableCell>
+                      <TableCell sx={getCellSx(columns[7])}>
   <Button 
     variant="contained" 
     size="small" 

@@ -58,7 +58,7 @@ export default function TeamPerformanceChart() {
   };
   
 
-  return <div style={{ height: "200px" }}>
+  return <div style={{ height: "170px" }}>
   <Line data={data} options={options} />
 </div>
 
