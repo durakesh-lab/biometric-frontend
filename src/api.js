@@ -33,6 +33,7 @@ function handle401(error) {
   ) {
     localStorage.removeItem('biometric_token');
     window.location.href = '/login';
+    return new Promise(() => {}); // Prevent Next.js from showing unhandled runtime crash screen during redirect
   }
   return Promise.reject(error);
 }
@@ -45,6 +46,10 @@ export function installAxiosInterceptors() {
   axios.interceptors.request.use(normalizeAuthHeader);
   axios.interceptors.response.use((r) => r, handle401);
 }
+
+// Call immediately on import to ensure the global axios instance is patched
+// before any child components mount and execute requests.
+installAxiosInterceptors();
 
 // Preconfigured instance for new code (baseURL + same interceptors).
 export const api = axios.create({ baseURL: BASE });

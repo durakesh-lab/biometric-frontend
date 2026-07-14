@@ -40,7 +40,6 @@ const EMPTY = {
   branchId: "",
   wdmsBaseUrl: "",
   wdmsToken: "",
-  terminalId: "",
 };
 
 export default function DevicesPage() {
@@ -123,7 +122,6 @@ export default function DevicesPage() {
       branchId: d.branchId || "",
       wdmsBaseUrl: d.wdmsBaseUrl || "",
       wdmsToken: d.wdmsToken || "",
-      terminalId: d.terminalId || "",
     });
     if (d.companyId) fetchBranches(d.companyId);
     setTestResult(null);
@@ -143,7 +141,7 @@ export default function DevicesPage() {
       setTesting(true);
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_BASE_URL}/devices/test`,
-        { wdmsBaseUrl: form.wdmsBaseUrl, wdmsToken: form.wdmsToken },
+        { wdmsBaseUrl: form.wdmsBaseUrl, wdmsToken: form.wdmsToken, serialNumber: form.serialNumber },
         auth()
       );
       setTestResult(res.data);
@@ -184,8 +182,18 @@ export default function DevicesPage() {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.serialNumber || !form.companyId || !form.branchId) {
-      setSnackbar({ status: false, message: "Name, serial, company and branch are required" });
+    if (
+      !form.name ||
+      !form.serialNumber ||
+      !form.companyId ||
+      !form.branchId ||
+      !form.wdmsBaseUrl ||
+      !form.wdmsToken
+    ) {
+      setSnackbar({
+        status: false,
+        message: "Name, serial, company, branch, EasyWDMS URL and WDMS Token are required",
+      });
       return;
     }
     try {
@@ -344,13 +352,10 @@ export default function DevicesPage() {
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth label="EasyWDMS URL" value={form.wdmsBaseUrl} onChange={(e) => setField("wdmsBaseUrl", e.target.value)} placeholder="http://192.168.0.104:8081" />
+              <TextField fullWidth label="EasyWDMS URL*" value={form.wdmsBaseUrl} onChange={(e) => setField("wdmsBaseUrl", e.target.value)} placeholder="http://192.168.0.104:8081" />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="WDMS Token" value={form.wdmsToken} onChange={(e) => setField("wdmsToken", e.target.value)} placeholder="from /api-token-auth/" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Terminal ID" value={form.terminalId} onChange={(e) => setField("terminalId", e.target.value)} placeholder="1" />
+            <Grid item xs={12}>
+              <TextField fullWidth label="WDMS Token*" value={form.wdmsToken} onChange={(e) => setField("wdmsToken", e.target.value)} placeholder="from /api-token-auth/" />
             </Grid>
             <Grid item xs={12}>
               <Box sx={{ border: "1px dashed #E5E7EB", borderRadius: "8px", p: 2, bgcolor: "#F9FAFB" }}>
