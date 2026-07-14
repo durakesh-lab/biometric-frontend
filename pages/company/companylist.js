@@ -33,7 +33,8 @@ import {
   Skeleton,
   Snackbar,
   Alert,
-  SnackbarContent
+  SnackbarContent,
+  useMediaQuery
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -134,6 +135,10 @@ var allpermission={}
   // View modal state
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedCompanyView, setSelectedCompanyView] = useState({});
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
+  const canManageBranches = Boolean(
+    allpermission?.length && rolepermission?.permission?.includes(allpermission?.[1]?._id)
+  );
 
   // Columns configuration
   const columns = [
@@ -147,7 +152,7 @@ var allpermission={}
     { id: 'phoneNumber', label: 'Phone Number', sortable: true },
     { id: 'industry', label: 'Industry', sortable: true },
     { id: 'view', label: 'View', sortable: false },
-    ...((allpermission?.length && rolepermission.permission.includes(allpermission[1]._id)) ? [{ id: 'managebranchesw', label: 'Manage', sortable: false }]:[]),
+    ...(canManageBranches ? [{ id: 'managebranchesw', label: 'Manage', sortable: false }] : []),
     { id: 'actions', label: 'Actions', sortable: false }
   ];
   console.log(allpermission,"987555555555")
@@ -268,8 +273,9 @@ const handleSelect = (event, id) => {
 
   // Handle page size change
   const handlePageSizeChange = (event) => {
-    setPagination({ ...pagination, page_size: event.target.value, page: 1 });
-     fetchCompanies(pagination.page,event.target.value)
+    const pageSize = Number(event.target.value);
+    setPagination({ ...pagination, page_size: pageSize, page: 1 });
+     fetchCompanies(pagination.page,pageSize)
   };
 
   // Handle filter change
@@ -461,6 +467,10 @@ const industries = [
   { label: 'Education', value: 'Education' },
   { label: 'Other', value: 'Other' }
 ];
+
+const getColumnDisplay = (columnId) => {
+  return 'table-cell';
+};
 const handleManageBranches=(id)=>{
 handleMenuClose();
 router.push({
@@ -513,12 +523,33 @@ const checkCompanyIdExists = debounce(async (value,field) => {
         <Grid container spacing={3}>
           {/* Header Section */}
           <Grid item xs={12}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={0} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
-              <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 0,
+                gap: 2,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                component="h2"
+                sx={{ fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
+              >
                 Company List
               </Typography>
               
-              <Box display="flex" alignItems="center" gap={1}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: { xs: 'stretch', sm: 'center' },
+                  gap: 1,
+                  flexWrap: 'wrap',
+                  width: { xs: '100%', sm: 'auto' },
+                }}
+              >
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
@@ -527,6 +558,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                     textTransform: 'none',
                     boxShadow: 'none',
                     backgroundColor: '#0E9F6E',
+                    width: { xs: '100%', sm: 'auto' },
                     '&:hover': {
                       backgroundColor: '#0b7d57',
                       boxShadow: 'none',
@@ -538,24 +570,32 @@ const checkCompanyIdExists = debounce(async (value,field) => {
 
                 {showDelete && (
                   <Tooltip title={`Delete selected (${selected.length})`}>
-                    <IconButton
+                    <Button
                       color="error"
+                      variant="outlined"
+                      startIcon={<DeleteIcon />}
                       onClick={() => {handleConfirmDelete(selected)}}
+                      sx={{
+                        textTransform: 'none',
+                        width: { xs: '100%', sm: 'auto' },
+                        borderColor: '#ef4444',
+                        '&:hover': {
+                          borderColor: '#b91c1c',
+                        },
+                      }}
                     >
-                      <DeleteIcon />
-                      <Typography variant="caption" sx={{ ml: 0.5 }}>
-                        ({selected.length})
-                      </Typography>
-                    </IconButton>
+                      Delete Selected ({selected.length})
+                    </Button>
                   </Tooltip>
                 )}
                 
-                <Button
+                  <Button
                   startIcon={<FilterIcon sx={{ color: 'text.secondary' }} />}
                   onClick={() => setFilterOpen(true)}
                   sx={{ 
                     backgroundColor: '#f5f5f5',
                     color: 'text.secondary',
+                    width: { xs: '100%', sm: 'auto' },
                     '&:hover': {
                       backgroundColor: '#e0e0e0'
                     }
@@ -577,7 +617,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                       </InputAdornment>
                     ),
                   }}
-                  sx={{ width: 200 }}
+                  sx={{ width: { xs: '100%', sm: 200 } }}
                 />
               </Box>
             </Box>
@@ -585,19 +625,27 @@ const checkCompanyIdExists = debounce(async (value,field) => {
 
           {/* Company Table */}
           <Grid item xs={12}>
-            <Box sx={{ overflowX: 'auto' }}>
+            <Box sx={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
   <TableContainer
     elevation={0}
     component={Paper}
     sx={{
+      width: '100%',
+      overflowX: 'auto',
+      WebkitOverflowScrolling: 'touch',
       height: {
-        // xs: 'auto',
-           xs: 600,
+           xs: 'auto',
         sm: 300,
         md: 350,
       },
-      maxHeight: '80vh',
-      overflowY: 'auto',
+      maxHeight: {
+        xs: 'none',
+        sm: '80vh',
+      },
+      overflowY: {
+        xs: 'visible',
+        sm: 'auto',
+      },
       '&::-webkit-scrollbar': {
         width: '6px',
         height: '6px', // for horizontal scrollbar
@@ -618,7 +666,14 @@ const checkCompanyIdExists = debounce(async (value,field) => {
     }}
   >
 
-              <Table>
+              <Table
+                sx={{
+                  minWidth: canManageBranches ? 1320 : 1180,
+                  '& .MuiTableCell-root': {
+                    whiteSpace: 'nowrap',
+                  },
+                }}
+              >
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
                     {columns.map((column) => (
@@ -632,7 +687,8 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                           whiteSpace: 'nowrap',
                           textAlign: column.id === 'checkbox' ? 'left' : 'center',
                           verticalAlign: 'middle',
-                          padding: column.id === 'checkbox' ? '0 0 0 16px' : '16px',
+                          padding: column.id === 'checkbox' ? '0 0 0 16px' : { xs: '8px 12px', sm: '16px' },
+                          display: getColumnDisplay(column.id),
                         }}
                       >
                         {column.sortable ? (
@@ -707,18 +763,18 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                       const isSelected = selected.indexOf(company._id) !== -1;
                       return (
                         <>  
-                          <TableRow
+                        <TableRow
                             key={company._id}
                             hover
                             selected={isSelected}
                             sx={{
                               '& > td': {
-                                padding: '8px 16px',
-                                height: '40px'
+                                padding: { xs: '8px 10px', sm: '8px 16px' },
+                                height: { xs: 'auto', sm: '40px' }
                               }
                             }}
                           >
-                            <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
+                            <TableCell padding="checkbox" sx={{ paddingLeft: '16px', display: getColumnDisplay('checkbox') }}>
                              <Checkbox
   checked={selected.indexOf(company._id) !== -1}  // Make sure to use _id if that's your key
   onChange={(event) => handleSelect(event, company._id)}  // Use _id if that's your key
@@ -726,17 +782,17 @@ const checkCompanyIdExists = debounce(async (value,field) => {
 />
                             </TableCell>
                             
-                            <TableCell>{getSerialNumber(index)}</TableCell>
+                            <TableCell sx={{ display: getColumnDisplay('srNo') }}>{getSerialNumber(index)}</TableCell>
                              {/* <TableCell>{company?._id}</TableCell> */}
-                            <TableCell>{company?.companyId}</TableCell>
+                            <TableCell sx={{ display: getColumnDisplay('CompanyId') }}>{company?.companyId}</TableCell>
 
-                            <TableCell>{company?.name}</TableCell>
-                            <TableCell>{company?.owner}</TableCell>
-                            <TableCell>{company?.email}</TableCell>
-                            <TableCell>{company?.phoneNumber}</TableCell>
-                            <TableCell>{company?.industry}</TableCell>
+                            <TableCell sx={{ display: getColumnDisplay('name') }}>{company?.name}</TableCell>
+                            <TableCell sx={{ display: getColumnDisplay('owner') }}>{company?.owner}</TableCell>
+                            <TableCell sx={{ display: getColumnDisplay('email') }}>{company?.email}</TableCell>
+                            <TableCell sx={{ display: getColumnDisplay('phoneNumber') }}>{company?.phoneNumber}</TableCell>
+                            <TableCell sx={{ display: getColumnDisplay('industry') }}>{company?.industry}</TableCell>
                             
-                            <TableCell>
+                            <TableCell sx={{ display: getColumnDisplay('view') }}>
                               <IconButton 
                                 sx={{ color: 'text.secondary' }}
                                 onClick={() => handleViewClick(company)}
@@ -744,8 +800,8 @@ const checkCompanyIdExists = debounce(async (value,field) => {
                                 <ViewIcon />
                               </IconButton>
                             </TableCell>
-                              {(allpermission?.length && rolepermission?.permission?.includes(allpermission?.[1]?._id)) ? 
-                            <TableCell>
+                              {canManageBranches ? 
+                            <TableCell sx={{ display: getColumnDisplay('managebranchesw') }}>
                             
   <Button 
     variant="contained" 
@@ -758,8 +814,8 @@ const checkCompanyIdExists = debounce(async (value,field) => {
   >
      Branches 
   </Button>
-</TableCell> :"" }
-                            <TableCell>
+                            </TableCell> : null }
+                            <TableCell sx={{ display: getColumnDisplay('actions') }}>
                               <IconButton
                                 aria-label="more"
                                 aria-controls="long-menu"
@@ -802,12 +858,21 @@ const checkCompanyIdExists = debounce(async (value,field) => {
           </Grid>
 
           {/* Pagination */}
-       {/* Pagination */}
+{/* Pagination */}
 <Grid item xs={12}>
-  <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+  <Box
+    sx={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: { xs: 'stretch', md: 'center' },
+      flexDirection: { xs: 'column', md: 'row' },
+      gap: 2,
+      mt: 2,
+    }}
+  >
     {/* Rows per page dropdown aligned to the left */}
-    <Box display="flex" justifyContent="flex-start" alignItems="center">
-      <FormControl size="small" sx={{ minWidth: 120 }}>
+    <Box display="flex" justifyContent="flex-start" alignItems="center" sx={{ width: { xs: '100%', md: 'auto' } }}>
+      <FormControl size="small" sx={{ width: { xs: '100%', sm: 120 } }}>
         <InputLabel>Rows per page</InputLabel>
         <Select
           value={pagination.page_size}
@@ -827,6 +892,9 @@ const checkCompanyIdExists = debounce(async (value,field) => {
     {/* React Paginate - Centered */}
     <Box 
      sx={{
+    display: 'flex',
+    justifyContent: 'center',
+    width: { xs: '100%', md: 'auto' },
     '& .pagination li.selected a': {
       backgroundColor: theme.palette.primary.main,
       color: theme.palette.primary.contrastText,
@@ -847,8 +915,8 @@ const checkCompanyIdExists = debounce(async (value,field) => {
         breakLabel={'...'}
         breakClassName={'break-me'}
         pageCount={pagination.total_pages}
-        marginPagesDisplayed={2}
-        pageRangeDisplayed={3}
+        marginPagesDisplayed={isMobile ? 1 : 2}
+        pageRangeDisplayed={isMobile ? 1 : 3}
         onPageChange={({ selected }) => handlePageChange(selected + 1)}
         containerClassName={'pagination'}
         activeClassName={'selected'}
@@ -864,7 +932,7 @@ const checkCompanyIdExists = debounce(async (value,field) => {
     </Box>
 
     {/* Empty box to balance the layout */}
-    <Box sx={{ width: 120 }} /> {/* This matches the width of the rows selector */}
+    <Box sx={{ width: 120, display: { xs: 'none', md: 'block' } }} /> {/* This matches the width of the rows selector */}
   </Box>
 </Grid>
 

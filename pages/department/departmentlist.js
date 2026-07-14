@@ -30,7 +30,6 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-  Fab
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -430,23 +429,71 @@ const DepartmentlistPage = () => {
         <Grid container spacing={3}>
           {/* Header Section */}
           <Grid item xs={12}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={0} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
-              <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 0,
+                gap: 2,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                component="h2"
+                sx={{ fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
+              >
                 Department List
               </Typography>
               
-              <Box display="flex" alignItems="center" gap={1}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: { xs: 'stretch', sm: 'center' },
+                  gap: 1,
+                  flexWrap: 'wrap',
+                  width: { xs: '100%', sm: 'auto' },
+                }}
+              >
+                {selectedBranch && (
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setAddModalOpen(true)}
+                    sx={{
+                      textTransform: 'none',
+                      boxShadow: 'none',
+                      backgroundColor: '#0E9F6E',
+                      width: { xs: '100%', sm: 'auto' },
+                      '&:hover': {
+                        backgroundColor: '#0b7d57',
+                        boxShadow: 'none',
+                      },
+                    }}
+                  >
+                    Add Department
+                  </Button>
+                )}
+
                 {showDelete && (
                   <Tooltip title={`Delete selected (${selected.length})`}>
-                    <IconButton
+                    <Button
                       color="error"
+                      variant="outlined"
+                      startIcon={<DeleteIcon />}
                       onClick={() => handleConfirmDelete(selected)}
+                      sx={{
+                        textTransform: 'none',
+                        width: { xs: '100%', sm: 'auto' },
+                        borderColor: '#ef4444',
+                        '&:hover': {
+                          borderColor: '#b91c1c',
+                        },
+                      }}
                     >
-                      <DeleteIcon />
-                      <Typography variant="caption" sx={{ ml: 0.5 }}>
-                        ({selected.length})
-                      </Typography>
-                    </IconButton>
+                      Delete Selected ({selected.length})
+                    </Button>
                   </Tooltip>
                 )}
                 
@@ -456,6 +503,7 @@ const DepartmentlistPage = () => {
                   sx={{ 
                     backgroundColor: '#f5f5f5',
                     color: 'text.secondary',
+                    width: { xs: '100%', sm: 'auto' },
                     '&:hover': {
                       backgroundColor: '#e0e0e0'
                     }
@@ -477,7 +525,7 @@ const DepartmentlistPage = () => {
                       </InputAdornment>
                     ),
                   }}
-                  sx={{ width: 200 }}
+                  sx={{ width: { xs: '100%', sm: 200 } }}
                 />
               </Box>
             </Box>
@@ -1059,34 +1107,6 @@ const DepartmentlistPage = () => {
             </Formik>
           </Box>
         </Modal>
-
-        {/* Floating Add Button - Only show when branch is selected */}
-        {selectedBranch && (
-          <Box
-            sx={{
-              position: 'fixed',
-              bottom: 32,
-              right: 32,
-              zIndex: 1000,
-            }}
-          >
-            <Fab 
-              color="primary" 
-              aria-label="add"
-              onClick={() => setAddModalOpen(true)}
-              sx={{
-                backgroundColor: 'primary.main',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'primary.dark',
-                },
-                boxShadow: 3,
-              }}
-            >
-              <AddIcon />
-            </Fab>
-          </Box>
-        )}
 
         {/* Snackbar for notifications */}
         <Snackbar

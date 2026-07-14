@@ -30,9 +30,9 @@ Table,
   CircularProgress,
   Snackbar,
   Alert,
-  Fab,
   Breadcrumbs,
-  Link
+  Link,
+  useMediaQuery
 } from '@mui/material';
 import { 
   Search as SearchIcon,
@@ -128,6 +128,7 @@ const BranchlistPage = () => {
   // View modal state
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedBranchView, setSelectedBranchView] = useState({});
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
 
 
   useEffect(()=>{
@@ -151,11 +152,6 @@ const BranchlistPage = () => {
     { id: 'email', label: 'Email', sortable: true },
     { id: 'view', label: 'View', sortable: false },
     { id: 'manage', label: 'Manage', sortable: false },
-      {
-    id: 'employees',
-    label: 'Employees',
-    sortable: false
-  },
     { id: 'actions', label: 'Actions', sortable: false }
   ];
 
@@ -464,22 +460,6 @@ router.push({
   query: { id: id ,companyId:selectedCompany }
 });
 }
-const handleManageEmployees=(id)=>{
-router.push({
-  pathname: '/company/branches/staff',
-  query: { id: id ,companyId:selectedCompany }
-});
-}
-
-
-
-
-
-
-
-
-
-
   const debounce = (func, delay) => {
     let timeoutId;
     return function(...args) {
@@ -533,8 +513,17 @@ router.push({
         <Grid container spacing={3}>
           {/* Header Section with Breadcrumbs */}
           <Grid item xs={12}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ flexWrap: 'wrap', rowGap: 2 }}>
-              <Box>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                mb: 2,
+                gap: 2,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Box sx={{ width: { xs: '100%', sm: 'auto' } }}>
                 <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600, mb: 1 }}>
                   Branch List
                 </Typography>
@@ -572,7 +561,15 @@ router.push({
                 </Breadcrumbs>
               </Box>
               
-              <Box display="flex" alignItems="center" gap={1}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: { xs: 'stretch', sm: 'center' },
+                  gap: 1,
+                  flexWrap: 'wrap',
+                  width: { xs: '100%', sm: 'auto' },
+                }}
+              >
                 {selectedCompany && (
                   <Button
                     variant="contained"
@@ -583,48 +580,57 @@ router.push({
                       boxShadow: 'none',
                       backgroundColor: '#0E9F6E',
                       '&:hover': {
-                        backgroundColor: '#0b7d57',
-                        boxShadow: 'none',
-                      },
-                    }}
-                  >
-                    Add Branch
-                  </Button>
-                )}
+                      backgroundColor: '#0b7d57',
+                      boxShadow: 'none',
+                    },
+                    width: { xs: '100%', sm: 'auto' },
+                  }}
+                >
+                  Add Branch
+                </Button>
+              )}
 
                 {showDelete && (
                   <Tooltip title={`Delete selected (${selected.length})`}>
-                    <IconButton
+                    <Button
                       color="error"
+                      variant="outlined"
+                      startIcon={<DeleteIcon />}
                       onClick={() => handleConfirmDelete(selected)}
+                      sx={{
+                        textTransform: 'none',
+                        width: { xs: '100%', sm: 'auto' },
+                        borderColor: '#ef4444',
+                        '&:hover': {
+                          borderColor: '#b91c1c',
+                        },
+                      }}
                     >
-                      <DeleteIcon />
-                      <Typography variant="caption" sx={{ ml: 0.5 }}>
-                        ({selected.length})
-                      </Typography>
-                    </IconButton>
+                      Delete Selected ({selected.length})
+                    </Button>
                   </Tooltip>
                 )}
                 
-                <Button
-                  startIcon={<FilterIcon sx={{ color: 'text.secondary' }} />}
-                  onClick={() => setFilterOpen(true)}
-                  sx={{ 
-                    backgroundColor: '#f5f5f5',
-                    color: 'text.secondary',
-                    '&:hover': {
-                      backgroundColor: '#e0e0e0'
-                    }
-                  }}
-                >
+                  <Button
+                    startIcon={<FilterIcon sx={{ color: 'text.secondary' }} />}
+                    onClick={() => setFilterOpen(true)}
+                    sx={{ 
+                      backgroundColor: '#f5f5f5',
+                      color: 'text.secondary',
+                      width: { xs: '100%', sm: 'auto' },
+                      '&:hover': {
+                        backgroundColor: '#e0e0e0'
+                      }
+                    }}
+                  >
                   <Typography variant="body2">Sort & Filter</Typography>
                 </Button>
                 
-                <TextField
-                  variant="outlined"
-                  size="small"
-                  placeholder="Search..."
-                  value={search}
+                  <TextField
+                    variant="outlined"
+                    size="small"
+                    placeholder="Search..."
+                    value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   InputProps={{
                     startAdornment: (
@@ -633,7 +639,7 @@ router.push({
                       </InputAdornment>
                     ),
                   }}
-                  sx={{ width: 200 }}
+                  sx={{ width: { xs: '100%', sm: 200 } }}
                 />
               </Box>
             </Box>
@@ -677,19 +683,27 @@ router.push({
           {selectedCompany ? (
             <>
               <Grid item xs={12}>
-            <Box sx={{ overflowX: 'auto' }}>
+            <Box sx={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
   <TableContainer
     elevation={0}
     component={Paper}
     sx={{
+      width: '100%',
+      overflowX: 'auto',
+      WebkitOverflowScrolling: 'touch',
       height: {
-        // xs: 'auto',
-           xs: 600,
+           xs: 'auto',
         sm: 300,
         md: 350,
       },
-      maxHeight: '80vh',
-      overflowY: 'auto',
+      maxHeight: {
+        xs: 'none',
+        sm: '80vh',
+      },
+      overflowY: {
+        xs: 'visible',
+        sm: 'auto',
+      },
       '&::-webkit-scrollbar': {
         width: '6px',
         height: '6px', // for horizontal scrollbar
@@ -709,7 +723,14 @@ router.push({
       scrollbarColor: '#888 #f1f1f1', // Firefox
     }}
   >
-                  <Table>
+                  <Table
+                    sx={{
+                      minWidth: isMobile ? 1360 : 'auto',
+                      '& .MuiTableCell-root': {
+                        whiteSpace: 'nowrap',
+                      },
+                    }}
+                  >
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
                         {columns.map((column) => (
@@ -723,7 +744,7 @@ router.push({
                               whiteSpace: 'nowrap',
                               textAlign: column.id === 'checkbox' ? 'left' : 'center',
                               verticalAlign: 'middle',
-                              padding: column.id === 'checkbox' ? '0 0 0 16px' : '16px',
+                              padding: column.id === 'checkbox' ? '0 0 0 16px' : { xs: '8px 12px', sm: '16px' },
                             }}
                           >
                             {column.sortable ? (
@@ -800,8 +821,8 @@ router.push({
                               selected={isSelected}
                               sx={{
                                 '& > td': {
-                                  padding: '8px 16px',
-                                  height: '40px'
+                                  padding: { xs: '8px 12px', sm: '8px 16px' },
+                                  height: { xs: 'auto', sm: '40px' }
                                 }
                               }}
                             >
@@ -830,7 +851,7 @@ router.push({
                                   <ViewIcon />
                                 </IconButton>
                               </TableCell>
-                                <TableCell>
+                              <TableCell>
                                 <Button 
                                   variant="contained" 
                                   size="small" 
@@ -843,19 +864,6 @@ router.push({
                                    Manage Departments 
                                 </Button>
                               </TableCell>
-                              <TableCell>
-  <Button 
-    variant="contained" 
-    size="small" 
-    sx={{ textTransform: 'capitalize', ml: 1,   boxShadow: 'none', // Removes button shadow
-    '&:hover': {
-      boxShadow: 'none', // Prevents shadow on hover too
-    } }}
-    onClick={() => handleManageEmployees(branch._id)}
-  >
-    Employees
-  </Button>
-</TableCell>
                               {/* <TableCell>
                                 <Tooltip title="Manage Departments">
                                   <IconButton
@@ -907,10 +915,19 @@ router.push({
 
               {/* Pagination */}
            <Grid item xs={12}>
-             <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+             <Box
+               sx={{
+                 display: 'flex',
+                 justifyContent: 'space-between',
+                 alignItems: { xs: 'stretch', md: 'center' },
+                 flexDirection: { xs: 'column', md: 'row' },
+                 gap: 2,
+                 mt: 2,
+               }}
+             >
                {/* Rows per page dropdown aligned to the left */}
-               <Box display="flex" justifyContent="flex-start" alignItems="center">
-                 <FormControl size="small" sx={{ minWidth: 120 }}>
+               <Box display="flex" justifyContent="flex-start" alignItems="center" sx={{ width: { xs: '100%', md: 'auto' } }}>
+                 <FormControl size="small" sx={{ width: { xs: '100%', sm: 120 } }}>
                    <InputLabel>Rows per page</InputLabel>
                    <Select
                      value={pagination.page_size}
@@ -930,6 +947,9 @@ router.push({
                {/* React Paginate - Centered */}
                <Box 
                 sx={{
+               display: 'flex',
+               justifyContent: 'center',
+               width: { xs: '100%', md: 'auto' },
                '& .pagination li.selected a': {
                  backgroundColor: theme.palette.primary.main,
                  color: theme.palette.primary.contrastText,
@@ -950,8 +970,8 @@ router.push({
                    breakLabel={'...'}
                    breakClassName={'break-me'}
                    pageCount={pagination.total_pages}
-                   marginPagesDisplayed={2}
-                   pageRangeDisplayed={3}
+                   marginPagesDisplayed={isMobile ? 1 : 2}
+                   pageRangeDisplayed={isMobile ? 1 : 3}
                    onPageChange={({ selected }) => handlePageChange(selected + 1)}
                    containerClassName={'pagination'}
                    activeClassName={'selected'}
@@ -967,7 +987,7 @@ router.push({
                </Box>
            
                {/* Empty box to balance the layout */}
-               <Box sx={{ width: 120 }} /> {/* This matches the width of the rows selector */}
+               <Box sx={{ width: 120, display: { xs: 'none', md: 'block' } }} /> {/* This matches the width of the rows selector */}
              </Box>
            </Grid>
             </>
@@ -1379,34 +1399,6 @@ router.push({
             </Formik>
           </Box>
         </Modal>
-
-        {/* Floating Add Button - Only show when company is selected */}
-        {selectedCompany && (
-          <Box
-            sx={{
-              position: 'fixed',
-              bottom: 32,
-              right: 32,
-              zIndex: 1000,
-            }}
-          >
-            <Fab 
-              color="primary" 
-              aria-label="add"
-              onClick={openAddBranchModal}
-              sx={{
-                backgroundColor: 'primary.main',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'primary.dark',
-                },
-                boxShadow: 3,
-              }}
-            >
-              <AddIcon />
-            </Fab>
-          </Box>
-        )}
 
         {/* Snackbar for notifications */}
         <Snackbar
