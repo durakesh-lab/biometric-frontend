@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Paper, 
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
   TextField,
   Grid,
   InputAdornment,
@@ -17,6 +17,7 @@ import {
   MenuItem,
   Select,
   FormControl,
+  FormHelperText,
   InputLabel,
   Dialog,
   DialogTitle,
@@ -35,7 +36,7 @@ import {
   DialogContentText,
   Chip
 } from '@mui/material';
-import { 
+import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   ArrowDownward as ArrowDownIcon,
@@ -78,11 +79,114 @@ import ReactPaginate from 'react-paginate';
 import { jwtDecode } from 'jwt-decode';
 import Cookies from 'js-cookie';
 
-const genders = [ { label: "Male", value: "M" }, { label: "Female", value: "F" }];
+const genders = [{ label: "Male", value: "M" }, { label: "Female", value: "F" }];
+
+const emailValidationCache = {};
+const deviceValidationCache = {};
+const employeeCodeValidationCache = {};
+
+// General debouncer creator for promise-based Yup tests
+const makeDebouncedUniqueCheck = (checkFn, delay = 1000) => {
+  let timeoutId;
+  let currentResolve;
+  
+  return (value, id) => {
+    // If the value is empty, resolve immediately as valid
+    if (!value) return Promise.resolve(true);
+
+    // Clear previous pending timeout
+    if (timeoutId) clearTimeout(timeoutId);
+    
+    // Resolve the previous pending validation check as true (valid)
+    // so Formik doesn't hang waiting for obsolete typing keystrokes.
+    if (currentResolve) {
+      currentResolve(true);
+    }
+    
+    return new Promise((resolve) => {
+      currentResolve = resolve;
+      timeoutId = setTimeout(async () => {
+        try {
+          const result = await checkFn(value, id);
+          resolve(result);
+        } catch (err) {
+          resolve(true);
+        } finally {
+          currentResolve = null;
+        }
+      }, delay);
+    });
+  };
+};
+
+const fetchEmailUnique = async (email, id) => {
+  const cacheKey = `${email}-${id || ''}`;
+  if (emailValidationCache[cacheKey] !== undefined) {
+    return emailValidationCache[cacheKey];
+  }
+  try {
+    let token = localStorage.getItem("biometric_token");
+    const payload = { field: "email", email };
+    if (id) payload.id = id;
+    const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, payload, {
+      headers: { Authorization: token }
+    });
+    const isValid = !res.data.message;
+    emailValidationCache[cacheKey] = isValid;
+    return isValid;
+  } catch (err) {
+    return true;
+  }
+};
+
+const fetchDeviceUserIdUnique = async (deviceUserId, id) => {
+  const cacheKey = `${deviceUserId}-${id || ''}`;
+  if (deviceValidationCache[cacheKey] !== undefined) {
+    return deviceValidationCache[cacheKey];
+  }
+  try {
+    let token = localStorage.getItem("biometric_token");
+    const payload = { field: "deviceUserId", deviceUserId };
+    if (id) payload.id = id;
+    const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, payload, {
+      headers: { Authorization: token }
+    });
+    const isValid = !res.data.message;
+    deviceValidationCache[cacheKey] = isValid;
+    return isValid;
+  } catch (err) {
+    return true;
+  }
+};
+
+const fetchEmployeeCodeUnique = async (employeeCode, id) => {
+  const cacheKey = `${employeeCode}-${id || ''}`;
+  if (employeeCodeValidationCache[cacheKey] !== undefined) {
+    return employeeCodeValidationCache[cacheKey];
+  }
+  try {
+    let token = localStorage.getItem("biometric_token");
+    const payload = { field: "employeeCode", employeeCode };
+    if (id) payload.id = id;
+    const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, payload, {
+      headers: { Authorization: token }
+    });
+    const isValid = !res.data.message;
+    employeeCodeValidationCache[cacheKey] = isValid;
+    return isValid;
+  } catch (err) {
+    return true;
+  }
+};
+
+// Debounced wrappers exposed to the Yup validation schema
+const checkEmailUnique = makeDebouncedUniqueCheck(fetchEmailUnique, 1000);
+const checkDeviceUserIdUnique = makeDebouncedUniqueCheck(fetchDeviceUserIdUnique, 1000);
+const checkEmployeeCodeUnique = makeDebouncedUniqueCheck(fetchEmployeeCodeUnique, 1000);
 
 const StaffListPage = () => {
   // State for companies
-  let router=useRouter()
+  let router = useRouter()
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
@@ -106,8 +210,8 @@ const StaffListPage = () => {
   const [selected, setSelected] = useState([]);
   const [showDelete, setShowDelete] = useState(false);
   const dispatch = useDispatch();
-  const deletepopup = useSelector((state) =>{return  state.users});
-  const checkdelete = useSelector((state) =>{return  state.auth});
+  const deletepopup = useSelector((state) => { return state.users });
+  const checkdelete = useSelector((state) => { return state.auth });
 
   const { getStaffListData } = useSelector(state => state.auth);
   const [openSnackbar, setOpenSnackbar] = useState(false);
@@ -172,23 +276,25 @@ const StaffListPage = () => {
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   let [currentStaff, setCurrentStaff] = useState({});
+  const addFormSubmittedRef = useRef(false);
+  const editFormSubmittedRef = useRef(false);
 
   // View modal state
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedStaffView, setSelectedStaffView] = useState({});
 
-    const [exportModalOpen, setExportModalOpen] = useState(false);
-  
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
-        useEffect(()=>{
-          let usersdata=Cookies.get("usercompanyandbranch")
-          if(usersdata){
-            let data=JSON.parse(usersdata)
-            setSelectedBranch(data.branch._id)
-           setSelectedCompany(data.company._id)
-          }
-  
-        },[router.query.id])
+
+  useEffect(() => {
+    let usersdata = Cookies.get("usercompanyandbranch")
+    if (usersdata) {
+      let data = JSON.parse(usersdata)
+      setSelectedBranch(data.branch._id)
+      setSelectedCompany(data.company._id)
+    }
+
+  }, [router.query.id])
 
   // Role types
   // const roleTypes = ['Super Admin', 'HR Admin', 'Manager', 'Employee', 'Guest'];
@@ -206,6 +312,7 @@ const StaffListPage = () => {
     { id: 'email', label: 'Email', sortable: true },
     { id: 'deviceUserId', label: 'Device ID', sortable: false },
     { id: 'active_status', label: 'Status', sortable: true },
+    { id: 'company_name', label: 'Company', sortable: true },
     { id: 'branch_name', label: 'Branch', sortable: true },
     { id: 'dept_name', label: 'Department', sortable: true },
     { id: 'actions', label: 'Actions', sortable: false }
@@ -216,6 +323,7 @@ const StaffListPage = () => {
     { label: 'Last Name', value: 'lastName' },
     { label: 'Email', value: 'email' },
     { label: 'Status', value: 'active_status' },
+    { label: 'Company', value: 'company_name' },
     { label: 'Branch', value: 'branch_name' },
     { label: 'Department', value: 'dept_name' },
   ];
@@ -301,13 +409,13 @@ const StaffListPage = () => {
     try {
       setLoadingCompanies(true);
       let token = localStorage.getItem("biometric_token");
-      
+
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
-          headers: { Authorization: token }
-        }
+        headers: { Authorization: token }
+      }
       );
-      
+
       setCompanies(response.data?.data || []);
       setLoadingCompanies(false);
     } catch (error) {
@@ -345,17 +453,17 @@ const StaffListPage = () => {
   // Fetch branches data
   const fetchBranches = async (companyId) => {
     if (!companyId) return;
-    
+
     try {
       setLoadingBranches(true);
       let token = localStorage.getItem("biometric_token");
-      
+
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BASE_URL}/company/${companyId}/branches`, {
-          headers: { Authorization: token }
-        }
+        headers: { Authorization: token }
+      }
       );
-      
+
       setBranches(Array.isArray(response.data) ? response.data : response.data?.data || []);
       setLoadingBranches(false);
     } catch (error) {
@@ -370,17 +478,17 @@ const StaffListPage = () => {
       setDepartments([]);
       return;
     }
-    
+
     try {
       setLoadingDepartments(true);
       let token = localStorage.getItem("biometric_token");
-      
+
       const response = await axios.get(
-       `${process.env.NEXT_PUBLIC_BASE_URL}/department/${branchId}`, {
-          headers: { Authorization: token }
-        }
+        `${process.env.NEXT_PUBLIC_BASE_URL}/department/${branchId}`, {
+        headers: { Authorization: token }
+      }
       );
-      
+
       setDepartments(Array.isArray(response.data) ? response.data : response.data?.data || []);
       setLoadingDepartments(false);
     } catch (error) {
@@ -417,56 +525,56 @@ const StaffListPage = () => {
   };
 
   // Fetch staff data
-// Fetch staff data
-const fetchStaff = async () => {
-  // Employee Directory shows EVERY employee — no branch selection required.
-  try {
-    setLoading(true);
-    const isTreeView = viewMode === 'tree';
+  // Fetch staff data
+  const fetchStaff = async () => {
+    // Employee Directory shows EVERY employee — no branch selection required.
+    try {
+      setLoading(true);
+      const isTreeView = viewMode === 'tree';
 
-    // Construct query params - use current pagination state
-    const params = {
-      page: isTreeView ? 1 : pagination.page,
-      page_size: isTreeView ? 1000 : pagination.page_size,
-      search: search,
-      firstName: filters.firstName || undefined,
-      lastName: filters.lastName || undefined,
-      email: filters.email || undefined,
-      branch: filters.branch || undefined,
-      department: filters.department || undefined,
-      active_status: filters.active_status || undefined,
-      ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field
-    };
+      // Construct query params - use current pagination state
+      const params = {
+        page: isTreeView ? 1 : pagination.page,
+        page_size: isTreeView ? 1000 : pagination.page_size,
+        search: search,
+        firstName: filters.firstName || undefined,
+        lastName: filters.lastName || undefined,
+        email: filters.email || undefined,
+        branch: filters.branch || undefined,
+        department: filters.department || undefined,
+        active_status: filters.active_status || undefined,
+        ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field
+      };
 
-    // Remove empty filters
-    Object.keys(params).forEach(key => {
-      if (params[key] == null || params[key] === '') {
-        delete params[key];
-      }
-    });
+      // Remove empty filters
+      Object.keys(params).forEach(key => {
+        if (params[key] == null || params[key] === '') {
+          delete params[key];
+        }
+      });
 
-    let token = localStorage.getItem("biometric_token");
-    const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/employees/list-all`,
-      { companyId: filters.company || undefined },
-      {
-        headers: { Authorization: token },
-        params
-      }
-    );
-    
-    setStaff(response.data?.data || []);
-    setPagination((prev) => ({
-      ...prev,
-      total_pages: Math.ceil((response.data?.count || 0) / prev.page_size),
-      count: response.data?.count || 0
-    }));
-    setLoading(false);
-  } catch (error) {
-    console.error('Error fetching staff:', error);
-    setLoading(false);
-  }
-};
+      let token = localStorage.getItem("biometric_token");
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/employees/list-all`,
+        { companyId: filters.company || undefined },
+        {
+          headers: { Authorization: token },
+          params
+        }
+      );
+
+      setStaff(response.data?.data || []);
+      setPagination((prev) => ({
+        ...prev,
+        total_pages: Math.ceil((response.data?.count || 0) / prev.page_size),
+        count: response.data?.count || 0
+      }));
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching staff:', error);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchCompanies();
@@ -475,7 +583,7 @@ const fetchStaff = async () => {
   useEffect(() => {
     if (selectedCompany) {
       fetchBranches(selectedCompany);
-    //   setSelectedBranch(null); // Reset branch selection when company changes
+      //   setSelectedBranch(null); // Reset branch selection when company changes
       setNewStaff(prev => ({ ...prev, companyId: selectedCompany }));
     }
   }, [selectedCompany]);
@@ -522,31 +630,31 @@ const fetchStaff = async () => {
   }, [selectedBranch]);
 
   // Handle select all
-const handleSelectAll = (event) => {
-  if (event.target.checked) {
-    const newSelected = staff.map(staff => staff._id); // Use _id instead of id if that's your key
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
+      const newSelected = staff.map(staff => staff._id); // Use _id instead of id if that's your key
+      setSelected(newSelected);
+      setShowDelete(true);
+    } else {
+      setSelected([]);
+      setShowDelete(false);
+    }
+  };
+
+  // Handle single select
+  const handleSelect = (event, id) => {
+    const selectedIndex = selected.indexOf(id);
+    let newSelected = [];
+
+    if (selectedIndex === -1) {
+      newSelected = [...selected, id];
+    } else {
+      newSelected = selected.filter(item => item !== id);
+    }
+
     setSelected(newSelected);
-    setShowDelete(true);
-  } else {
-    setSelected([]);
-    setShowDelete(false);
-  }
-};
-
-// Handle single select
-const handleSelect = (event, id) => {
-  const selectedIndex = selected.indexOf(id);
-  let newSelected = [];
-
-  if (selectedIndex === -1) {
-    newSelected = [...selected, id];
-  } else {
-    newSelected = selected.filter(item => item !== id);
-  }
-
-  setSelected(newSelected);
-  setShowDelete(newSelected.length > 0);
-};
+    setShowDelete(newSelected.length > 0);
+  };
   // Handle sort
   const handleSort = (field) => {
     const isAsc = sorting.field === field && sorting.direction === 'asc';
@@ -585,10 +693,10 @@ const handleSelect = (event, id) => {
   };
 
   // Apply filters
-const applyFilters = () => {
-  fetchStaff();
-  setFilterOpen(false);
-};
+  const applyFilters = () => {
+    fetchStaff();
+    setFilterOpen(false);
+  };
   // Reset filters
   const resetFilters = () => {
     setFilters({
@@ -615,12 +723,12 @@ const applyFilters = () => {
     }));
   };
 
-  let [editcheckfield,seteditcheckfield]=useState({})
+  let [editcheckfield, seteditcheckfield] = useState({})
   // Handle menu click
   const handleMenuClick = (event, staff) => {
     setAnchorEl(event.currentTarget);
     setSelectedStaff(staff);
-    seteditcheckfield({username:staff.username,email:staff.email})
+    seteditcheckfield({ username: staff.username, email: staff.email, deviceUserId: staff.deviceUserId, employeeCode: staff.employeeCode });
   };
 
   // Handle menu close
@@ -639,26 +747,26 @@ const applyFilters = () => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("biometric_token");
-         if(Array.isArray(id)){
+      if (Array.isArray(id)) {
 
-               var data = { ids: id };
-            var response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/delete-bulk`,data, {
-              headers: { Authorization: token }
-            });
-           }
-           else{
-                      var response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/${id}`, {
-        headers: { Authorization: token }
-      });
-           }
-    //   const response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
-    //     headers: { Authorization: token }
-    //   });
-      
-      if(response?.data.detail) {
+        var data = { ids: id };
+        var response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/delete-bulk`, data, {
+          headers: { Authorization: token }
+        });
+      }
+      else {
+        var response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/${id}`, {
+          headers: { Authorization: token }
+        });
+      }
+      //   const response = await axios.get(`http://localhost:3001/users/deleteUser/${id}`, {
+      //     headers: { Authorization: token }
+      //   });
+
+      if (response?.data.detail) {
         setOpenSnackbar(response?.data.detail);
       } else {
-        setOpenSnackbar({status: true, message: 'Staff deleted successfully'});
+        setOpenSnackbar({ status: true, message: 'Staff deleted successfully' });
         setSelected([]);
         setShowDelete(false);
         dispatch(confirnDeleteAction(false));
@@ -684,10 +792,10 @@ const applyFilters = () => {
 
   // Handle edit
   const handleEdit = () => {
- setUsernameError("");
- setEmailError("")
     if (selectedStaff) {
       setCurrentStaff(selectedStaff);
+      seteditcheckfield({ email: selectedStaff.email, deviceUserId: selectedStaff.deviceUserId, employeeCode: selectedStaff.employeeCode });
+      editFormSubmittedRef.current = false;
       setEditModalOpen(true);
     }
     handleMenuClose();
@@ -696,25 +804,61 @@ const applyFilters = () => {
   // Open the Edit modal with the same fields as Add. Pre-load the employee's
   // company/branch so the Company → Branch → Department dropdowns are populated.
   const openEditEmployee = (staffMember) => {
-    setEmailError("");
     setSelectedCompany(staffMember.companyId || null);
     setSelectedBranch(staffMember.branchId || null);
     if (staffMember.companyId) fetchBranches(staffMember.companyId);
     if (staffMember.branchId) fetchDepartments(staffMember.branchId);
+    seteditcheckfield({ email: staffMember.email, deviceUserId: staffMember.deviceUserId, employeeCode: staffMember.employeeCode });
     setCurrentStaff({
       ...staffMember,
       department: staffMember.dept_id || staffMember.deptId || '',
     });
+    editFormSubmittedRef.current = false;
     setEditModalOpen(true);
   };
 
-  const handleEditSubmit = async (values) => {
+  const handleEditSubmit = async (values, { setErrors }) => {
     try {
       let token = localStorage.getItem("biometric_token");
+
+      // Validate email
+      if (values.email && editcheckfield.email !== values.email) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "email", email: values.email, id: values._id }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ email: "Email already exists" });
+          return;
+        }
+      }
+
+      // Validate employeeCode
+      if (values.employeeCode && editcheckfield.employeeCode !== values.employeeCode) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "employeeCode", employeeCode: values.employeeCode, id: values._id }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ employeeCode: "Employee code already exists" });
+          return;
+        }
+      }
+
+      // Validate deviceUserId
+      if (values.deviceUserId && editcheckfield.deviceUserId !== values.deviceUserId) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "deviceUserId", deviceUserId: values.deviceUserId, id: values._id }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ deviceUserId: "Device ID already exists" });
+          return;
+        }
+      }
+
       await axios.put(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/${values._id}`, values, {
         headers: { Authorization: token }
       });
       setOpenSnackbar({ status: true, message: 'Employee updated successfully' });
+      editFormSubmittedRef.current = false;
       setEditModalOpen(false);
       fetchStaff();
     } catch (error) {
@@ -723,27 +867,61 @@ const applyFilters = () => {
     }
   };
 
-  const handleAllowEditToggle = async (staffMember) => {
-    let token = localStorage.getItem("biometric_token");
-    let Staffdata = { ...staffMember, id: staffMember._id, editstatus: staffMember?.editstatus ? false : true };
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/` + Staffdata.id, {
-      method: 'POST',
-      headers: {
-        Authorization: token,
-        'Content-Type': "application/json"
-      },
-      body: JSON.stringify(Staffdata),
-    });
-    if (response.ok) {
-      setOpenSnackbar({ status: true, message: staffMember?.editstatus ? "edit disabled for user" : "edit enabled for user" });
-      fetchStaff();
-    }
-  };
+  // const handleAllowEditToggle = async (staffMember) => {
+  //   let token = localStorage.getItem("biometric_token");
+  //   let Staffdata = { ...staffMember, id: staffMember._id, editstatus: staffMember?.editstatus ? false : true };
+  //   const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/` + Staffdata.id, {
+  //     method: 'POST',
+  //     headers: {
+  //       Authorization: token,
+  //       'Content-Type': "application/json"
+  //     },
+  //     body: JSON.stringify(Staffdata),
+  //   });
+  //   if (response.ok) {
+  //     setOpenSnackbar({ status: true, message: staffMember?.editstatus ? "edit disabled for user" : "edit enabled for user" });
+  //     fetchStaff();
+  //   }
+  // };
 
   // Handle add staff
-  const handleAddStaff = async (values) => {
+  const handleAddStaff = async (values, { setErrors }) => {
     try {
       let token = localStorage.getItem("biometric_token");
+
+      // Validate email
+      if (values.email) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "email", email: values.email }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ email: "Email already exists" });
+          return;
+        }
+      }
+
+      // Validate employeeCode
+      if (values.employeeCode) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "employeeCode", employeeCode: values.employeeCode }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ employeeCode: "Employee code already exists" });
+          return;
+        }
+      }
+
+      // Validate deviceUserId
+      if (values.deviceUserId) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "deviceUserId", deviceUserId: values.deviceUserId }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ deviceUserId: "Device ID already exists" });
+          return;
+        }
+      }
+
       // Employee record only — NO username / password / role.
       const apiValues = {
         firstName: values.firstName,
@@ -761,7 +939,8 @@ const applyFilters = () => {
         headers: { Authorization: token }
       });
 
-      setOpenSnackbar({status: true, message: 'Employee added successfully'});
+      setOpenSnackbar({ status: true, message: 'Employee added successfully' });
+      addFormSubmittedRef.current = false;
       setAddModalOpen(false);
       fetchStaff();
     } catch (error) {
@@ -783,19 +962,19 @@ const applyFilters = () => {
   };
 
 
-  const handleManageEmployees=(id)=>{
-router.push({
-  pathname: '/company/branches/staff',
-  query: { id: id ,companyId:router.query.id }
-});
-}
+  const handleManageEmployees = (id) => {
+    router.push({
+      pathname: '/company/branches/staff',
+      query: { id: id, companyId: router.query.id }
+    });
+  }
 
-  const handleManagegroups=(id)=>{
-router.push({
-  pathname: '/managegroup',
-  query: { branchId: selectedBranch ,companyId:selectedCompany }
-});
-}
+  const handleManagegroups = (id) => {
+    router.push({
+      pathname: '/managegroup',
+      query: { branchId: selectedBranch, companyId: selectedCompany }
+    });
+  }
   // Validation schema — employees need only a name + branch. Email is OPTIONAL
   // (employees have no login). Role/username/password are gone entirely.
   const validationSchema = Yup.object({
@@ -806,11 +985,34 @@ router.push({
     email: Yup.string()
       .email("Invalid email")
       .notRequired()
-      .test(
-        'email-exists',
-        'Email already exists',
-        () => !emailError // This will be updated by our debounced function
-      ),
+      .test('email-unique', 'Email already exists', async function (value) {
+        if (!value) return true;
+        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) return true;
+        const id = this.parent?._id || this.parent?.id;
+        const isSubmitted = id ? editFormSubmittedRef.current : addFormSubmittedRef.current;
+        if (!isSubmitted) return true;
+        return checkEmailUnique(value, id);
+      }),
+    employeeCode: Yup.string()
+      .notRequired()
+      .test('employeeCode-unique', 'Employee code already exists', async function (value) {
+        if (!value) return true;
+        const id = this.parent?._id || this.parent?.id;
+        const isSubmitted = id ? editFormSubmittedRef.current : addFormSubmittedRef.current;
+        if (!isSubmitted) return true;
+        return checkEmployeeCodeUnique(value, id);
+      }),
+    deviceUserId: Yup.string()
+      .notRequired()
+      .test('deviceUserId-unique', 'Device ID already exists', async function (value) {
+        if (!value) return true;
+        const id = this.parent?._id || this.parent?.id;
+        const isSubmitted = id ? editFormSubmittedRef.current : addFormSubmittedRef.current;
+        if (!isSubmitted) return true;
+        return checkDeviceUserIdUnique(value, id);
+      }),
+    companyId: Yup.string().required("Required"),
+    branchId: Yup.string().required("Required"),
   });
 
   useEffect(() => {
@@ -820,33 +1022,33 @@ router.push({
     }, 3000);
   }, []);
 
-//   useEffect(() => {
-//     dispatch(getStaffList());
-//   }, [dispatch]);
+  //   useEffect(() => {
+  //     dispatch(getStaffList());
+  //   }, [dispatch]);
 
 
-// Helper functions for date validation
-const getTodayDate = () => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-};
+  // Helper functions for date validation
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
 
-const getMinBirthDate = () => {
-  const today = new Date();
-  const minBirthDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
-  return minBirthDate.toISOString().split('T')[0];
-};
-const [showPassword, setShowPassword] = useState(false);
-// const [branch, setShowPassword] = useState(false);
+  const getMinBirthDate = () => {
+    const today = new Date();
+    const minBirthDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+    return minBirthDate.toISOString().split('T')[0];
+  };
+  const [showPassword, setShowPassword] = useState(false);
+  // const [branch, setShowPassword] = useState(false);
 
 
-// useMemo(()=>{
-//  branches.map((branch) => (
-//                       <MenuItem key={branch._id} value={branch._id}>
-//                         {branch.name}
-//                       </MenuItem>
-//                     ))
-// },[])
+  // useMemo(()=>{
+  //  branches.map((branch) => (
+  //                       <MenuItem key={branch._id} value={branch._id}>
+  //                         {branch.name}
+  //                       </MenuItem>
+  //                     ))
+  // },[])
 
   // Add this function to handle the export
   const handleExportEmployees = () => {
@@ -854,34 +1056,34 @@ const [showPassword, setShowPassword] = useState(false);
 
       // Create CSV content
       const headers = [
-        "username", "First Name", "Last Name","email", "Date of Joining", "Date OF Birth", 
-        "Mobile", "Gender", 'active_status', "Department Code", 
-        "Department Name",  "Company Id","branch Code",
-       
+        "username", "First Name", "Last Name", "email", "Date of Joining", "Date OF Birth",
+        "Mobile", "Gender", 'active_status', "Department Code",
+        "Department Name", "Company Id", "branch Code",
+
       ].join(",");
-      
+
       const rows = staff.map(employee => {
         return [
           employee.username || '',
           employee.firstName || '',
           employee.lastName || '',
           employee.email || '',
-            employee.joining_date || '',
+          employee.joining_date || '',
           employee.date_of_birth || '',
           employee.mobile || '',
-           employee.gender || '',
-              employee.active_status || '',
+          employee.gender || '',
+          employee.active_status || '',
           employee.dept_code || '',
-          employee.dept_name|| '',
-          employee.company_Id|| '',
-          employee.branchCode|| '',
-        
+          employee.dept_name || '',
+          employee.company_Id || '',
+          employee.branchCode || '',
+
           '' // Aadhaar No. (not in your data)
         ].map(field => `"${field}"`).join(",");
       });
-      
+
       const csvContent = [headers, ...rows].join("\n");
-      
+
       // Create download link
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -892,8 +1094,8 @@ const [showPassword, setShowPassword] = useState(false);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      setOpenSnackbar({status:"success",message:"Record exported successfully"});
+
+      setOpenSnackbar({ status: "success", message: "Record exported successfully" });
       setExportModalOpen(false);
     } catch (error) {
       console.error('Error exporting employees:', error);
@@ -902,59 +1104,32 @@ const [showPassword, setShowPassword] = useState(false);
 
 
 
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return function(...args) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        func.apply(this, args);
-      }, delay);
-    };
-  };
-    const [emailError, setEmailError] = useState('');
-    const [usernameError, setUsernameError] = useState('');
-    
-    // Debounced validation functions
-    const checkFieldsExists = debounce(async (value,field,id) => {
-      if (!value){
-         setEmailError("")
-         return
-      }
-      try {
-        let token = localStorage.getItem("biometric_token");
-        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`,{ field:"email", email: value ,id}, {
-          headers: { Authorization: token }
-        });
-        setEmailError(response.data.message ? 'Email already exists' : '');
-      } catch (error) {
-        console.error('Error checking email:', error);
-      }
-    }, 1000);
 
 
 
-      const [importModalOpen, setImportModalOpen] = useState(false);
-      const handleImportEmployees = async (formData) => {
-        try {
-          let token = localStorage.getItem("biometric_token");
-          const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_BASE_URL}/employees/import`,
-            formData,
-            {
-              headers: { 
-                Authorization: token,
-                'Content-Type': 'multipart/form-data'
-              }
-            }
-          );
-          // setOpen("importsuccess");
-          console.log(response,"response",{response})
-          setOpenSnackbar({status: true, message:response?.data?.count +" "+ 'Staff imported successfully'});
-          fetchStaff();
-        } catch (error) {
-          console.error('Error importing employees:', error);
+
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const handleImportEmployees = async (formData) => {
+    try {
+      let token = localStorage.getItem("biometric_token");
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/employees/import`,
+        formData,
+        {
+          headers: {
+            Authorization: token,
+            'Content-Type': 'multipart/form-data'
+          }
         }
-      };
+      );
+      // setOpen("importsuccess");
+      console.log(response, "response", { response })
+      setOpenSnackbar({ status: true, message: response?.data?.count + " " + 'Staff imported successfully' });
+      fetchStaff();
+    } catch (error) {
+      console.error('Error importing employees:', error);
+    }
+  };
   return (
     <>
       <Layout>
@@ -967,7 +1142,7 @@ const [showPassword, setShowPassword] = useState(false);
                 Employee Directory
               </Typography>
             </Box>
-            
+
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
               {showDelete && (
                 <Tooltip title={`Delete selected (${selected.length})`}>
@@ -982,7 +1157,7 @@ const [showPassword, setShowPassword] = useState(false);
                   </IconButton>
                 </Tooltip>
               )}
-              
+
               <Dialog open={exportModalOpen} onClose={() => setExportModalOpen(false)}>
                 <DialogTitle>Export Employees</DialogTitle>
                 <DialogContent>
@@ -1004,13 +1179,13 @@ const [showPassword, setShowPassword] = useState(false);
                 startIcon={<UploadIcon />}
                 onClick={() => setExportModalOpen(true)}
                 variant="outlined"
-                sx={{ 
-                  textTransform: "none", 
-                  borderColor: '#E5E7EB', 
-                  color: '#4B5563', 
+                sx={{
+                  textTransform: "none",
+                  borderColor: '#E5E7EB',
+                  color: '#4B5563',
                   borderRadius: '6px',
                   px: 2,
-                  '&:hover': { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' } 
+                  '&:hover': { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' }
                 }}
               >
                 Export
@@ -1020,13 +1195,13 @@ const [showPassword, setShowPassword] = useState(false);
                 startIcon={<FilterIcon />}
                 onClick={() => setFilterOpen(true)}
                 variant="outlined"
-                sx={{ 
-                  textTransform: "none", 
-                  borderColor: '#E5E7EB', 
-                  color: '#4B5563', 
+                sx={{
+                  textTransform: "none",
+                  borderColor: '#E5E7EB',
+                  color: '#4B5563',
                   borderRadius: '6px',
                   px: 2,
-                  '&:hover': { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' } 
+                  '&:hover': { borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' }
                 }}
               >
                 Sort & Filter
@@ -1093,12 +1268,30 @@ const [showPassword, setShowPassword] = useState(false);
               </Button> */}
 
               <Button
-                onClick={() => { setAddModalOpen(true); setUsernameError(""); setEmailError(""); }}
+                onClick={() => {
+                  addFormSubmittedRef.current = false;
+                  setNewStaff({
+                    firstName: '',
+                    lastName: '',
+                    gender: "",
+                    mobile: "",
+                    email: '',
+                    employeeCode: '',
+                    deviceUserId: '',
+                    active_status: 'Active',
+                    joining_date: '',
+                    date_of_birth: '',
+                    companyId: selectedCompany || '',
+                    branchId: selectedBranch || '',
+                    department: ''
+                  });
+                  setAddModalOpen(true);
+                }}
                 variant="contained"
-                sx={{ 
-                  textTransform: "none", 
-                  backgroundColor: '#0E9F6E', 
-                  color: '#FFFFFF', 
+                sx={{
+                  textTransform: "none",
+                  backgroundColor: '#0E9F6E',
+                  color: '#FFFFFF',
                   borderRadius: '6px',
                   fontWeight: 600,
                   boxShadow: 'none',
@@ -1133,7 +1326,7 @@ const [showPassword, setShowPassword] = useState(false);
                       </InputAdornment>
                     ),
                   }}
-                  sx={{ 
+                  sx={{
                     width: 300,
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '8px',
@@ -1175,7 +1368,7 @@ const [showPassword, setShowPassword] = useState(false);
                       handleFilterChange('active_status', e.target.value);
                       setPagination(prev => ({ ...prev, page: 1 }));
                     }}
-                    sx={{ 
+                    sx={{
                       borderRadius: '8px',
                       color: '#4B5563',
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
@@ -1218,7 +1411,7 @@ const [showPassword, setShowPassword] = useState(false);
                     value={filters.department || ''}
                     displayEmpty
                     onChange={(e) => handleFilterChange('department', e.target.value)}
-                    sx={{ 
+                    sx={{
                       borderRadius: '8px',
                       color: '#4B5563',
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
@@ -1235,266 +1428,267 @@ const [showPassword, setShowPassword] = useState(false);
               </Box>
 
               <Box sx={{ display: viewMode === 'table' ? 'block' : 'none' }}>
-              <Box sx={{ overflowX: 'auto' }}>
-                <TableContainer
-                  elevation={0}
-                  sx={{
-                    height: { xs: 600, sm: 300, md: 350 },
-                    maxHeight: '80vh',
-                    overflowY: 'auto',
-                  }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
-                        {columns.map((column) => (
-                          <TableCell 
-                            key={column.id}
-                            sx={{ 
-                              position: 'sticky',
-                              top: 0,
-                              backgroundColor: '#F3F4F6',
-                              zIndex: 1,
-                              whiteSpace: 'nowrap',
-                              textAlign: column.id === 'checkbox' ? 'left' : 'center',
-                              verticalAlign: 'middle',
-                              padding: column.id === 'checkbox' ? '0 0 0 16px' : '16px',
-                              fontWeight: 600,
-                              color: '#4B5563',
-                              borderBottom: '1px solid #E5E7EB',
-                            }}
-                          >
-                            {column.sortable ? (
-                              <Box 
-                                display="flex" 
-                                alignItems="center" 
-                                justifyContent="center"
-                                sx={{ cursor: 'pointer' }}
-                                onClick={() => handleSort(column.id)}
-                              >
+                <Box sx={{ overflowX: 'auto' }}>
+                  <TableContainer
+                    elevation={0}
+                    sx={{
+                      height: { xs: 600, sm: 300, md: 350 },
+                      maxHeight: '80vh',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    <Table>
+                      <TableHead>
+                        <TableRow sx={{ backgroundColor: '#F3F4F6' }}>
+                          {columns.map((column) => (
+                            <TableCell
+                              key={column.id}
+                              sx={{
+                                position: 'sticky',
+                                top: 0,
+                                backgroundColor: '#F3F4F6',
+                                zIndex: 1,
+                                whiteSpace: 'nowrap',
+                                textAlign: column.id === 'checkbox' ? 'left' : 'center',
+                                verticalAlign: 'middle',
+                                padding: column.id === 'checkbox' ? '0 0 0 16px' : '16px',
+                                fontWeight: 600,
+                                color: '#4B5563',
+                                borderBottom: '1px solid #E5E7EB',
+                              }}
+                            >
+                              {column.sortable ? (
+                                <Box
+                                  display="flex"
+                                  alignItems="center"
+                                  justifyContent="center"
+                                  sx={{ cursor: 'pointer' }}
+                                  onClick={() => handleSort(column.id)}
+                                >
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    {column.label}
+                                  </Typography>
+                                  {sorting.field === column.id ? (
+                                    sorting.direction === 'asc' ? (
+                                      <ArrowUpIcon fontSize="small" sx={{ ml: 0.5 }} />
+                                    ) : (
+                                      <ArrowDownIcon fontSize="small" sx={{ ml: 0.5 }} />
+                                    )
+                                  ) : (
+                                    <ArrowDownIcon fontSize="small" sx={{ ml: 0.5, opacity: 0.4 }} />
+                                  )}
+                                </Box>
+                              ) : column.id === 'checkbox' ? (
+                                <Checkbox
+                                  indeterminate={selected.length > 0 && selected.length < staff.length}
+                                  checked={staff.length > 0 && selected.length === staff.length}
+                                  onChange={handleSelectAll}
+                                />
+                              ) : (
                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                                   {column.label}
                                 </Typography>
-                                {sorting.field === column.id ? (
-                                  sorting.direction === 'asc' ? (
-                                    <ArrowUpIcon fontSize="small" sx={{ ml: 0.5 }} />
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+
+                      <TableBody>
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={columns.length} align="center">
+                              <CircularProgress size={40} sx={{ my: 4 }} />
+                            </TableCell>
+                          </TableRow>
+                        ) : staff.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={columns.length} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                              No employees found
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          staff.map((staffMember, index) => {
+                            const isSelected = selected.includes(staffMember._id);
+                            return (
+                              <TableRow
+                                key={staffMember._id}
+                                hover
+                                selected={isSelected}
+                                sx={{
+                                  '& > td': {
+                                    padding: '8px 16px',
+                                    height: '40px',
+                                  }
+                                }}
+                              >
+                                <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onChange={(event) => handleSelect(event, staffMember._id)}
+                                  />
+                                </TableCell>
+
+                                <TableCell align="center">{getSerialNumber(index)}</TableCell>
+                                <TableCell align="center">{staffMember.firstName}</TableCell>
+                                <TableCell align="center">{staffMember.lastName}</TableCell>
+                                <TableCell align="center">{staffMember.email}</TableCell>
+                                <TableCell align="center">
+                                  {staffMember.deviceUserId ? (
+                                    <Box
+                                      sx={{
+                                        display: 'inline-block',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        backgroundColor: '#DEF7EC',
+                                        color: '#03543F',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      #{staffMember.deviceUserId}
+                                    </Box>
                                   ) : (
-                                    <ArrowDownIcon fontSize="small" sx={{ ml: 0.5 }} />
-                                  )
-                                ) : (
-                                  <ArrowDownIcon fontSize="small" sx={{ ml: 0.5, opacity: 0.4 }} />
-                                )}
-                              </Box>
-                            ) : column.id === 'checkbox' ? (
-                              <Checkbox
-                                indeterminate={selected.length > 0 && selected.length < staff.length}
-                                checked={staff.length > 0 && selected.length === staff.length}
-                                onChange={handleSelectAll}
-                              />
-                            ) : (
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {column.label}
-                              </Typography>
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={columns.length} align="center">
-                            <CircularProgress size={40} sx={{ my: 4 }} />
-                          </TableCell>
-                        </TableRow>
-                      ) : staff.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={columns.length} align="center" sx={{ py: 6, color: 'text.secondary' }}>
-                            No employees found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        staff.map((staffMember, index) => {
-                          const isSelected = selected.includes(staffMember._id);
-                          return (
-                            <TableRow
-                              key={staffMember._id}
-                              hover
-                              selected={isSelected}
-                            sx={{
-                              '& > td': {
-                                  padding: '8px 16px',
-                                  height: '40px',
-                                }
-                              }}
-                            >
-                              <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onChange={(event) => handleSelect(event, staffMember._id)}
-                                />
-                              </TableCell>
-                              
-                              <TableCell align="center">{getSerialNumber(index)}</TableCell>
-                              <TableCell align="center">{staffMember.firstName}</TableCell>
-                              <TableCell align="center">{staffMember.lastName}</TableCell>
-                              <TableCell align="center">{staffMember.email}</TableCell>
-                              <TableCell align="center">
-                                {staffMember.deviceUserId ? (
+                                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                                      Not linked
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                                <TableCell align="center">
                                   <Box
                                     sx={{
                                       display: 'inline-block',
                                       padding: '4px 8px',
                                       borderRadius: '6px',
-                                      backgroundColor: '#DEF7EC',
-                                      color: '#03543F',
+                                      backgroundColor: staffMember.active_status === 'Active' ? '#DEF7EC' : '#FDE8E8',
+                                      color: staffMember.active_status === 'Active' ? '#03543F' : '#9B1C1C',
                                       fontSize: '12px',
                                       fontWeight: 600,
                                     }}
                                   >
-                                    #{staffMember.deviceUserId}
+                                    {staffMember.active_status}
                                   </Box>
-                                ) : (
-                                  <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                                    Not linked
-                                  </Typography>
-                                )}
-                              </TableCell>
-                              <TableCell align="center">
-                                <Box 
-                                  sx={{
-                                    display: 'inline-block',
-                                    padding: '4px 8px',
-                                    borderRadius: '6px',
-                                    backgroundColor: staffMember.active_status === 'Active' ? '#DEF7EC' : '#FDE8E8',
-                                    color: staffMember.active_status === 'Active' ? '#03543F' : '#9B1C1C',
-                                    fontSize: '12px',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {staffMember.active_status}
-                                </Box>
-                              </TableCell>
-                              <TableCell align="center">{staffMember.branch_name || '-'}</TableCell>
-                              <TableCell align="center">{staffMember.dept_name || '-'}</TableCell>
-                              
-                              <TableCell align="center">
-                                <IconButton
-                                  aria-label="more"
-                                  aria-controls="long-menu"
-                                  aria-haspopup="true"
-                                  onClick={(e) => handleMenuClick(e, staffMember)}
-                                  sx={{ color: 'text.secondary' }}
-                                >
-                                  <MoreVertIcon />
-                                </IconButton>
-                                <Menu
-                                  id="long-menu"
-                                  anchorEl={anchorEl}
-                                  keepMounted
-                                  open={openMenu && selectedStaff?._id === staffMember._id}
-                                  onClose={handleMenuClose}
-                                  PaperProps={{
-                                    style: {
-                                      width: '20ch',
-                                      boxShadow: 'none',
-                                    },
-                                    elevation: 0,
-                                  }}
-                                >
-                                  <MenuItem onClick={() => { handleMenuClose(); handleViewClick(staffMember); }}>
-                                    View Details
-                                  </MenuItem>
-                                  <MenuItem onClick={() => { handleMenuClose(); openEditEmployee(staffMember); }}>
-                                    Edit Profile
-                                  </MenuItem>
-                                  <MenuItem onClick={() => { handleMenuClose(); handleConfirmDelete(staffMember._id); }}>
-                                    Delete
-                                  </MenuItem>
-                                </Menu>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
+                                </TableCell>
+                                <TableCell align="center">{staffMember.company_name || '-'}</TableCell>
+                                <TableCell align="center">{staffMember.branch_name || '-'}</TableCell>
+                                <TableCell align="center">{staffMember.dept_name || '-'}</TableCell>
 
-              {/* Pagination */}
-              <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} sx={{ px: 2, pb: 2 }}>
-                <Box display="flex" justifyContent="flex-start" alignItems="center">
-                  <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel>Rows per page</InputLabel>
-                    <Select
-                      value={pagination.page_size}
-                      label="Rows per page"
-                      onChange={handlePageSizeChange}
-                      sx={{ color: 'text.secondary' }}
-                    >
-                      {[5, 10, 25, 50, 100].map((size) => (
-                        <MenuItem key={size} value={size}>
-                          {size}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                                <TableCell align="center">
+                                  <IconButton
+                                    aria-label="more"
+                                    aria-controls="long-menu"
+                                    aria-haspopup="true"
+                                    onClick={(e) => handleMenuClick(e, staffMember)}
+                                    sx={{ color: 'text.secondary' }}
+                                  >
+                                    <MoreVertIcon />
+                                  </IconButton>
+                                  <Menu
+                                    id="long-menu"
+                                    anchorEl={anchorEl}
+                                    keepMounted
+                                    open={openMenu && selectedStaff?._id === staffMember._id}
+                                    onClose={handleMenuClose}
+                                    PaperProps={{
+                                      style: {
+                                        width: '20ch',
+                                        boxShadow: 'none',
+                                      },
+                                      elevation: 0,
+                                    }}
+                                  >
+                                    <MenuItem onClick={() => { handleMenuClose(); handleViewClick(staffMember); }}>
+                                      View Details
+                                    </MenuItem>
+                                    <MenuItem onClick={() => { handleMenuClose(); openEditEmployee(staffMember); }}>
+                                      Edit Profile
+                                    </MenuItem>
+                                    <MenuItem onClick={() => { handleMenuClose(); handleConfirmDelete(staffMember._id); }}>
+                                      Delete
+                                    </MenuItem>
+                                  </Menu>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Box>
-            
-                <Box 
-                  sx={{
-                    '& .pagination': {
-                      display: 'flex',
-                      listStyle: 'none',
-                      padding: 0,
-                      margin: 0,
-                      gap: '4px',
-                      alignItems: 'center',
-                    },
-                    '& .pagination li a': {
-                      padding: '6px 12px',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: theme.typography.body2.fontSize,
-                      color: theme.palette.text.primary,
-                      textDecoration: 'none',
-                      display: 'inline-block',
-                    },
-                    '& .pagination li.selected a': {
-                      backgroundColor: theme.palette.primary.main,
-                      color: theme.palette.primary.contrastText,
-                      borderColor: theme.palette.primary.main,
-                      fontWeight: 500,
-                      fontSize: theme.typography.fontSize,
-                    },
-                    '& .pagination li.disabled a': {
-                      opacity: 0.5,
-                      cursor: 'not-allowed',
-                    }
-                  }}
-                >
-                  <ReactPaginate
-                    previousLabel={'Previous'}
-                    nextLabel={'Next'}
-                    breakLabel={'...'}
-                    pageCount={pagination.total_pages}
-                    marginPagesDisplayed={2}
-                    pageRangeDisplayed={3}
-                    onPageChange={({ selected }) => handlePageChange(selected + 1)}
-                    containerClassName={'pagination'}
-                    activeClassName={'selected'}
-                    previousClassName={'previous'}
-                    nextClassName={'next'}
-                    disabledClassName={'disabled'}
-                    forcePage={pagination.page - 1}
-                  />
+
+                {/* Pagination */}
+                <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} sx={{ px: 2, pb: 2 }}>
+                  <Box display="flex" justifyContent="flex-start" alignItems="center">
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <InputLabel>Rows per page</InputLabel>
+                      <Select
+                        value={pagination.page_size}
+                        label="Rows per page"
+                        onChange={handlePageSizeChange}
+                        sx={{ color: 'text.secondary' }}
+                      >
+                        {[5, 10, 25, 50, 100].map((size) => (
+                          <MenuItem key={size} value={size}>
+                            {size}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      '& .pagination': {
+                        display: 'flex',
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: 0,
+                        gap: '4px',
+                        alignItems: 'center',
+                      },
+                      '& .pagination li a': {
+                        padding: '6px 12px',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: theme.typography.body2.fontSize,
+                        color: theme.palette.text.primary,
+                        textDecoration: 'none',
+                        display: 'inline-block',
+                      },
+                      '& .pagination li.selected a': {
+                        backgroundColor: theme.palette.primary.main,
+                        color: theme.palette.primary.contrastText,
+                        borderColor: theme.palette.primary.main,
+                        fontWeight: 500,
+                        fontSize: theme.typography.fontSize,
+                      },
+                      '& .pagination li.disabled a': {
+                        opacity: 0.5,
+                        cursor: 'not-allowed',
+                      }
+                    }}
+                  >
+                    <ReactPaginate
+                      previousLabel={'Previous'}
+                      nextLabel={'Next'}
+                      breakLabel={'...'}
+                      pageCount={pagination.total_pages}
+                      marginPagesDisplayed={2}
+                      pageRangeDisplayed={3}
+                      onPageChange={({ selected }) => handlePageChange(selected + 1)}
+                      containerClassName={'pagination'}
+                      activeClassName={'selected'}
+                      previousClassName={'previous'}
+                      nextClassName={'next'}
+                      disabledClassName={'disabled'}
+                      forcePage={pagination.page - 1}
+                    />
+                  </Box>
+
+                  <Box sx={{ width: 120 }} />
                 </Box>
-                
-                <Box sx={{ width: 120 }} />
-              </Box>
               </Box>
 
               {viewMode === 'tree' && (
@@ -1852,7 +2046,7 @@ const [showPassword, setShowPassword] = useState(false);
         {/* Filter Modal */}
         <Dialog open={filterOpen} onClose={() => setFilterOpen(false)} maxWidth="md" fullWidth>
           <DialogTitle>Sort & Filter</DialogTitle>
-          
+
           <DialogContent dividers>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6} md={4}>
@@ -1863,7 +2057,7 @@ const [showPassword, setShowPassword] = useState(false);
                   onChange={(e) => handleFilterChange('firstName', e.target.value)}
                 />
               </Grid>
-              
+
               <Grid item xs={12} sm={6} md={4}>
                 <TextField
                   fullWidth
@@ -1872,7 +2066,7 @@ const [showPassword, setShowPassword] = useState(false);
                   onChange={(e) => handleFilterChange('lastName', e.target.value)}
                 />
               </Grid>
-              
+
               <Grid item xs={12} sm={6} md={4}>
                 <TextField
                   fullWidth
@@ -2006,7 +2200,7 @@ const [showPassword, setShowPassword] = useState(false);
               </Grid>
             </Grid>
           </DialogContent>
-          
+
           <DialogActions>
             <Button onClick={resetFilters} sx={{ color: 'text.secondary' }}>Reset</Button>
             <Button onClick={() => setFilterOpen(false)} sx={{ color: 'text.secondary' }}>Cancel</Button>
@@ -2015,7 +2209,7 @@ const [showPassword, setShowPassword] = useState(false);
         </Dialog>
 
         {/* View Staff Modal */}
-        <ViewStaffModal 
+        <ViewStaffModal
           staff={selectedStaffView}
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
@@ -2027,7 +2221,7 @@ const [showPassword, setShowPassword] = useState(false);
         {/* Edit Staff Modal */}
         <Modal
           open={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
+          onClose={() => { editFormSubmittedRef.current = false; setEditModalOpen(false); }}
           aria-labelledby="edit-staff-modal"
           aria-describedby="edit-staff-form"
         >
@@ -2067,12 +2261,14 @@ const [showPassword, setShowPassword] = useState(false);
               validationSchema={validationSchema}
               onSubmit={handleEditSubmit}
               enableReinitialize
+              // validateOnChange={false}
+              // validateOnBlur={false}
             >
-              {({ values, errors, touched, handleChange, setFieldValue }) => (
+              {({ values, errors, touched, handleChange, setFieldValue, setValues }) => (
                 <Form>
                   {/* Same "Attendance Profile Only" banner as Add, for consistency */}
-                  <Box sx={{ display:'flex', alignItems:'center', gap:1.5, bgcolor:'#E6F6F0', color:'#03543F', p:2, borderRadius:'8px', mb:3 }}>
-                    <Typography variant="body2" sx={{ fontWeight:500, fontSize:'13.5px', lineHeight:1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: '#E6F6F0', color: '#03543F', p: 2, borderRadius: '8px', mb: 3 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '13.5px', lineHeight: 1.5 }}>
                       🔒 <strong>Attendance Profile Only.</strong> This record is used to map attendance logs from biometric hardware. This employee will not receive credentials to log into the web portal.
                     </Typography>
                   </Box>
@@ -2089,7 +2285,7 @@ const [showPassword, setShowPassword] = useState(false);
                         variant="outlined"
                       />
                     </Grid>
-                    
+
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
@@ -2102,7 +2298,7 @@ const [showPassword, setShowPassword] = useState(false);
                         variant="outlined"
                       />
                     </Grid>
-                                                      <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
                         label="Mobile (optional)"
@@ -2120,13 +2316,9 @@ const [showPassword, setShowPassword] = useState(false);
                         label="Email (optional)"
                         name="email"
                         value={values.email}
-                         onChange={(e)=>{handleChange(e);if(editcheckfield.email!=e.target.value){ checkFieldsExists(e.target.value,"email")} } }
-
-                        error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
-    helperText={
-      (touched.email && errors.email) ||
-      emailError
-    }
+                        onChange={handleChange}
+                        error={touched.email && Boolean(errors.email)}
+                        helperText={touched.email && errors.email}
                         variant="outlined"
                       />
                     </Grid>
@@ -2137,12 +2329,14 @@ const [showPassword, setShowPassword] = useState(false);
                         name="employeeCode"
                         value={values.employeeCode || ''}
                         onChange={handleChange}
+                        error={touched.employeeCode && Boolean(errors.employeeCode)}
+                        helperText={touched.employeeCode && errors.employeeCode}
                         placeholder="e.g. EMP-1006"
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
                     </Grid>
-                   {/* <Grid item xs={12} md={6}>
+                    {/* <Grid item xs={12} md={6}>
   <TextField
     fullWidth
     label="Password*"
@@ -2170,21 +2364,24 @@ const [showPassword, setShowPassword] = useState(false);
 </Grid> */}
 
 
-                    
-                    
+
+
                     {/* Company → Branch → Department (same as Add) */}
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth error={touched.companyId && Boolean(errors.companyId)}>
                         <InputLabel>Company*</InputLabel>
                         <Select
                           name="companyId"
-                          value={values.companyId || selectedCompany || ''}
+                          value={values.companyId || ''}
                           label="Company*"
                           onChange={(e) => {
                             const v = e.target.value;
-                            setFieldValue('companyId', v);
-                            setFieldValue('branchId', '');
-                            setFieldValue('department', '');
+                            setValues({
+                              ...values,
+                              companyId: v,
+                              branchId: '',
+                              department: ''
+                            });
                             setSelectedCompany(v);
                           }}
                           sx={{ borderRadius: '8px' }}
@@ -2193,20 +2390,26 @@ const [showPassword, setShowPassword] = useState(false);
                             <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
                           ))}
                         </Select>
+                        {touched.companyId && errors.companyId && (
+                          <FormHelperText>{errors.companyId}</FormHelperText>
+                        )}
                       </FormControl>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth error={touched.branchId && Boolean(errors.branchId)}>
                         <InputLabel>Branch*</InputLabel>
                         <Select
                           name="branchId"
-                          value={values.branchId || selectedBranch || ''}
+                          value={values.branchId || ''}
                           label="Branch*"
                           onChange={(e) => {
                             const v = e.target.value;
-                            setFieldValue('branchId', v);
-                            setFieldValue('department', '');
+                            setValues({
+                              ...values,
+                              branchId: v,
+                              department: ''
+                            });
                             setSelectedBranch(v);
                           }}
                           disabled={loadingBranches || !(values.companyId || selectedCompany)}
@@ -2216,6 +2419,9 @@ const [showPassword, setShowPassword] = useState(false);
                             <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>
                           ))}
                         </Select>
+                        {touched.branchId && errors.branchId && (
+                          <FormHelperText>{errors.branchId}</FormHelperText>
+                        )}
                       </FormControl>
                     </Grid>
 
@@ -2246,6 +2452,8 @@ const [showPassword, setShowPassword] = useState(false);
                         name="deviceUserId"
                         value={values.deviceUserId || ''}
                         onChange={handleChange}
+                        error={touched.deviceUserId && Boolean(errors.deviceUserId)}
+                        helperText={touched.deviceUserId && errors.deviceUserId}
                         placeholder="map in Enrollment"
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
@@ -2273,6 +2481,7 @@ const [showPassword, setShowPassword] = useState(false);
                       <Button
                         fullWidth
                         type="submit"
+                        onClick={() => { editFormSubmittedRef.current = true; }}
                         variant="contained"
                         sx={{
                           textTransform: "none",
@@ -2298,7 +2507,7 @@ const [showPassword, setShowPassword] = useState(false);
         {/* Add Staff Modal */}
         <Modal
           open={addModalOpen}
-          onClose={() => setAddModalOpen(false)}
+          onClose={() => { addFormSubmittedRef.current = false; setAddModalOpen(false); }}
           aria-labelledby="add-staff-modal"
           aria-describedby="add-staff-form"
         >
@@ -2336,35 +2545,37 @@ const [showPassword, setShowPassword] = useState(false);
               <Typography variant="h6" component="h2" sx={{ fontWeight: 700, color: 'text.primary' }}>
                 Add Employee Record
               </Typography>
-              <IconButton 
-                onClick={() => setAddModalOpen(false)}
+              <IconButton
+                onClick={() => { addFormSubmittedRef.current = false; setAddModalOpen(false); }}
                 size="small"
                 sx={{ color: '#9CA3AF', '&:hover': { color: '#4B5563' } }}
               >
                 <CloseIcon />
               </IconButton>
             </Box>
-            
+
             <Divider sx={{ mb: 3 }} />
 
             <Formik
               initialValues={newStaff}
               validationSchema={validationSchema}
               onSubmit={handleAddStaff}
+              // validateOnChange={false}
+              // validateOnBlur={false}
             >
-              {({ values, errors, touched, handleChange, setFieldValue }) => (
+              {({ values, errors, touched, handleChange, setFieldValue, setValues }) => (
                 <Form>
                   {/* Attendance sync banner */}
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
                       gap: 1.5,
-                      bgcolor: '#E6F6F0', 
-                      color: '#03543F', 
-                      p: 2, 
-                      borderRadius: '8px', 
-                      mb: 3 
+                      bgcolor: '#E6F6F0',
+                      color: '#03543F',
+                      p: 2,
+                      borderRadius: '8px',
+                      mb: 3
                     }}
                   >
                     <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '13.5px', lineHeight: 1.5 }}>
@@ -2386,7 +2597,7 @@ const [showPassword, setShowPassword] = useState(false);
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
@@ -2407,12 +2618,9 @@ const [showPassword, setShowPassword] = useState(false);
                         label="Email (optional)"
                         name="email"
                         value={values.email}
-                        onChange={(e) => {
-                          handleChange(e);
-                          checkFieldsExists(e.target.value, "email");
-                        }}
-                        error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
-                        helperText={(touched.email && errors.email) || emailError}
+                        onChange={handleChange}
+                        error={touched.email && Boolean(errors.email)}
+                        helperText={touched.email && errors.email}
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
@@ -2434,17 +2642,20 @@ const [showPassword, setShowPassword] = useState(false);
 
                     {/* Company → Branch → Department: selectable right here, no context switch */}
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth error={touched.companyId && Boolean(errors.companyId)}>
                         <InputLabel>Company*</InputLabel>
                         <Select
                           name="companyId"
-                          value={values.companyId || selectedCompany || ''}
+                          value={values.companyId || ''}
                           label="Company*"
                           onChange={(e) => {
                             const v = e.target.value;
-                            setFieldValue('companyId', v);
-                            setFieldValue('branchId', '');
-                            setFieldValue('department', '');
+                            setValues({
+                              ...values,
+                              companyId: v,
+                              branchId: '',
+                              department: ''
+                            });
                             setSelectedCompany(v);
                           }}
                           sx={{ borderRadius: '8px' }}
@@ -2453,20 +2664,26 @@ const [showPassword, setShowPassword] = useState(false);
                             <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
                           ))}
                         </Select>
+                        {touched.companyId && errors.companyId && (
+                          <FormHelperText>{errors.companyId}</FormHelperText>
+                        )}
                       </FormControl>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth error={touched.branchId && Boolean(errors.branchId)}>
                         <InputLabel>Branch*</InputLabel>
                         <Select
                           name="branchId"
-                          value={values.branchId || selectedBranch || ''}
+                          value={values.branchId || ''}
                           label="Branch*"
                           onChange={(e) => {
                             const v = e.target.value;
-                            setFieldValue('branchId', v);
-                            setFieldValue('department', '');
+                            setValues({
+                              ...values,
+                              branchId: v,
+                              department: ''
+                            });
                             setSelectedBranch(v);
                           }}
                           disabled={loadingBranches || !(values.companyId || selectedCompany)}
@@ -2476,6 +2693,9 @@ const [showPassword, setShowPassword] = useState(false);
                             <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>
                           ))}
                         </Select>
+                        {touched.branchId && errors.branchId && (
+                          <FormHelperText>{errors.branchId}</FormHelperText>
+                        )}
                       </FormControl>
                     </Grid>
 
@@ -2508,6 +2728,8 @@ const [showPassword, setShowPassword] = useState(false);
                         name="employeeCode"
                         value={values.employeeCode || ''}
                         onChange={handleChange}
+                        error={touched.employeeCode && Boolean(errors.employeeCode)}
+                        helperText={touched.employeeCode && errors.employeeCode}
                         placeholder="e.g. EMP-1006"
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
@@ -2521,6 +2743,8 @@ const [showPassword, setShowPassword] = useState(false);
                         name="deviceUserId"
                         value={values.deviceUserId || ''}
                         onChange={handleChange}
+                        error={touched.deviceUserId && Boolean(errors.deviceUserId)}
+                        helperText={touched.deviceUserId && errors.deviceUserId}
                         placeholder="leave blank — map in Enrollment"
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
@@ -2530,9 +2754,10 @@ const [showPassword, setShowPassword] = useState(false);
                     <Grid item xs={12}>
                       <Button
                         fullWidth
-                        type="submit"                     
+                        type="submit"
+                        onClick={() => { addFormSubmittedRef.current = true; }}
                         variant="contained"
-                        sx={{ 
+                        sx={{
                           textTransform: "none",
                           backgroundColor: '#0E9F6E',
                           color: '#FFFFFF',
@@ -2555,50 +2780,50 @@ const [showPassword, setShowPassword] = useState(false);
 
         {/* FAB Removed in favor of top-right toolbar button */}
 
-{/* import staff files */}
- 
-<ImportEmployeeModal 
-  open={importModalOpen}
-  onClose={() => setImportModalOpen(false)}
-  onImport={handleImportEmployees}
-/>
-   
+        {/* import staff files */}
+
+        <ImportEmployeeModal
+          open={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          onImport={handleImportEmployees}
+        />
+
 
 
         {/* Snackbar for notifications */}
-       <Snackbar
-  open={Boolean(openSnackbar)}
-  autoHideDuration={6000}
-  onClose={handleCloseSnackbar}
-  anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
->
-  <Alert 
-    icon={openSnackbar?.status ? <CheckCircleIcon fontSize="inherit" /> : <ErrorIcon fontSize="inherit" />}
-    onClose={handleCloseSnackbar}
-    severity={openSnackbar?.status ? "success" : "error"}
-    variant="filled"
-    sx={{ 
-      width: '100%',
-      backgroundColor: openSnackbar?.status ? '#0e9f6e' : '#d32f2f',
-      color: 'white',
-      '& .MuiAlert-icon': {
-        color: 'white',
-        alignItems: 'center'
-      }
-    }}
-    action={
-      <IconButton 
-        size="small" 
-        onClick={handleCloseSnackbar} 
-        style={{ color: 'white' }}
-      >
-        <CloseIcon />
-      </IconButton>
-    }
-  >
-    {openSnackbar?.message || openSnackbar}
-  </Alert>
-</Snackbar>
+        <Snackbar
+          open={Boolean(openSnackbar)}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <Alert
+            icon={openSnackbar?.status ? <CheckCircleIcon fontSize="inherit" /> : <ErrorIcon fontSize="inherit" />}
+            onClose={handleCloseSnackbar}
+            severity={openSnackbar?.status ? "success" : "error"}
+            variant="filled"
+            sx={{
+              width: '100%',
+              backgroundColor: openSnackbar?.status ? '#0e9f6e' : '#d32f2f',
+              color: 'white',
+              '& .MuiAlert-icon': {
+                color: 'white',
+                alignItems: 'center'
+              }
+            }}
+            action={
+              <IconButton
+                size="small"
+                onClick={handleCloseSnackbar}
+                style={{ color: 'white' }}
+              >
+                <CloseIcon />
+              </IconButton>
+            }
+          >
+            {openSnackbar?.message || openSnackbar}
+          </Alert>
+        </Snackbar>
       </Layout>
     </>
   );

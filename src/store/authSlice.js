@@ -107,6 +107,7 @@ export const loginUser = createAsyncThunk(
 // 2) Thunk for registration
 // ---------------------------------
 // Adjust the mutation name and fields to match your actual schema
+/*
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async ({ firstName, lastName, email, password, role }, { rejectWithValue }) => {
@@ -142,7 +143,9 @@ export const registerUser = createAsyncThunk(
     }
   }
 );
+*/
 
+/*
 export const createEmployee = createAsyncThunk(
   "auth/createEmployee",
   async ({ obj }, { rejectWithValue }) => {
@@ -164,7 +167,9 @@ export const createEmployee = createAsyncThunk(
     }
   }
 );
+*/
 
+/*
 export const createDepartment = createAsyncThunk(
   "auth/createDepartment",
   async ({ obj }, { rejectWithValue }) => {
@@ -185,6 +190,8 @@ export const createDepartment = createAsyncThunk(
     }
   }
 );
+*/
+/*
 export const createPosition = createAsyncThunk(
   "auth/createPosition",
   async ({ obj }, { rejectWithValue }) => {
@@ -205,6 +212,8 @@ export const createPosition = createAsyncThunk(
     }
   }
 );
+*/
+/*
 export const createbranch = createAsyncThunk(
   "auth/createbranch",
   async ({ obj }, { rejectWithValue }) => {
@@ -225,6 +234,7 @@ export const createbranch = createAsyncThunk(
     }
   }
 );
+*/
 export const createcompany = createAsyncThunk(
   "auth/createcompany",
   async ({ obj }, { rejectWithValue }) => {
@@ -326,6 +336,7 @@ export const editBranchAction = createAsyncThunk(
     }
   }
 );
+/*
 export const getPositionList = createAsyncThunk(
   "auth/getPositionList",
   async (obj , { rejectWithValue }) => {
@@ -380,6 +391,7 @@ export const getDepartmentList = createAsyncThunk(
     }
   }
 );
+*/
 
 // ---------------------------------
 // 3) Auth Slice
@@ -439,6 +451,7 @@ const authSlice = createSlice({
       state.errorlogin = action.payload || action.error.message;
     });
 
+    /*
     // Register
     builder.addCase(registerUser.pending, (state) => {
       state.loading = true;
@@ -453,7 +466,9 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = action.payload || action.error.message;
     });
+    */
 
+    /*
     // create employee
     builder.addCase(createEmployee.pending, (state) => {
       state.loading = true;
@@ -470,7 +485,9 @@ const authSlice = createSlice({
       state.createdEmplyeeData=null
       state.error = action.payload || action.error.message;
     });
+    */
 
+        /*
         // get position list
         builder.addCase(getPositionList.pending, (state) => {
           state.loading = true;
@@ -507,24 +524,25 @@ const authSlice = createSlice({
           state.error = action.payload || action.error.message;
         });
 
-                // get getDepartmentList list
-                builder.addCase(getDepartmentList.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.getDepartmentListData=null
-                });
-                builder.addCase(getDepartmentList.fulfilled, (state, action) => {
-                  console.log({state, action})
-                  state.loading = false;
-                  state.getDepartmentListData = action.payload.data // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(getDepartmentList.rejected, (state, action) => {
-                  state.loading = false;
-                  state.getDepartmentListData=null
-                  state.error = action.payload || action.error.message;
-                });
-                builder.addCase(editDepartmentAction.pending, (state) => {
+        // get getDepartmentList list
+        builder.addCase(getDepartmentList.pending, (state) => {
+          state.loading = true;
+          state.error = null;
+          state.getDepartmentListData=null
+        });
+        builder.addCase(getDepartmentList.fulfilled, (state, action) => {
+          console.log({state, action})
+          state.loading = false;
+          state.getDepartmentListData = action.payload.data // token from userRegister
+          state.error = null;
+        });
+        builder.addCase(getDepartmentList.rejected, (state, action) => {
+          state.loading = false;
+          state.getDepartmentListData=null
+          state.error = action.payload || action.error.message;
+        });
+        */
+        builder.addCase(editDepartmentAction.pending, (state) => {
                   state.loading = true;
                   state.error = null;
                   state.editDepartmentData=null
@@ -540,6 +558,7 @@ const authSlice = createSlice({
                   state.editDepartmentData=null
                   state.error = action.payload || action.error.message;
                 });
+                /*
                 builder.addCase(createDepartment.pending, (state) => {
                   state.loading = true;
                   state.error = null;
@@ -555,6 +574,8 @@ const authSlice = createSlice({
                   state.createdDepartmentData=null
                   state.error = action.payload || action.error.message;
                 });
+                */
+                /*
                 builder.addCase(createPosition.pending, (state) => {
                   state.loading = true;
                   state.error = null;
@@ -570,6 +591,8 @@ const authSlice = createSlice({
                   state.createdPositionData=null
                   state.error = action.payload || action.error.message;
                 });
+                */
+                /*
                 builder.addCase(createbranch.pending, (state) => {
                   state.loading = true;
                   state.error = null;
@@ -585,6 +608,7 @@ const authSlice = createSlice({
                   state.createdbranchData=null
                   state.error = action.payload || action.error.message;
                 });
+                */
                 builder.addCase(createcompany.pending, (state) => {
                   state.loading = true;
                   state.error = null;
@@ -637,27 +661,24 @@ const authSlice = createSlice({
 });
 
 
+/*
 export const getPermissionbyRole = createAsyncThunk(
   "auth/getPermissionbyRole",
   async (obj , { rejectWithValue }) => {
     // let token=localStorage.getItem("biometric_token")
 
     try {
-      
-  const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions/findpermissionsbyrole/${obj}`);
-          const role = response.data[0];
-        const response2= await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions`);
-      // const data = await response.json();
-      // if (response2.errors) {
-      //   return rejectWithValue(data.errors[0].message);
-      // }
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions/findpermissionsbyrole/${obj}`);
+      const role = response.data[0];
+      const response2 = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/permissions`);
     
-      return {rolepermission:role.permAndSubPerm,allpermission:response2.data};
+      return {rolepermission:role?.permAndSubPerm || null,allpermission:response2.data};
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
+*/
 
 let userSlice=createSlice({
   name:"users",
@@ -692,6 +713,7 @@ let userSlice=createSlice({
       state.edituserdata=null
       state.error = action.payload || action.error.message;
     });
+    /*
     builder.addCase(getPermissionbyRole.pending, (state) => {
       state.loading = true;
             // console.log(action,"90000000000000000000222")
@@ -710,7 +732,7 @@ let userSlice=createSlice({
       state.getPermission=null
       state.error = action.payload || action.error.message;
     });
-    
+    */
   }
 })
 export const { logout,onLogout ,confirnDeleteAction} = authSlice.actions;

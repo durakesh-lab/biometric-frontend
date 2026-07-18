@@ -4,7 +4,7 @@ import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import Layout from "../../components/Layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
-import { createbranch, createcompany, createDepartment, createEmployee, createPosition, getbranchList, getDepartmentList, getPositionList } from "@/store/authSlice";
+import { createbranch, createcompany, createDepartment, getbranchList, getDepartmentList, getPositionList } from "@/store/authSlice";
 import SuccessSnackbar from "../../components/common/successpopup";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 

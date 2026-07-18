@@ -51,7 +51,7 @@ import StoreIcon from '@mui/icons-material/Store';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
-import { confirnDeleteAction, editDepartmentAction, getDepartmentList } from '@/store/authSlice';
+import { confirnDeleteAction, editDepartmentAction } from '@/store/authSlice';
 import Layout, { theme } from '../../../../components/Layout/Layout';
 import MyComponent from '../../../../components/common/deletepopup';
 import { Formik, Form } from "formik";
@@ -473,9 +473,9 @@ const handleSelect = (event, id) => {
     }, 3000);
   }, []);
 
-  useEffect(() => {
-    dispatch(getDepartmentList());
-  }, [dispatch]);
+  // useEffect(() => {
+  //   dispatch(getDepartmentList());
+  // }, [dispatch]);
 
 
   

@@ -1,4 +1,4 @@
-import { getPermissionbyRole } from '@/store/authSlice';
+// import { getPermissionbyRole } from '@/store/authSlice';
 import { jwtDecode } from 'jwt-decode';
 import React from 'react'
 import { useDispatch } from 'react-redux';
@@ -15,7 +15,7 @@ const PermisissionRole = () => {
         try {
            
 
-          dispatch(getPermissionbyRole(data.role));
+          // dispatch(getPermissionbyRole(data.role));
           // const response = await axios.get(`http://localhost:3001/permissions/findpermissionsbyrole/${data.role}`);
           // const role = response.data[0];
     

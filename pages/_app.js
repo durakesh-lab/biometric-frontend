@@ -322,7 +322,7 @@ export default function MyApp({ Component, pageProps }) {
     <Provider store={store}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <PermisissionRole />
+        {/* <PermisissionRole /> */}
         {pageLoading && (
           <PageSkeletonLoader />
         )}

@@ -408,7 +408,7 @@ const applyFilters = () => {
   const handleMenuClick = (event, staff) => {
     setAnchorEl(event.currentTarget);
     setSelectedStaff(staff);
-    seteditcheckfield({username:staff.username,email:staff.email})
+    seteditcheckfield({ username: staff.username, email: staff.email, deviceUserId: staff.deviceUserId });
   };
 
   // Handle menu close
@@ -472,10 +472,9 @@ const applyFilters = () => {
 
   // Handle edit
   const handleEdit = () => {
- setUsernameError("");
- setEmailError("")
     if (selectedStaff) {
       setCurrentStaff(selectedStaff);
+      seteditcheckfield({ email: selectedStaff.email, deviceUserId: selectedStaff.deviceUserId });
       setEditModalOpen(true);
     }
     handleMenuClose();
@@ -500,11 +499,11 @@ const applyFilters = () => {
   // Open the Edit modal with the same fields as Add. Pre-load the employee's
   // company/branch so the Company → Branch → Department dropdowns are populated.
   const openEditEmployee = (staffMember) => {
-    setEmailError("");
     setSelectedCompany(staffMember.companyId || null);
     setSelectedBranch(staffMember.branchId || null);
     if (staffMember.companyId) fetchBranches(staffMember.companyId);
     if (staffMember.branchId) fetchDepartments(staffMember.branchId);
+    seteditcheckfield({ email: staffMember.email, deviceUserId: staffMember.deviceUserId });
     setCurrentStaff({
       ...staffMember,
       department: staffMember.dept_id || staffMember.deptId || '',
@@ -512,9 +511,32 @@ const applyFilters = () => {
     setEditModalOpen(true);
   };
 
-  const handleEditSubmit = async (values) => {
+  const handleEditSubmit = async (values, { setErrors }) => {
     try {
       let token = localStorage.getItem("biometric_token");
+
+      // Validate email
+      if (values.email && editcheckfield.email !== values.email) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "email", email: values.email, id: values._id }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ email: "Email already exists" });
+          return;
+        }
+      }
+
+      // Validate deviceUserId
+      if (values.deviceUserId && editcheckfield.deviceUserId !== values.deviceUserId) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "deviceUserId", deviceUserId: values.deviceUserId, id: values._id }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ deviceUserId: "Device ID already exists" });
+          return;
+        }
+      }
+
       await axios.put(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/${values._id}`, values, {
         headers: { Authorization: token }
       });
@@ -528,9 +550,32 @@ const applyFilters = () => {
   };
 
   // Handle add staff
-  const handleAddStaff = async (values) => {
+  const handleAddStaff = async (values, { setErrors }) => {
     try {
       let token = localStorage.getItem("biometric_token");
+
+      // Validate email
+      if (values.email) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "email", email: values.email }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ email: "Email already exists" });
+          return;
+        }
+      }
+
+      // Validate deviceUserId
+      if (values.deviceUserId) {
+        const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`, { field: "deviceUserId", deviceUserId: values.deviceUserId }, {
+          headers: { Authorization: token }
+        });
+        if (res.data.message) {
+          setErrors({ deviceUserId: "Device ID already exists" });
+          return;
+        }
+      }
+
       // Employee record only — NO username / password / role.
       const apiValues = {
         firstName: values.firstName,
@@ -592,12 +637,8 @@ router.push({
     mobile: Yup.string().notRequired(),
     email: Yup.string()
       .email("Invalid email")
-      .notRequired()
-      .test(
-        'email-exists',
-        'Email already exists',
-        () => !emailError // This will be updated by our debounced function
-      ),
+      .notRequired(),
+    deviceUserId: Yup.string().notRequired(),
   });
 
   useEffect(() => {
@@ -689,34 +730,7 @@ const [showPassword, setShowPassword] = useState(false);
 
 
 
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return function(...args) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        func.apply(this, args);
-      }, delay);
-    };
-  };
-    const [emailError, setEmailError] = useState('');
-    const [usernameError, setUsernameError] = useState('');
-    
-    // Debounced validation functions
-    const checkFieldsExists = debounce(async (value,field,id) => {
-      if (!value){
-         setEmailError("")
-         return
-      }
-      try {
-        let token = localStorage.getItem("biometric_token");
-        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/checkandverifyfields`,{ field:"email", email: value ,id}, {
-          headers: { Authorization: token }
-        });
-        setEmailError(response.data.message ? 'Email already exists' : '');
-      } catch (error) {
-        console.error('Error checking email:', error);
-      }
-    }, 1000);
+
 
 
 
@@ -823,7 +837,7 @@ const [showPassword, setShowPassword] = useState(false);
               </Button>
 
               <Button
-                onClick={() => { setAddModalOpen(true); setUsernameError(""); setEmailError(""); }}
+                onClick={() => { setAddModalOpen(true); }}
                 variant="contained"
                 sx={{ 
                   textTransform: "none", 
@@ -1376,13 +1390,9 @@ const [showPassword, setShowPassword] = useState(false);
                         label="Email (optional)"
                         name="email"
                         value={values.email}
-                         onChange={(e)=>{handleChange(e);if(editcheckfield.email!=e.target.value){ checkFieldsExists(e.target.value,"email")} } }
-
-                        error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
-    helperText={
-      (touched.email && errors.email) ||
-      emailError
-    }
+                        onChange={handleChange}
+                        error={touched.email && Boolean(errors.email)}
+                        helperText={touched.email && errors.email}
                         variant="outlined"
                       />
                     </Grid>
@@ -1473,6 +1483,8 @@ const [showPassword, setShowPassword] = useState(false);
                         name="deviceUserId"
                         value={values.deviceUserId || ''}
                         onChange={handleChange}
+                        error={touched.deviceUserId && Boolean(errors.deviceUserId)}
+                        helperText={touched.deviceUserId && errors.deviceUserId}
                         placeholder="map in Enrollment"
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
@@ -1634,12 +1646,9 @@ const [showPassword, setShowPassword] = useState(false);
                         label="Email (optional)"
                         name="email"
                         value={values.email}
-                        onChange={(e) => {
-                          handleChange(e);
-                          checkFieldsExists(e.target.value, "email");
-                        }}
-                        error={(touched.email && Boolean(errors.email)) || Boolean(emailError)}
-                        helperText={(touched.email && errors.email) || emailError}
+                        onChange={handleChange}
+                        error={touched.email && Boolean(errors.email)}
+                        helperText={touched.email && errors.email}
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                       />
@@ -1748,6 +1757,8 @@ const [showPassword, setShowPassword] = useState(false);
                         name="deviceUserId"
                         value={values.deviceUserId || ''}
                         onChange={handleChange}
+                        error={touched.deviceUserId && Boolean(errors.deviceUserId)}
+                        helperText={touched.deviceUserId && errors.deviceUserId}
                         placeholder="leave blank — map in Enrollment"
                         variant="outlined"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}

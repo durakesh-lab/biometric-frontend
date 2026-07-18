@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser } from '../../src/store/authSlice';
+// import { registerUser } from '../../src/store/authSlice';
 import {
   Box,
   Button,
@@ -36,7 +36,7 @@ export default function Register() {
     }
 
     // Dispatch Redux thunk
-    dispatch(registerUser({ firstName, lastName, email, password, role }));
+    // dispatch(registerUser({ firstName, lastName, email, password, role }));
   };
 
   return (

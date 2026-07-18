@@ -50,7 +50,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
-import { confirnDeleteAction, editBranchAction, getbranchList } from '@/store/authSlice';
+import { confirnDeleteAction, editBranchAction } from '@/store/authSlice';
 import Layout, { theme } from '../Layout/Layout';
 import MyComponent from '../common/deletepopup';
 import { Formik, Form } from "formik";
@@ -446,9 +446,9 @@ const BranchlistPage = ({company_id,setselected_Company,setSelection,handleModal
     }, 3000);
   }, []);
 
-  useEffect(() => {
-    dispatch(getbranchList());
-  }, [dispatch]);
+  // useEffect(() => {
+  //   dispatch(getbranchList());
+  // }, [dispatch]);
 
 const handleManageBranches=(id,branch)=>{
    console.log(company_id,branch,"=======================")
