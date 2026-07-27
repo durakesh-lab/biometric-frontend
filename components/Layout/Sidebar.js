@@ -23,6 +23,7 @@ import { useRouter } from "next/router";
 import { useDispatch } from "react-redux";
 import { SelectCompanyBranchGlobal } from "@/store/authSlice";
 import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 
 // ── theme tokens (matched to the demo) ───────────────────────────
 const GREEN = "#0E9F6E";
@@ -99,7 +100,8 @@ const menuGroups = [
   {
     heading: "BIOMETRIC DEVICE",
     items: [
-      { label: "Devices", icon: "📟", color: "#0EA5E9", link: "/devices" },
+      { label: "Devices", icon: "📟", color: "#0EA5E9", link: "/devices", permissionKey: "devices" },
+      { label: "Device Assignment", icon: "📌", color: "#8B5CF6", link: "/deviceassignment", permissionKey: "device-assignment" },
       { label: "Attendance", icon: "🕒", color: "#F97316", link: "/attendance" },
       { label: "Enrollment", icon: "📝", color: "#EC4899", link: "/enrollment" },
     ],

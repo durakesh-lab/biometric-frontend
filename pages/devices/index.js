@@ -36,8 +36,6 @@ import axios from "axios";
 const EMPTY = {
   name: "",
   serialNumber: "",
-  companyId: "",
-  branchId: "",
   wdmsBaseUrl: "",
   wdmsToken: "",
 };
@@ -45,8 +43,6 @@ const EMPTY = {
 export default function DevicesPage() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [companies, setCompanies] = useState([]);
-  const [branches, setBranches] = useState([]);
   const [snackbar, setSnackbar] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -79,34 +75,16 @@ export default function DevicesPage() {
     }
   };
 
-  const fetchCompanies = async () => {
-    try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/company`, auth());
-      setCompanies(res.data?.data || []);
-    } catch (e) {
-      console.error("Error loading companies:", e);
-    }
-  };
-
-  const fetchBranches = async (companyId) => {
-    if (!companyId) return setBranches([]);
-    try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/company/${companyId}/branches`, auth());
-      setBranches(res.data?.data || []);
-    } catch (e) {
-      console.error("Error loading branches:", e);
-    }
-  };
+  const fetchCompanies = async () => { };
+  const fetchBranches = async () => { };
 
   useEffect(() => {
     fetchDevices();
-    fetchCompanies();
   }, []);
 
   const openAdd = () => {
     setEditingId(null);
     setForm(EMPTY);
-    setBranches([]);
     setTestResult(null);
     setWdmsUser("");
     setWdmsPass("");
@@ -118,12 +96,9 @@ export default function DevicesPage() {
     setForm({
       name: d.name || "",
       serialNumber: d.serialNumber || "",
-      companyId: d.companyId || "",
-      branchId: d.branchId || "",
       wdmsBaseUrl: d.wdmsBaseUrl || "",
       wdmsToken: d.wdmsToken || "",
     });
-    if (d.companyId) fetchBranches(d.companyId);
     setTestResult(null);
     setWdmsUser("");
     setWdmsPass("");
@@ -182,17 +157,16 @@ export default function DevicesPage() {
   };
 
   const handleSave = async () => {
-    if (
-      !form.name ||
-      !form.serialNumber ||
-      !form.companyId ||
-      !form.branchId ||
-      !form.wdmsBaseUrl ||
-      !form.wdmsToken
-    ) {
+    const isFormInvalid = editingId
+      ? (!form.name || !form.serialNumber || !form.wdmsBaseUrl)
+      : (!form.name || !form.serialNumber || !form.wdmsBaseUrl || !form.wdmsToken);
+
+    if (isFormInvalid) {
       setSnackbar({
         status: false,
-        message: "Name, serial, company, branch, EasyWDMS URL and WDMS Token are required",
+        message: editingId
+          ? "Name, serial, and EasyWDMS URL are required"
+          : "Name, serial, EasyWDMS URL and WDMS Token are required",
       });
       return;
     }
@@ -259,8 +233,10 @@ export default function DevicesPage() {
           <Button
             variant="contained"
             onClick={openAdd}
-            sx={{ textTransform: "none", backgroundColor: "#0E9F6E", fontWeight: 600, borderRadius: "8px",
-              "&:hover": { backgroundColor: "#047857" } }}
+            sx={{
+              textTransform: "none", backgroundColor: "#0E9F6E", fontWeight: 600, borderRadius: "8px",
+              "&:hover": { backgroundColor: "#047857" }
+            }}
           >
             + Register Device
           </Button>
@@ -273,6 +249,7 @@ export default function DevicesPage() {
                 <TableRow sx={{ "& th": { backgroundColor: "#F9FAFB", fontWeight: 600, color: "#4B5563" } }}>
                   <TableCell>Name</TableCell>
                   <TableCell>Serial</TableCell>
+                  <TableCell>Company</TableCell>
                   <TableCell>Branch</TableCell>
                   <TableCell align="center">Status</TableCell>
                   <TableCell>Last sync</TableCell>
@@ -291,6 +268,7 @@ export default function DevicesPage() {
                     <TableRow key={d._id} hover>
                       <TableCell>{d.name}</TableCell>
                       <TableCell>{d.serialNumber}</TableCell>
+                      <TableCell>{d.company_name || "—"}</TableCell>
                       <TableCell>{d.branch_name || "—"}</TableCell>
                       <TableCell align="center"><StatusDot status={d.status || "Offline"} /></TableCell>
                       <TableCell>{d.lastSyncAt ? new Date(d.lastSyncAt).toLocaleString() : "—"}</TableCell>
@@ -326,33 +304,14 @@ export default function DevicesPage() {
         <DialogContent dividers>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Name*" value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="Front Door" />
+              <TextField fullWidth label="Name*" value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="Device Name" />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField fullWidth label="Serial Number*" value={form.serialNumber} onChange={(e) => setField("serialNumber", e.target.value)} placeholder="ZK-F09-0012" />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Company*</InputLabel>
-                <Select
-                  label="Company*"
-                  value={form.companyId}
-                  onChange={(e) => { setField("companyId", e.target.value); setField("branchId", ""); fetchBranches(e.target.value); }}
-                >
-                  {companies.map((c) => <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth disabled={!form.companyId}>
-                <InputLabel>Branch*</InputLabel>
-                <Select label="Branch*" value={form.branchId} onChange={(e) => setField("branchId", e.target.value)}>
-                  {branches.map((b) => <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
+
             <Grid item xs={12}>
-              <TextField fullWidth label="EasyWDMS URL*" value={form.wdmsBaseUrl} onChange={(e) => setField("wdmsBaseUrl", e.target.value)} placeholder="http://192.168.0.104:8081" />
+              <TextField fullWidth label="EasyWDMS URL*" value={form.wdmsBaseUrl} onChange={(e) => setField("wdmsBaseUrl", e.target.value)} placeholder="http://192.168.0.104:8000" />
             </Grid>
             <Grid item xs={12}>
               <TextField fullWidth label="WDMS Token*" value={form.wdmsToken} onChange={(e) => setField("wdmsToken", e.target.value)} placeholder="from /api-token-auth/" />
@@ -367,31 +326,31 @@ export default function DevicesPage() {
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={4}>
-                    <TextField 
-                      fullWidth 
-                      size="small" 
-                      label="WDMS Username" 
-                      value={wdmsUser} 
-                      onChange={(e) => setWdmsUser(e.target.value)} 
-                      placeholder="admin" 
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="WDMS Username"
+                      value={wdmsUser}
+                      onChange={(e) => setWdmsUser(e.target.value)}
+                      placeholder="admin"
                     />
                   </Grid>
                   <Grid item xs={12} sm={4}>
-                    <TextField 
-                      fullWidth 
-                      size="small" 
-                      type="password" 
-                      label="WDMS Password" 
-                      value={wdmsPass} 
-                      onChange={(e) => setWdmsPass(e.target.value)} 
-                      placeholder="e.g. Admin$123" 
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="password"
+                      label="WDMS Password"
+                      value={wdmsPass}
+                      onChange={(e) => setWdmsPass(e.target.value)}
+                      placeholder="e.g. Admin$123"
                     />
                   </Grid>
                   <Grid item xs={12} sm={4}>
-                    <Button 
-                      fullWidth 
-                      variant="outlined" 
-                      onClick={handleFetchToken} 
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      onClick={handleFetchToken}
                       disabled={fetchingToken}
                       sx={{ height: 40, textTransform: "none", borderColor: "#0E9F6E", color: "#0E9F6E", "&:hover": { borderColor: "#047857" } }}
                     >

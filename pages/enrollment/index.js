@@ -20,16 +20,18 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  Checkbox,
+  FormGroup,
+  FormControlLabel,
+  Stack,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import Layout from "../../components/Layout/Layout";
 import axios from "axios";
 
-// Employees whose punches will be tracked. "Enrollment" = linking a person to the
-// device's emp_code (deviceUserId). The finger/face is captured ON the K45/F09,
-// never in the browser — here we only record the mapping.
 export default function EnrollmentPage() {
   const [employees, setEmployees] = useState([]);
+  const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all"); // all | pending | linked
@@ -39,6 +41,7 @@ export default function EnrollmentPage() {
   const [linkOpen, setLinkOpen] = useState(false);
   const [target, setTarget] = useState(null);
   const [empCode, setEmpCode] = useState("");
+  const [selectedDevices, setSelectedDevices] = useState([]);
   const [saving, setSaving] = useState(false);
 
   const token = () => (typeof window !== "undefined" ? localStorage.getItem("biometric_token") : null);
@@ -60,19 +63,42 @@ export default function EnrollmentPage() {
     }
   };
 
+  const fetchDevices = async () => {
+    try {
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/devices/assignment-list`,
+        {},
+        { headers: { Authorization: token() } }
+      );
+      setDevices(res.data?.data || res.data || []);
+    } catch (e) {
+      try {
+        const res = await axios.post(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/devices/list`,
+          {},
+          { headers: { Authorization: token() } }
+        );
+        setDevices(res.data?.data || res.data || []);
+      } catch (err) {
+        console.error("Could not fetch devices:", err);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchEmployees();
+    fetchDevices();
   }, []);
 
   const counts = useMemo(() => {
-    const linked = employees.filter((e) => e.deviceUserId).length;
+    const linked = employees.filter((e) => e.deviceUserId || (e.deviceLinks && e.deviceLinks.length > 0)).length;
     return { all: employees.length, linked, pending: employees.length - linked };
   }, [employees]);
 
   const rows = useMemo(() => {
     let list = employees;
-    if (tab === "pending") list = list.filter((e) => !e.deviceUserId);
-    if (tab === "linked") list = list.filter((e) => e.deviceUserId);
+    if (tab === "pending") list = list.filter((e) => !e.deviceUserId && (!e.deviceLinks || e.deviceLinks.length === 0));
+    if (tab === "linked") list = list.filter((e) => e.deviceUserId || (e.deviceLinks && e.deviceLinks.length > 0));
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((e) =>
@@ -87,7 +113,15 @@ export default function EnrollmentPage() {
   const openLink = (emp) => {
     setTarget(emp);
     setEmpCode(emp.deviceUserId || "");
+    const existingIds = (emp.deviceLinks || []).map((dl) => dl.deviceId);
+    setSelectedDevices(existingIds);
     setLinkOpen(true);
+  };
+
+  const toggleDeviceSelect = (id) => {
+    setSelectedDevices((prev) =>
+      prev.includes(id) ? prev.filter((dId) => dId !== id) : [...prev, id]
+    );
   };
 
   const saveLink = async () => {
@@ -95,30 +129,32 @@ export default function EnrollmentPage() {
       setSnackbar({ status: false, message: "Enter the Device User ID (emp_code)" });
       return;
     }
-    // Guard: don't let two employees share one device number.
+
     const clash = employees.find(
       (e) => e._id !== target._id && String(e.deviceUserId) === String(empCode.trim())
     );
     if (clash) {
       setSnackbar({
         status: false,
-        message: `Device #${empCode} is already linked to ${clash.firstName || ""} ${clash.lastName || ""}`.trim(),
+        message: `Device User ID #${empCode} is already assigned to ${clash.firstName || ""} ${clash.lastName || ""}`.trim(),
       });
       return;
     }
+
     try {
       setSaving(true);
+      const linkPayload = selectedDevices.map((id) => ({ deviceId: id }));
       await axios.put(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${target._id}`,
-        { deviceUserId: empCode.trim() },
+        `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${target._id}/enroll`,
+        { deviceUserId: empCode.trim(), deviceLinks: linkPayload },
         { headers: { Authorization: token() } }
       );
-      setSnackbar({ status: true, message: `Linked ${target.firstName || "employee"} ↔ device #${empCode}` });
+      setSnackbar({ status: true, message: `Successfully saved enrollment for ${target.firstName || "employee"}` });
       setLinkOpen(false);
       fetchEmployees();
     } catch (e) {
       console.error("Error linking device:", e);
-      setSnackbar({ status: false, message: e.response?.data?.message || "Could not link device" });
+      setSnackbar({ status: false, message: e.response?.data?.message || "Could not save enrollment" });
     } finally {
       setSaving(false);
     }
@@ -148,8 +184,7 @@ export default function EnrollmentPage() {
             Biometric Enrollment
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Link each employee to their device ID (emp_code). The finger/face is captured on the K45/F09 —
-            here you only record the mapping.
+            Link each employee to their device ID (emp_code) and select the devices they are authorized to punch on.
           </Typography>
         </Box>
 
@@ -195,57 +230,78 @@ export default function EnrollmentPage() {
                   <TableCell>Name</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Branch</TableCell>
-                  <TableCell align="center">Status</TableCell>
+                  <TableCell align="center">Device User ID</TableCell>
+                  <TableCell align="center">Linked Devices</TableCell>
                   <TableCell align="center">Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                       <CircularProgress size={36} />
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
                       No employees found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rows.map((e, i) => (
-                    <TableRow key={e._id} hover>
-                      <TableCell>{i + 1}</TableCell>
-                      <TableCell>{`${e.firstName || ""} ${e.lastName || ""}`.trim() || "—"}</TableCell>
-                      <TableCell>{e.email || "—"}</TableCell>
-                      <TableCell>{e.branch_name || "—"}</TableCell>
-                      <TableCell align="center">
-                        {e.deviceUserId ? (
-                          <Chip label={`Linked #${e.deviceUserId}`} size="small"
-                            sx={{ backgroundColor: "#DEF7EC", color: "#03543F", fontWeight: 600 }} />
-                        ) : (
-                          <Chip label="Not linked" size="small"
-                            sx={{ backgroundColor: "#FDE8E8", color: "#9B1C1C", fontWeight: 600 }} />
-                        )}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Button
-                          size="small"
-                          variant={e.deviceUserId ? "outlined" : "contained"}
-                          onClick={() => openLink(e)}
-                          sx={{
-                            textTransform: "none",
-                            borderRadius: "8px",
-                            ...(e.deviceUserId
-                              ? { borderColor: "#0E9F6E", color: "#0E9F6E" }
-                              : { backgroundColor: "#0E9F6E", "&:hover": { backgroundColor: "#047857" } }),
-                          }}
-                        >
-                          {e.deviceUserId ? "Update device ID" : "Link device ID"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  rows.map((e, i) => {
+                    const linkedDevicesList = e.linkedDevices || [];
+                    return (
+                      <TableRow key={e._id} hover>
+                        <TableCell>{i + 1}</TableCell>
+                        <TableCell>{`${e.firstName || ""} ${e.lastName || ""}`.trim() || "—"}</TableCell>
+                        <TableCell>{e.email || "—"}</TableCell>
+                        <TableCell>{e.branch_name || "—"}</TableCell>
+                        <TableCell align="center">
+                          {e.deviceUserId ? (
+                            <Chip label={`#${e.deviceUserId}`} size="small"
+                              sx={{ backgroundColor: "#DEF7EC", color: "#03543F", fontWeight: 600 }} />
+                          ) : (
+                            <Chip label="Not assigned" size="small"
+                              sx={{ backgroundColor: "#FDE8E8", color: "#9B1C1C", fontWeight: 600 }} />
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          {linkedDevicesList.length > 0 ? (
+                            <Stack direction="row" spacing={0.5} justifyContent="center" flexWrap="wrap" useFlexGap>
+                              {linkedDevicesList.map((dev) => (
+                                <Chip
+                                  key={dev._id}
+                                  label={dev.name || dev.serialNumber}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ borderColor: "#10B981", color: "#047857", fontWeight: 500 }}
+                                />
+                              ))}
+                            </Stack>
+                          ) : (
+                            <Chip label="No devices" size="small" variant="outlined" sx={{ color: "#9CA3AF" }} />
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Button
+                            size="small"
+                            variant={e.deviceUserId ? "outlined" : "contained"}
+                            onClick={() => openLink(e)}
+                            sx={{
+                              textTransform: "none",
+                              borderRadius: "8px",
+                              ...(e.deviceUserId
+                                ? { borderColor: "#0E9F6E", color: "#0E9F6E" }
+                                : { backgroundColor: "#0E9F6E", "&:hover": { backgroundColor: "#047857" } }),
+                            }}
+                          >
+                            {e.deviceUserId ? "Update Link" : "Link Devices"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -254,14 +310,14 @@ export default function EnrollmentPage() {
       </Box>
 
       {/* Link device ID dialog */}
-      <Dialog open={linkOpen} onClose={() => setLinkOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={linkOpen} onClose={() => setLinkOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>
-          Link device ID — {target ? `${target.firstName || ""} ${target.lastName || ""}`.trim() : ""}
+          Enrollment & Device Links — {target ? `${target.firstName || ""} ${target.lastName || ""}`.trim() : ""}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ bgcolor: "#FFF7ED", color: "#9A3412", p: 1.5, borderRadius: "8px", mb: 2, fontSize: 13 }}>
-            ⚠️ The finger/face is captured on the <b>K45/F09 device</b>, not in the browser. Enter the
-            <b> User ID (emp_code)</b> the device assigned to this person.
+          <Box sx={{ bgcolor: "#FFF7ED", color: "#9A3412", p: 1.5, borderRadius: "8px", mb: 2.5, fontSize: 13 }}>
+            ⚠️ The finger/face template is registered on the <b>biometric terminal</b>. Enter the person's
+            <b> Device User ID (emp_code)</b> and select all hardware devices where this person is authorized.
           </Box>
           <TextField
             autoFocus
@@ -270,7 +326,45 @@ export default function EnrollmentPage() {
             value={empCode}
             onChange={(e) => setEmpCode(e.target.value)}
             placeholder="e.g. 1006"
+            sx={{ mb: 3 }}
           />
+
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: "text.primary" }}>
+            Authorize Hardware Devices:
+          </Typography>
+          {devices.length === 0 ? (
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              No active devices found. Register devices under Device Management first.
+            </Typography>
+          ) : (
+            <Paper variant="outlined" sx={{ p: 1, maxHeight: 200, overflowY: "auto", borderRadius: "8px" }}>
+              <FormGroup>
+                {devices.map((dev) => (
+                  <FormControlLabel
+                    key={dev._id}
+                    control={
+                      <Checkbox
+                        checked={selectedDevices.includes(dev._id)}
+                        onChange={() => toggleDeviceSelect(dev._id)}
+                        sx={{ color: "#0E9F6E", "&.Mui-checked": { color: "#0E9F6E" } }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {dev.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                          Serial: {dev.serialNumber || "—"} {dev.location ? `• Location: ${dev.location}` : ""}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ mb: 0.5 }}
+                  />
+                ))}
+              </FormGroup>
+            </Paper>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setLinkOpen(false)} sx={{ textTransform: "none", color: "text.secondary" }}>
@@ -282,7 +376,7 @@ export default function EnrollmentPage() {
             variant="contained"
             sx={{ textTransform: "none", backgroundColor: "#0E9F6E", "&:hover": { backgroundColor: "#047857" } }}
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Save Enrollment"}
           </Button>
         </DialogActions>
       </Dialog>

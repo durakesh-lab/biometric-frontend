@@ -275,6 +275,15 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
                     icon={<CodeIcon />}
                     label="Device User ID"
                     value={staff.deviceUserId ? `#${staff.deviceUserId}` : "Not linked"}
+                  />
+                  <FieldRow
+                    icon={<CodeIcon />}
+                    label="Authorized Devices"
+                    value={
+                      staff.linkedDevices && staff.linkedDevices.length > 0
+                        ? staff.linkedDevices.map((d) => d.name || d.serialNumber).join(", ")
+                        : "None"
+                    }
                     last
                   />
                 </Section>

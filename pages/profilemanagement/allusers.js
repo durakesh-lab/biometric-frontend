@@ -311,6 +311,7 @@ const StaffListPage = () => {
     { id: 'lastName', label: 'Last Name', sortable: true },
     { id: 'email', label: 'Email', sortable: true },
     { id: 'deviceUserId', label: 'Device ID', sortable: false },
+    { id: 'linkedDevices', label: 'Linked Devices', sortable: false },
     { id: 'active_status', label: 'Status', sortable: true },
     { id: 'company_name', label: 'Company', sortable: true },
     { id: 'branch_name', label: 'Branch', sortable: true },
@@ -1551,6 +1552,25 @@ const StaffListPage = () => {
                                   ) : (
                                     <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
                                       Not linked
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                                <TableCell align="center">
+                                  {staffMember.linkedDevices && staffMember.linkedDevices.length > 0 ? (
+                                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                      {staffMember.linkedDevices.map((dev) => (
+                                        <Chip
+                                          key={dev._id}
+                                          label={dev.name || dev.serialNumber}
+                                          size="small"
+                                          variant="outlined"
+                                          sx={{ borderColor: '#10B981', color: '#047857', fontSize: '11px', height: '22px' }}
+                                        />
+                                      ))}
+                                    </Box>
+                                  ) : (
+                                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                                      None
                                     </Typography>
                                   )}
                                 </TableCell>
