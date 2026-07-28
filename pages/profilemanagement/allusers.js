@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -247,10 +247,6 @@ const StaffListPage = () => {
     ordering: ""
   });
 
-  // Directory view mode
-  const [viewMode, setViewMode] = useState('table');
-  const [treeExpanded, setTreeExpanded] = useState({});
-
   // Add staff modal state
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newStaff, setNewStaff] = useState({
@@ -329,81 +325,9 @@ const StaffListPage = () => {
     { label: 'Department', value: 'dept_name' },
   ];
 
-  const treeData = useMemo(() => {
-    const companyMap = new Map();
-
-    staff.forEach((employee) => {
-      const companyKey = employee.companyId || employee.company_Id || 'unassigned-company';
-      const branchKey = employee.branchId || employee.branch_name || 'unassigned-branch';
-      const deptKey = employee.dept_id || employee.deptId || employee.dept_name || 'unassigned-dept';
-
-      const companyName = employee.company_name || 'Unassigned Company';
-      const branchName = employee.branch_name || 'Unassigned Branch';
-      const deptName = employee.dept_name || 'Unassigned Department';
-
-      if (!companyMap.has(companyKey)) {
-        companyMap.set(companyKey, {
-          key: companyKey,
-          name: companyName,
-          count: 0,
-          branches: new Map(),
-        });
-      }
-
-      const companyNode = companyMap.get(companyKey);
-      companyNode.count += 1;
-      if (companyName && companyNode.name === 'Unassigned Company') {
-        companyNode.name = companyName;
-      }
-
-      if (!companyNode.branches.has(branchKey)) {
-        companyNode.branches.set(branchKey, {
-          key: branchKey,
-          name: branchName,
-          count: 0,
-          departments: new Map(),
-        });
-      }
-
-      const branchNode = companyNode.branches.get(branchKey);
-      branchNode.count += 1;
-      if (branchName && branchNode.name === 'Unassigned Branch') {
-        branchNode.name = branchName;
-      }
-
-      if (!branchNode.departments.has(deptKey)) {
-        branchNode.departments.set(deptKey, {
-          key: deptKey,
-          name: deptName,
-          count: 0,
-          employees: [],
-        });
-      }
-
-      const deptNode = branchNode.departments.get(deptKey);
-      deptNode.count += 1;
-      if (deptName && deptNode.name === 'Unassigned Department') {
-        deptNode.name = deptName;
-      }
-      deptNode.employees.push(employee);
-    });
-
-    return Array.from(companyMap.values()).map((company) => ({
-      ...company,
-      branches: Array.from(company.branches.values()).map((branch) => ({
-        ...branch,
-        departments: Array.from(branch.departments.values()),
-      })),
-    }));
-  }, [staff]);
-
-  const isTreeNodeExpanded = (key) => treeExpanded[key] ?? true;
-  const toggleTreeNode = (key) => {
-    setTreeExpanded((prev) => ({
-      ...prev,
-      [key]: !(prev[key] ?? true),
-    }));
-  };
+  const treeData = [];
+  const isTreeNodeExpanded = () => true;
+  const toggleTreeNode = () => {};
 
   // Fetch companies data
   const fetchCompanies = async () => {
@@ -527,16 +451,14 @@ const StaffListPage = () => {
 
   // Fetch staff data
   // Fetch staff data
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     // Employee Directory shows EVERY employee — no branch selection required.
     try {
       setLoading(true);
-      const isTreeView = viewMode === 'tree';
-
       // Construct query params - use current pagination state
       const params = {
-        page: isTreeView ? 1 : pagination.page,
-        page_size: isTreeView ? 1000 : pagination.page_size,
+        page: pagination.page,
+        page_size: pagination.page_size,
         search: search,
         firstName: filters.firstName || undefined,
         lastName: filters.lastName || undefined,
@@ -575,7 +497,7 @@ const StaffListPage = () => {
       console.error('Error fetching staff:', error);
       setLoading(false);
     }
-  };
+  }, [filters, pagination.page, pagination.page_size, search, sorting]);
 
   useEffect(() => {
     fetchCompanies();
@@ -618,7 +540,7 @@ const StaffListPage = () => {
   // Load the full directory on mount + whenever paging / filters / search change.
   useEffect(() => {
     fetchStaff();
-  }, [pagination.page, filters, pagination.page_size, sorting, search, viewMode, deletepopup?.edituserdata]);
+  }, [fetchStaff, deletepopup?.edituserdata]);
 
   // Keep the department list + add-form branch in sync when a branch is picked in the Add modal.
   useEffect(() => {
@@ -744,7 +666,7 @@ const StaffListPage = () => {
   };
 
   // Handle delete
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     id = JSON.parse(sessionStorage.getItem("deleteIds"));
     try {
       let token = localStorage.getItem("biometric_token");
@@ -777,14 +699,14 @@ const StaffListPage = () => {
       console.error('Error deleting staff:', error);
       setOpenSnackbar(error.response?.data?.detail || 'Error deleting staff');
     }
-    handleMenuClose();
-  };
+    setAnchorEl(null);
+  }, [dispatch, fetchStaff]);
 
   useEffect(() => {
     if (checkdelete?.confirnDelete === true) {
       handleDelete();
     }
-  }, [checkdelete?.confirnDelete]);
+  }, [checkdelete?.confirnDelete, handleDelete]);
 
   // Get serial number
   const getSerialNumber = (index) => {
@@ -1208,50 +1130,6 @@ const StaffListPage = () => {
                 Sort & Filter
               </Button>
 
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  backgroundColor: '#FFFFFF',
-                }}
-              >
-                <Button
-                  startIcon={<TableViewIcon />}
-                  onClick={() => setViewMode('table')}
-                  sx={{
-                    borderRadius: 0,
-                    textTransform: 'none',
-                    px: 2,
-                    color: viewMode === 'table' ? '#FFFFFF' : '#4B5563',
-                    backgroundColor: viewMode === 'table' ? '#0E9F6E' : '#FFFFFF',
-                    '&:hover': {
-                      backgroundColor: viewMode === 'table' ? '#047857' : '#F9FAFB',
-                    },
-                  }}
-                >
-                  Table View
-                </Button>
-                <Button
-                  startIcon={<BranchIcon />}
-                  onClick={() => setViewMode('tree')}
-                  sx={{
-                    borderRadius: 0,
-                    textTransform: 'none',
-                    px: 2,
-                    borderLeft: '1px solid #E5E7EB',
-                    color: viewMode === 'tree' ? '#FFFFFF' : '#4B5563',
-                    backgroundColor: viewMode === 'tree' ? '#0E9F6E' : '#FFFFFF',
-                    '&:hover': {
-                      backgroundColor: viewMode === 'tree' ? '#047857' : '#F9FAFB',
-                    },
-                  }}
-                >
-                  Tree View
-                </Button>
-              </Box>
-
               {/* <Button
                 startIcon={<DownloadIcon />}
                 onClick={() => setImportModalOpen(true)}
@@ -1428,7 +1306,7 @@ const StaffListPage = () => {
                 </FormControl>
               </Box>
 
-              <Box sx={{ display: viewMode === 'table' ? 'block' : 'none' }}>
+              <Box sx={{ display: 'block' }}>
                 <Box sx={{ overflowX: 'auto' }}>
                   <TableContainer
                     elevation={0}
@@ -1711,7 +1589,7 @@ const StaffListPage = () => {
                 </Box>
               </Box>
 
-              {viewMode === 'tree' && (
+              {false && (
                 <Box sx={{ p: 2, backgroundColor: '#FFFFFF' }}>
                   {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
