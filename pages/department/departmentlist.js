@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -26,6 +26,8 @@ import {
   Typography,
   Tooltip,
   Divider,
+  Chip,
+  Collapse,
   Modal,
   CircularProgress,
   Snackbar,
@@ -41,7 +43,10 @@ import {
   MoreVert as MoreVertIcon,
   Add as AddIcon,
   Business as BusinessIcon,
-  AccountTree as BranchIcon
+  AccountTree as BranchIcon,
+  TableView as TableViewIcon,
+  ChevronRight as ChevronRightIcon,
+  Apartment as DepartmentTreeIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
@@ -119,6 +124,65 @@ const DepartmentlistPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedDepartmentView, setSelectedDepartmentView] = useState({});
 
+  // View mode state
+  const [viewMode, setViewMode] = useState('table');
+  const [treeExpanded, setTreeExpanded] = useState({});
+
+  const getDepartmentId = (department) => {
+    if (!department) return null;
+    if (typeof department === 'string') return department;
+    return department._id || department.id || null;
+  };
+
+  const treeData = useMemo(() => {
+    if (!selectedCompany || !selectedBranch || departments.length === 0) {
+      return [];
+    }
+
+    const selectedCompanyData = companies.find((company) => company._id === selectedCompany);
+    const selectedBranchData = branches.find((branch) => branch._id === selectedBranch);
+
+    const companyKey = selectedCompanyData?._id || selectedCompany;
+    const branchKey = selectedBranchData?._id || selectedBranch;
+
+    return [
+      {
+        key: companyKey,
+        name: selectedCompanyData?.name || 'Selected Company',
+        count: departments.length,
+        branches: [
+          {
+            key: branchKey,
+            name: selectedBranchData?.name || 'Selected Branch',
+            count: departments.length,
+            departments: departments.map((department) => ({
+              key: getDepartmentId(department),
+              department,
+            })),
+          },
+        ],
+      },
+    ];
+  }, [branches, companies, departments, selectedBranch, selectedCompany]);
+
+  const isTreeNodeExpanded = (key) => treeExpanded[key] ?? true;
+
+  const toggleTreeNode = (key) => {
+    setTreeExpanded((prev) => ({
+      ...prev,
+      [key]: !(prev[key] ?? true),
+    }));
+  };
+
+  const handleViewModeChange = (mode) => {
+    if (mode === viewMode) return;
+    setViewMode(mode);
+    setSelected([]);
+    setShowDelete(false);
+    setAnchorEl(null);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
   // Columns configuration
   const columns = [
     { id: 'checkbox', label: '', sortable: false },
@@ -142,7 +206,7 @@ const DepartmentlistPage = () => {
         }
       );
       
-      setCompanies(response.data?.data);
+      setCompanies(response.data?.data || []);
       setLoadingCompanies(false);
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -164,7 +228,7 @@ const DepartmentlistPage = () => {
         }
       );
       
-      setBranches(response.data?.data);
+      setBranches(response.data?.data || []);
       setLoadingBranches(false);
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -173,19 +237,24 @@ const DepartmentlistPage = () => {
   };
 
   // Fetch departments data
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     if (!selectedBranch) return;
     
     try {
       setLoading(true);
+      const isTreeView = viewMode === 'tree';
       
       // Construct query params
       const params = {
-        page: pagination.page,
-        page_size: pagination.page_size,
         search: search,
         ordering: sorting.direction === 'desc' ? `-${sorting.field}` : sorting.field,
-        ...filters
+        ...filters,
+        ...(isTreeView
+          ? {}
+          : {
+              page: pagination.page,
+              page_size: pagination.page_size,
+            }),
       };
 
       // Remove empty filters
@@ -202,18 +271,20 @@ const DepartmentlistPage = () => {
           params
         }
       );
-      setDepartments(response.data?.data);
-      setPagination({
-        ...pagination,
-        total_pages: Math.ceil(response.data.count / pagination.page_size),
-        count: response.data.count
-      });
+      const departmentData = response.data?.data || [];
+      const responseCount = response.data?.count ?? departmentData.length;
+      setDepartments(departmentData);
+      setPagination((prev) => ({
+        ...prev,
+        total_pages: isTreeView ? 1 : Math.max(Math.ceil(responseCount / (prev.page_size || 1)), 1),
+        count: responseCount,
+      }));
       setLoading(false);
     } catch (error) {
       console.error('Error fetching departments:', error);
       setLoading(false);
     }
-  };
+  }, [filters, pagination.page, pagination.page_size, search, selectedBranch, sorting, viewMode]);
 
   useEffect(() => {
     fetchCompanies();
@@ -223,20 +294,33 @@ const DepartmentlistPage = () => {
     if (selectedCompany) {
       fetchBranches(selectedCompany);
       setSelectedBranch(null); // Reset branch selection when company changes
+      setSelected([]);
+      setShowDelete(false);
     }
   }, [selectedCompany]);
 
   useEffect(() => {
     if (selectedBranch) {
-      fetchDepartments();
       setNewDepartment(prev => ({ ...prev, branchId: selectedBranch }));
+      setSelected([]);
+      setShowDelete(false);
+    } else {
+      setDepartments([]);
+      setSelected([]);
+      setShowDelete(false);
     }
-  }, [selectedBranch, pagination.page, pagination.page_size, sorting, search, filters, deletepopup.editDepartmentData]);
+  }, [selectedBranch]);
+
+  useEffect(() => {
+    if (selectedBranch) {
+      fetchDepartments();
+    }
+  }, [fetchDepartments, selectedBranch]);
 
   // Handle select all
   const handleSelectAll = (event) => {
     if (event.target.checked) {
-      setSelected(departments.map(dept => dept.id));
+      setSelected(departments.map((dept) => getDepartmentId(dept)).filter(Boolean));
       setShowDelete(true);
     } else {
       setSelected([]);
@@ -273,6 +357,10 @@ const DepartmentlistPage = () => {
       field: field,
       direction: isAsc ? 'desc' : 'asc'
     });
+    setPagination((prev) => ({
+      ...prev,
+      page: 1,
+    }));
   };
 
   // Handle page change
@@ -291,13 +379,16 @@ const DepartmentlistPage = () => {
       ...filters,
       [name]: value
     });
+    setPagination((prev) => ({
+      ...prev,
+      page: 1,
+    }));
   };
 
   // Apply filters
   const applyFilters = () => {
     setFilterOpen(false);
-    setPagination({ ...pagination, page: 1 });
-    fetchDepartments();
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Reset filters
@@ -307,6 +398,7 @@ const DepartmentlistPage = () => {
       dept_code: '',
       ordering: ""
     });
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   // Handle menu click
@@ -323,39 +415,64 @@ const DepartmentlistPage = () => {
   // Handle delete confirmation
   const handleConfirmDelete = (id) => {
     dispatch(confirnDeleteAction("sure"));
-    sessionStorage.setItem("deleteIds", JSON.stringify(id._id));
+    const ids = (Array.isArray(id) ? id : [id])
+      .map((item) => getDepartmentId(item))
+      .filter(Boolean);
+    sessionStorage.setItem("deleteIds", JSON.stringify(ids));
   };
 
   // Handle delete
-  const handleDelete = async (id) => {
-    id = JSON.parse(sessionStorage.getItem("deleteIds"));
+  const handleDelete = useCallback(async () => {
+    const storedIds = JSON.parse(sessionStorage.getItem("deleteIds") || '[]');
+    const ids = Array.isArray(storedIds)
+      ? storedIds
+      : storedIds
+        ? [storedIds]
+        : [];
+    if (!Array.isArray(ids) || ids.length === 0) {
+      dispatch(confirnDeleteAction(false));
+      setAnchorEl(null);
+      return;
+    }
+
     try {
       let token = localStorage.getItem("biometric_token");
-      const response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/department/${id}`, {
-        headers: { Authorization: token }
-      });
-      
-      if(response?.data.detail) {
-        setOpenSnackbar(response?.data.detail);
+      let response;
+
+      if (Array.isArray(ids) && ids.length > 1) {
+        response = await axios.post(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/department/delete-bulk`,
+          { Ids: ids },
+          { headers: { Authorization: token } }
+        );
       } else {
-        setOpenSnackbar({status: true, message: 'Department deleted successfully'});
-        setSelected([]);
-        setShowDelete(false);
-        dispatch(confirnDeleteAction(false));
-        fetchDepartments();
+        const departmentId = Array.isArray(ids) ? ids[0] : ids;
+        response = await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/department/${departmentId}`, {
+          headers: { Authorization: token }
+        });
       }
+
+      setOpenSnackbar({ status: true, message: response?.data?.message || 'Department deleted successfully' });
+      setSelected([]);
+      setShowDelete(false);
+      dispatch(confirnDeleteAction(false));
+      sessionStorage.removeItem("deleteIds");
+      fetchDepartments();
     } catch (error) {
       console.error('Error deleting department:', error);
-      setOpenSnackbar(error.response?.data?.detail || 'Error deleting department');
+      setOpenSnackbar({
+        status: false,
+        message: error.response?.data?.detail || error.response?.data?.message || 'Error deleting department'
+      });
     }
-    handleMenuClose();
-  };
+    setAnchorEl(null);
+  }, [dispatch, fetchDepartments]);
 
   useEffect(() => {
     if (deletepopup?.confirnDelete === true) {
       handleDelete();
     }
-  }, [deletepopup?.confirnDelete]);
+  }, [deletepopup?.confirnDelete, handleDelete]);
 
   // Get serial number
   const getSerialNumber = (index) => {
@@ -373,9 +490,10 @@ const DepartmentlistPage = () => {
 
   const handleEditSubmit = async (values) => {
     try {
-      const payload = { ...values, id: values._id };
+      const payload = { ...values, id: values._id || values.id };
       await dispatch(editDepartmentAction(payload)).unwrap();
       setEditModalOpen(false);
+      fetchDepartments();
     } catch (error) {
       console.error('Error updating department:', error);
     }
@@ -415,13 +533,6 @@ const DepartmentlistPage = () => {
     name: Yup.string().required("Required"),
     dept_code: Yup.string().required("Required"),
   });
-
-  useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 3000);
-  }, []);
 
   return (
     <>
@@ -476,7 +587,7 @@ const DepartmentlistPage = () => {
                   </Button>
                 )}
 
-                {showDelete && (
+                {viewMode === 'table' && showDelete && (
                   <Tooltip title={`Delete selected (${selected.length})`}>
                     <Button
                       color="error"
@@ -496,7 +607,7 @@ const DepartmentlistPage = () => {
                     </Button>
                   </Tooltip>
                 )}
-                
+
                 <Button
                   startIcon={<FilterIcon sx={{ color: 'text.secondary' }} />}
                   onClick={() => setFilterOpen(true)}
@@ -511,13 +622,63 @@ const DepartmentlistPage = () => {
                 >
                   <Typography variant="body2">Sort & Filter</Typography>
                 </Button>
+
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    backgroundColor: '#FFFFFF',
+                    width: { xs: '100%', sm: 'auto' },
+                  }}
+                >
+                  <Button
+                    startIcon={<TableViewIcon />}
+                    onClick={() => handleViewModeChange('table')}
+                    sx={{
+                      borderRadius: 0,
+                      textTransform: 'none',
+                      px: 2,
+                      flex: 1,
+                      color: viewMode === 'table' ? '#FFFFFF' : '#4B5563',
+                      backgroundColor: viewMode === 'table' ? '#0E9F6E' : '#FFFFFF',
+                      '&:hover': {
+                        backgroundColor: viewMode === 'table' ? '#047857' : '#F9FAFB',
+                      },
+                    }}
+                  >
+                    Table View
+                  </Button>
+                  <Button
+                    startIcon={<BranchIcon />}
+                    onClick={() => handleViewModeChange('tree')}
+                    sx={{
+                      borderRadius: 0,
+                      textTransform: 'none',
+                      px: 2,
+                      flex: 1,
+                      borderLeft: '1px solid #E5E7EB',
+                      color: viewMode === 'tree' ? '#FFFFFF' : '#4B5563',
+                      backgroundColor: viewMode === 'tree' ? '#0E9F6E' : '#FFFFFF',
+                      '&:hover': {
+                        backgroundColor: viewMode === 'tree' ? '#047857' : '#F9FAFB',
+                      },
+                    }}
+                  >
+                    Tree View
+                  </Button>
+                </Box>
                 
                 <TextField
                   variant="outlined"
                   size="small"
                   placeholder="Search..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPagination((prev) => ({ ...prev, page: 1 }));
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -604,6 +765,7 @@ const DepartmentlistPage = () => {
           {/* Department Table - Only show if branch is selected */}
           {selectedBranch ? (
             <>
+              <Box sx={{ display: viewMode === 'table' ? 'block' : 'none', width: '100%' }}>
               <Grid item xs={12}>
                 <TableContainer elevation={0} component={Paper} sx={{height: "350px"}}>
                   <Table>
@@ -689,10 +851,11 @@ const DepartmentlistPage = () => {
                         </TableRow>
                       ) : (
                         departments.map((department, index) => {
-                          const isSelected = selected.indexOf(department.id) !== -1;
+                          const departmentId = getDepartmentId(department);
+                          const isSelected = selected.indexOf(departmentId) !== -1;
                           return (
                             <TableRow
-                              key={department.id}
+                              key={departmentId}
                               hover
                               selected={isSelected}
                               sx={{
@@ -705,7 +868,7 @@ const DepartmentlistPage = () => {
                               <TableCell padding="checkbox" sx={{ paddingLeft: '16px' }}>
                                 <Checkbox
                                   checked={isSelected}
-                                  onChange={(event) => handleSelect(event, department.id)}
+                                  onChange={(event) => handleSelect(event, departmentId)}
                                   sx={{ padding: '4px' }}
                                 />
                               </TableCell>
@@ -738,7 +901,7 @@ const DepartmentlistPage = () => {
                                   id="long-menu"
                                   anchorEl={anchorEl}
                                   keepMounted
-                                  open={openMenu && selectedDepartment?.id === department.id}
+                                  open={openMenu && getDepartmentId(selectedDepartment) === departmentId}
                                   onClose={handleMenuClose}
                                   PaperProps={{
                                     style: {
@@ -821,6 +984,326 @@ const DepartmentlistPage = () => {
                   </Box>
                 </Box>
               </Grid>
+              </Box>
+
+              {viewMode === 'tree' && (
+                <Grid item xs={12}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      border: '1px solid #E5E7EB',
+                      borderRadius: 2,
+                      backgroundColor: '#FFFFFF',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        gap: 2,
+                        flexWrap: 'wrap',
+                        px: 3,
+                        py: 2.5,
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#111827' }}>
+                          Department Tree
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Simple hierarchical view by company, branch, and department.
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={`${departments.length} departments`}
+                        sx={{
+                          bgcolor: '#ECFDF5',
+                          color: '#047857',
+                          fontWeight: 600,
+                        }}
+                      />
+                    </Box>
+
+                    <Divider />
+
+                    {loading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                        <CircularProgress size={36} />
+                      </Box>
+                    ) : treeData.length === 0 ? (
+                      <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
+                        No departments found for selected branch
+                      </Box>
+                    ) : (
+                      <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2, backgroundColor: '#FAFAFA' }}>
+                        {treeData.map((company) => {
+                          const companyNodeKey = `company-${company.key}`;
+                          const companyOpen = isTreeNodeExpanded(companyNodeKey);
+
+                          return (
+                            <Paper
+                              key={companyNodeKey}
+                              variant="outlined"
+                              sx={{
+                                borderColor: '#E5E7EB',
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                                backgroundColor: '#FFFFFF',
+                                boxShadow: 'none',
+                              }}
+                            >
+                              <Box
+                                onClick={() => toggleTreeNode(companyNodeKey)}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: 2,
+                                  px: 2.5,
+                                  py: 2,
+                                  cursor: 'pointer',
+                                  backgroundColor: '#F8FFFB',
+                                  borderLeft: '4px solid #0E9F6E',
+                                }}
+                              >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                                  <Box
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: '12px',
+                                      bgcolor: '#DCFCE7',
+                                      color: '#0E9F6E',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <BusinessIcon fontSize="small" />
+                                  </Box>
+                                  <Box sx={{ minWidth: 0 }}>
+                                    <Typography variant="body1" sx={{ fontWeight: 700, color: '#111827' }} noWrap>
+                                      {company.name}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                      {company.count} departments
+                                    </Typography>
+                                  </Box>
+                                </Box>
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip
+                                    size="small"
+                                    label={`${company.branches.length} branches`}
+                                    sx={{
+                                      bgcolor: '#ECFDF5',
+                                      color: '#047857',
+                                      fontWeight: 600,
+                                    }}
+                                  />
+                                  <ChevronRightIcon
+                                    sx={{
+                                      color: '#6B7280',
+                                      transform: companyOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                                      transition: 'transform 0.2s ease',
+                                    }}
+                                  />
+                                </Box>
+                              </Box>
+
+                              <Collapse in={companyOpen} timeout="auto" unmountOnExit>
+                                <Box sx={{ p: 2.25, pl: { xs: 2.25, sm: 4 }, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                  {company.branches.map((branch) => {
+                                    const branchNodeKey = `branch-${company.key}-${branch.key}`;
+                                    const branchOpen = isTreeNodeExpanded(branchNodeKey);
+
+                                    return (
+                                      <Paper
+                                        key={branchNodeKey}
+                                        variant="outlined"
+                                        sx={{
+                                          borderColor: '#E5E7EB',
+                                          borderRadius: 2,
+                                          overflow: 'hidden',
+                                          backgroundColor: '#FFFFFF',
+                                          boxShadow: 'none',
+                                        }}
+                                      >
+                                        <Box
+                                          onClick={() => toggleTreeNode(branchNodeKey)}
+                                          sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: 2,
+                                            px: 2.5,
+                                            py: 1.75,
+                                            cursor: 'pointer',
+                                            backgroundColor: '#F9FAFB',
+                                            borderLeft: '4px solid #93C5FD',
+                                          }}
+                                        >
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                                            <Box
+                                              sx={{
+                                                width: 38,
+                                                height: 38,
+                                                borderRadius: '12px',
+                                                bgcolor: '#E0ECFF',
+                                                color: '#2563EB',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0,
+                                              }}
+                                            >
+                                              <BranchIcon fontSize="small" />
+                                            </Box>
+                                            <Box sx={{ minWidth: 0 }}>
+                                              <Typography variant="body1" sx={{ fontWeight: 700, color: '#111827' }} noWrap>
+                                                {branch.name}
+                                              </Typography>
+                                              <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                                {branch.count} departments
+                                              </Typography>
+                                            </Box>
+                                          </Box>
+
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Chip
+                                              size="small"
+                                              label={`${branch.departments.length} departments`}
+                                              sx={{
+                                                bgcolor: '#EFF6FF',
+                                                color: '#2563EB',
+                                                fontWeight: 600,
+                                              }}
+                                            />
+                                            <ChevronRightIcon
+                                              sx={{
+                                                color: '#6B7280',
+                                                transform: branchOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                                                transition: 'transform 0.2s ease',
+                                              }}
+                                            />
+                                          </Box>
+                                        </Box>
+
+                                        <Collapse in={branchOpen} timeout="auto" unmountOnExit>
+                                          <Box sx={{ p: 2, pt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25, backgroundColor: '#FFFFFF' }}>
+                                            {branch.departments.map((departmentNode) => {
+                                              const department = departmentNode.department;
+                                              const departmentId = departmentNode.key;
+
+                                              return (
+                                                <Paper
+                                                  key={departmentId}
+                                                  variant="outlined"
+                                                  sx={{
+                                                    borderColor: '#E5E7EB',
+                                                    borderRadius: '12px',
+                                                    overflow: 'hidden',
+                                                    backgroundColor: '#FFFFFF',
+                                                    boxShadow: 'none',
+                                                  }}
+                                                >
+                                                  <Box
+                                                    sx={{
+                                                      display: 'flex',
+                                                      justifyContent: 'space-between',
+                                                      alignItems: { xs: 'flex-start', sm: 'center' },
+                                                      gap: 2,
+                                                      p: 1.75,
+                                                      flexWrap: 'wrap',
+                                                    }}
+                                                  >
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                                                      <Box
+                                                        sx={{
+                                                          width: 38,
+                                                          height: 38,
+                                                          borderRadius: '12px',
+                                                          bgcolor: '#F3F4F6',
+                                                          color: '#6B7280',
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          justifyContent: 'center',
+                                                          flexShrink: 0,
+                                                        }}
+                                                      >
+                                                        <DepartmentTreeIcon fontSize="small" />
+                                                      </Box>
+                                                      <Box sx={{ minWidth: 0 }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#111827' }} noWrap>
+                                                          {department.name}
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ color: '#6B7280' }} noWrap>
+                                                          Code: {department.dept_code || '--'}
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }} noWrap>
+                                                          {department.otherDetails || 'No additional details'}
+                                                        </Typography>
+                                                      </Box>
+                                                    </Box>
+
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6B7280' }}>
+                                                      <IconButton
+                                                        size="small"
+                                                        onClick={() => handleViewClick(department)}
+                                                        sx={{ color: 'inherit' }}
+                                                      >
+                                                        <ViewIcon fontSize="small" />
+                                                      </IconButton>
+                                                      <IconButton
+                                                        aria-label="more"
+                                                        aria-controls="long-menu"
+                                                        aria-haspopup="true"
+                                                        onClick={(e) => handleMenuClick(e, department)}
+                                                        sx={{ color: 'inherit' }}
+                                                        size="small"
+                                                      >
+                                                        <MoreVertIcon fontSize="small" />
+                                                      </IconButton>
+                                                      <Menu
+                                                        id="long-menu"
+                                                        anchorEl={anchorEl}
+                                                        keepMounted
+                                                        open={openMenu && getDepartmentId(selectedDepartment) === departmentId}
+                                                        onClose={handleMenuClose}
+                                                        PaperProps={{
+                                                          style: {
+                                                            width: '20ch',
+                                                            boxShadow: 'none',
+                                                          },
+                                                          elevation: 0,
+                                                        }}
+                                                      >
+                                                        <MenuItem onClick={handleEdit}>Edit</MenuItem>
+                                                        <MenuItem onClick={() => handleConfirmDelete(department)}>Delete</MenuItem>
+                                                      </Menu>
+                                                    </Box>
+                                                  </Box>
+                                                </Paper>
+                                              );
+                                            })}
+                                          </Box>
+                                        </Collapse>
+                                      </Paper>
+                                    );
+                                  })}
+                                </Box>
+                              </Collapse>
+                            </Paper>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+              )}
             </>
           ) : (
             <Grid item xs={12}>

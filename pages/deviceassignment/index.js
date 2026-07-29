@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -27,10 +27,12 @@ import {
   CircularProgress,
   Chip,
   InputAdornment,
+  useMediaQuery,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import SearchIcon from "@mui/icons-material/Search";
-import Layout from "../../components/Layout/Layout";
+import ReactPaginate from "react-paginate";
+import Layout, { theme } from "../../components/Layout/Layout";
 import axios from "axios";
 
 export default function DeviceAssignmentPage() {
@@ -38,6 +40,13 @@ export default function DeviceAssignmentPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [snackbar, setSnackbar] = useState(null);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"), { noSsr: true });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: 10,
+    total_pages: 1,
+    count: 0,
+  });
 
   // Edit dialog state
   const [modalOpen, setModalOpen] = useState(false);
@@ -59,41 +68,61 @@ export default function DeviceAssignmentPage() {
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [loadingDepts, setLoadingDepts] = useState(false);
 
-  const token = () => (typeof window !== "undefined" ? localStorage.getItem("biometric_token") : null);
-  const auth = () => ({ headers: { Authorization: token() } });
+  const token = useCallback(() => (typeof window !== "undefined" ? localStorage.getItem("biometric_token") : null), []);
+  const auth = useCallback(() => ({ headers: { Authorization: token() } }), [token]);
 
   // 1. Fetch sanitized device assignment list
-  const fetchAssignmentList = async () => {
+  const fetchAssignmentList = useCallback(async (page = 1, pageSize = 10, searchTerm = "") => {
     try {
       setLoading(true);
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+      const safePageSize = Math.max(Number(pageSize) || 10, 1);
+      const requestParams = {
+        page,
+        page_size: safePageSize,
+      };
+
+      if (searchTerm) {
+        requestParams.search = searchTerm;
+      }
+
       let res;
       try {
         res = await axios.post(`${baseUrl}/devices/assignment-list`, {}, {
           ...auth(),
-          params: { page: 1, page_size: 100 },
+          params: requestParams,
         });
       } catch (err) {
         if (err.response && err.response.status === 404) {
           res = await axios.post(`${baseUrl}/devices/list`, {}, {
             ...auth(),
-            params: { page: 1, page_size: 100 },
+            params: requestParams,
           });
         } else {
           throw err;
         }
       }
-      setDevices(res.data?.data || []);
+      const nextDevices = res.data?.data || [];
+      const totalCount = Number(res.data?.count || 0);
+      const totalPages = Math.max(Number(res.data?.total_pages) || Math.ceil(totalCount / safePageSize) || 1, 1);
+
+      setDevices(nextDevices);
+      setPagination((prev) => ({
+        ...prev,
+        page,
+        page_size: safePageSize,
+        total_pages: totalPages,
+        count: totalCount,
+      }));
     } catch (e) {
       console.error("Error loading assignment list:", e);
       setSnackbar({ status: false, message: "Could not load device assignment list" });
     } finally {
       setLoading(false);
     }
-  };
+  }, [auth]);
 
-  // 2. Fetch Companies dropdown
-  const fetchCompanies = async () => {
+  const fetchCompanies = useCallback(async () => {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
       let res;
@@ -107,7 +136,7 @@ export default function DeviceAssignmentPage() {
     } catch (e) {
       console.error("Error fetching companies:", e);
     }
-  };
+  }, [auth]);
 
   // 3. Fetch Branches for a company
   const fetchBranchesForCompany = async (companyId) => {
@@ -150,9 +179,9 @@ export default function DeviceAssignmentPage() {
   };
 
   useEffect(() => {
-    fetchAssignmentList();
+    fetchAssignmentList(1, 10, "");
     fetchCompanies();
-  }, []);
+  }, [fetchAssignmentList, fetchCompanies]);
 
   // Open Edit dialog for assignment
   const handleOpenEdit = async (device) => {
@@ -241,6 +270,7 @@ export default function DeviceAssignmentPage() {
 
       setSnackbar({ status: true, message: "Device assignment updated successfully." });
       setModalOpen(false);
+      fetchAssignmentList(pagination.page, pagination.page_size, search);
     } catch (e) {
       console.error("Error saving assignment:", e);
       const msg = e.response?.data?.message || "Failed to update device assignment";
@@ -250,18 +280,23 @@ export default function DeviceAssignmentPage() {
     }
   };
 
-  // Filtered devices list for search
-  const filteredDevices = devices.filter((d) => {
-    if (!search) return true;
-    const term = search.toLowerCase();
-    return (
-      (d.name && d.name.toLowerCase().includes(term)) ||
-      (d.company_name && d.company_name.toLowerCase().includes(term)) ||
-      (d.branch_name && d.branch_name.toLowerCase().includes(term)) ||
-      (d.dept_name && d.dept_name.toLowerCase().includes(term)) ||
-      (d.location && d.location.toLowerCase().includes(term))
-    );
-  });
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+    fetchAssignmentList(newPage, pagination.page_size, search);
+  };
+
+  const handlePageSizeChange = (event) => {
+    const pageSize = Number(event.target.value);
+    setPagination((prev) => ({ ...prev, page: 1, page_size: pageSize }));
+    fetchAssignmentList(1, pageSize, search);
+  };
+
+  const handleSearchChange = (event) => {
+    const value = event.target.value;
+    setSearch(value);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    fetchAssignmentList(1, pagination.page_size, value);
+  };
 
   return (
     <Layout title="Device Assignment">
@@ -282,7 +317,7 @@ export default function DeviceAssignmentPage() {
               size="small"
               placeholder="Search assignment..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={handleSearchChange}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -335,7 +370,7 @@ export default function DeviceAssignmentPage() {
                       </Typography>
                     </TableCell>
                   </TableRow>
-                ) : filteredDevices.length === 0 ? (
+                ) : devices.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                       <Typography sx={{ color: "#64748B", fontSize: 14 }}>
@@ -344,7 +379,7 @@ export default function DeviceAssignmentPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredDevices.map((d) => (
+                  devices.map((d) => (
                     <TableRow key={d._id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                       <TableCell sx={{ fontWeight: 600, color: "#0F172A" }}>
                         {d.name}
@@ -424,6 +459,136 @@ export default function DeviceAssignmentPage() {
             </Table>
           </TableContainer>
         </Paper>
+
+        <Box
+          sx={{
+            mt: 2,
+            p: { xs: 1.5, sm: 2 },
+            border: "1px solid #E2E8F0",
+            borderRadius: "12px",
+            backgroundColor: "#FFFFFF",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "stretch", md: "center" },
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+          }}
+        >
+          <Box sx={{ width: { xs: "100%", md: "auto" } }}>
+            <Typography variant="caption" sx={{ display: "block", mb: 0.75, color: "#64748B" }}>
+              Rows per page
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 140 } }}>
+              <Select
+                value={pagination.page_size}
+                onChange={handlePageSizeChange}
+                sx={{
+                  bgcolor: "#fff",
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#D1D5DB",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#0E9F6E",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#0E9F6E",
+                  },
+                }}
+              >
+                {[5, 10, 25, 50, 100].map((size) => (
+                  <MenuItem key={size} value={size}>
+                    {size}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              width: { xs: "100%", md: "auto" },
+              "& .pagination": {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexWrap: "wrap",
+                gap: 1,
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+              },
+              "& .pagination li a": {
+                minWidth: 38,
+                height: 38,
+                padding: "0 12px",
+                borderRadius: "10px",
+                border: "1px solid #D1D5DB",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: theme.palette.text.primary,
+                backgroundColor: "#FFFFFF",
+                textDecoration: "none",
+                transition: "all 0.2s ease",
+              },
+              "& .pagination li a:hover": {
+                borderColor: "#0E9F6E",
+                color: "#0E9F6E",
+              },
+              "& .pagination li.selected a": {
+                backgroundColor: theme.palette.primary.main,
+                borderColor: theme.palette.primary.main,
+                color: theme.palette.primary.contrastText,
+                boxShadow: "0 8px 18px rgba(14, 159, 110, 0.18)",
+              },
+              "& .pagination li.disabled a": {
+                opacity: 0.45,
+                cursor: "not-allowed",
+                backgroundColor: "#F9FAFB",
+              },
+            }}
+          >
+            <ReactPaginate
+              previousLabel={"Previous"}
+              nextLabel={"Next"}
+              breakLabel={"..."}
+              breakClassName={"break-me"}
+              pageCount={Math.max(pagination.total_pages, 1)}
+              marginPagesDisplayed={isMobile ? 1 : 2}
+              pageRangeDisplayed={isMobile ? 1 : 3}
+              onPageChange={({ selected }) => handlePageChange(selected + 1)}
+              containerClassName={"pagination"}
+              activeClassName={"selected"}
+              previousClassName={"previous"}
+              nextClassName={"next"}
+              disabledClassName={"disabled"}
+              forcePage={Math.max(Math.min(pagination.page - 1, pagination.total_pages - 1), 0)}
+              pageClassName={"page-item"}
+              pageLinkClassName={"page-link"}
+              previousLinkClassName={"page-link"}
+              nextLinkClassName={"page-link"}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: { xs: "100%", md: 160 },
+              display: "flex",
+              flexDirection: "column",
+              alignItems: { xs: "flex-start", md: "flex-end" },
+              justifyContent: "center",
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "#0F172A" }}>
+              Page {pagination.page} of {pagination.total_pages}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#64748B" }}>
+              Total {pagination.count} assignments
+            </Typography>
+          </Box>
+        </Box>
 
         {/* Edit Assignment Modal */}
         <Dialog
