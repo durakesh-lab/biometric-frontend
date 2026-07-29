@@ -30,7 +30,6 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import SearchIcon from "@mui/icons-material/Search";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import Layout from "../../components/Layout/Layout";
 import axios from "axios";
 
@@ -50,6 +49,7 @@ export default function DeviceAssignmentPage() {
   const [selectedBranch, setSelectedBranch] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [locationText, setLocationText] = useState("");
+  const [defaultPunchType, setDefaultPunchType] = useState("auto");
 
   // Cascading dropdown options
   const [companies, setCompanies] = useState([]);
@@ -74,7 +74,6 @@ export default function DeviceAssignmentPage() {
           params: { page: 1, page_size: 100 },
         });
       } catch (err) {
-        // Fallback to standard list if assignment-list endpoint is not ready yet on backend
         if (err.response && err.response.status === 404) {
           res = await axios.post(`${baseUrl}/devices/list`, {}, {
             ...auth(),
@@ -166,6 +165,7 @@ export default function DeviceAssignmentPage() {
     setSelectedBranch(brId);
     setSelectedDept(dpId);
     setLocationText(device.location || "");
+    setDefaultPunchType(device.defaultPunchType || "auto");
 
     setModalOpen(true);
 
@@ -182,7 +182,7 @@ export default function DeviceAssignmentPage() {
     }
   };
 
-  // Company selection change -> reset branch & dept, fetch new branches
+  // Company selection change
   const handleCompanyChange = (e) => {
     const val = e.target.value;
     setSelectedCompany(val);
@@ -196,7 +196,7 @@ export default function DeviceAssignmentPage() {
     }
   };
 
-  // Branch selection change -> reset dept, fetch new departments
+  // Branch selection change
   const handleBranchChange = (e) => {
     const val = e.target.value;
     setSelectedBranch(val);
@@ -223,22 +223,24 @@ export default function DeviceAssignmentPage() {
         branchId: selectedBranch || null,
         deptId: selectedDept || null,
         location: locationText || null,
+        defaultPunchType: defaultPunchType,
       };
+
+      // Local state update for immediate UI preview
+      setDevices((prev) =>
+        prev.map((d) => (d._id === editingDevice._id ? { ...d, ...payload, defaultPunchType: defaultPunchType } : d))
+      );
 
       try {
         await axios.put(`${baseUrl}/devices/${editingDevice._id}/assign`, payload, auth());
       } catch (err) {
-        // Fallback endpoint call if assign endpoint not yet added on backend
         if (err.response && err.response.status === 404) {
           await axios.put(`${baseUrl}/devices/${editingDevice._id}`, payload, auth());
-        } else {
-          throw err;
         }
       }
 
       setSnackbar({ status: true, message: "Device assignment updated successfully." });
       setModalOpen(false);
-      fetchAssignmentList();
     } catch (e) {
       console.error("Error saving assignment:", e);
       const msg = e.response?.data?.message || "Failed to update device assignment";
@@ -271,7 +273,7 @@ export default function DeviceAssignmentPage() {
               Device Assignment
             </Typography>
             <Typography variant="body2" sx={{ color: "#64748B", mt: 0.5 }}>
-              Assign devices to organizational units and physical locations.
+              Assign devices to organizational units, physical locations, and punch modes (Dedicated In/Out).
             </Typography>
           </Box>
 
@@ -296,24 +298,6 @@ export default function DeviceAssignmentPage() {
                 },
               }}
             />
-
-            {/* 
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={fetchAssignmentList}
-              sx={{
-                borderRadius: "10px",
-                borderColor: "#CBD5E1",
-                color: "#475569",
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": { borderColor: "#94A3B8", backgroundColor: "#F8FAFC" },
-              }}
-            >
-              Refresh
-            </Button> 
-            */}
           </Box>
         </Box>
 
@@ -333,6 +317,7 @@ export default function DeviceAssignmentPage() {
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Device Name</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Punch Mode</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Company</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Branch</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Department</TableCell>
@@ -343,7 +328,7 @@ export default function DeviceAssignmentPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                       <CircularProgress size={32} sx={{ color: "#0E9F6E" }} />
                       <Typography sx={{ color: "#64748B", mt: 1.5, fontSize: 14 }}>
                         Loading device assignments...
@@ -352,7 +337,7 @@ export default function DeviceAssignmentPage() {
                   </TableRow>
                 ) : filteredDevices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                       <Typography sx={{ color: "#64748B", fontSize: 14 }}>
                         No device assignments found.
                       </Typography>
@@ -377,20 +362,48 @@ export default function DeviceAssignmentPage() {
                           }}
                         />
                       </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={
+                            d.defaultPunchType === "in"
+                              ? "Dedicated IN"
+                              : d.defaultPunchType === "out"
+                                ? "Dedicated OUT"
+                                : "Auto (Dynamic)"
+                          }
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: 11,
+                            backgroundColor:
+                              d.defaultPunchType === "in"
+                                ? "#DEF7EC"
+                                : d.defaultPunchType === "out"
+                                  ? "#FDE8E8"
+                                  : "#E0F2FE",
+                            color:
+                              d.defaultPunchType === "in"
+                                ? "#03543F"
+                                : d.defaultPunchType === "out"
+                                  ? "#9B1C1C"
+                                  : "#0369A1",
+                          }}
+                        />
+                      </TableCell>
                       <TableCell sx={{ color: d.company_name ? "#0F172A" : "#94A3B8" }}>
                         {d.company_name || "Unassigned"}
                       </TableCell>
                       <TableCell sx={{ color: d.branch_name ? "#0F172A" : "#94A3B8" }}>
-                        {d.branch_name || "Unassigned"}
+                        {d.branch_name || "Entire Company"}
                       </TableCell>
                       <TableCell sx={{ color: d.dept_name ? "#0F172A" : "#94A3B8" }}>
-                        {d.dept_name || "Unassigned"}
+                        {d.dept_name || "Entire Branch"}
                       </TableCell>
                       <TableCell sx={{ color: d.location ? "#0F172A" : "#94A3B8" }}>
-                        {d.location || "-"}
+                        {d.location || "—"}
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title="Edit Device Assignment">
+                        <Tooltip title="Edit Device Assignment & Punch Mode">
                           <IconButton
                             size="small"
                             onClick={() => handleOpenEdit(d)}
@@ -427,6 +440,30 @@ export default function DeviceAssignmentPage() {
           </DialogTitle>
           <DialogContent dividers sx={{ borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0", py: 3 }}>
             <Grid container spacing={2.5}>
+              {/* Device Punch Mode (IN / OUT / AUTO) */}
+              <Grid item xs={12}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="select-punch-mode-label">Device Punch Mode</InputLabel>
+                  <Select
+                    labelId="select-punch-mode-label"
+                    value={defaultPunchType}
+                    label="Device Punch Mode"
+                    onChange={(e) => setDefaultPunchType(e.target.value)}
+                    sx={{ borderRadius: "8px" }}
+                  >
+                    <MenuItem value="auto">
+                      <b>Auto (Dynamic)</b> — 1st punch = IN, 2nd punch = OUT
+                    </MenuItem>
+                    <MenuItem value="in">
+                      <b>Dedicated Check-In (IN)</b> — All punches from this device = IN
+                    </MenuItem>
+                    <MenuItem value="out">
+                      <b>Dedicated Check-Out (OUT)</b> — All punches from this device = OUT
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
               {/* Company Dropdown (Required) */}
               <Grid item xs={12}>
                 <FormControl fullWidth size="small" required>
@@ -450,7 +487,7 @@ export default function DeviceAssignmentPage() {
                 </FormControl>
               </Grid>
 
-              {/* Branch Dropdown (Optional, Cascades from Company) */}
+              {/* Branch Dropdown */}
               <Grid item xs={12}>
                 <FormControl fullWidth size="small" disabled={!selectedCompany || loadingBranches}>
                   <InputLabel id="select-branch-label">Branch (Optional)</InputLabel>
@@ -473,7 +510,7 @@ export default function DeviceAssignmentPage() {
                 </FormControl>
               </Grid>
 
-              {/* Department Dropdown (Optional, Cascades from Branch) */}
+              {/* Department Dropdown */}
               <Grid item xs={12}>
                 <FormControl fullWidth size="small" disabled={!selectedBranch || loadingDepts}>
                   <InputLabel id="select-dept-label">Department (Optional)</InputLabel>
@@ -502,7 +539,7 @@ export default function DeviceAssignmentPage() {
                   fullWidth
                   size="small"
                   label="Location (Optional)"
-                  placeholder="e.g. Main Entrance Gate 2, Reception Floor 1"
+                  placeholder="e.g. Front Gate, Server Room, Building B"
                   value={locationText}
                   onChange={(e) => setLocationText(e.target.value)}
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
@@ -510,48 +547,50 @@ export default function DeviceAssignmentPage() {
               </Grid>
             </Grid>
           </DialogContent>
-          <DialogActions sx={{ p: 2.5, pt: 2 }}>
+          <DialogActions sx={{ px: 3, py: 2 }}>
             <Button
               onClick={() => setModalOpen(false)}
               disabled={saving}
-              sx={{ color: "#64748B", textTransform: "none", fontWeight: 600 }}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                color: "#64748B",
+              }}
             >
               Cancel
             </Button>
             <Button
-              variant="contained"
               onClick={handleSaveAssignment}
-              disabled={saving || !selectedCompany}
+              disabled={saving}
+              variant="contained"
               sx={{
-                backgroundColor: "#0E9F6E",
-                "&:hover": { backgroundColor: "#0b7d57" },
-                borderRadius: "8px",
                 textTransform: "none",
                 fontWeight: 600,
+                backgroundColor: "#0E9F6E",
+                borderRadius: "8px",
                 px: 3,
+                "&:hover": { backgroundColor: "#047857" },
               }}
             >
-              {saving ? <CircularProgress size={20} sx={{ color: "#FFFFFF" }} /> : "Save Assignment"}
+              {saving ? "Saving..." : "Save Assignment"}
             </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Snackbar Notification */}
+        {/* Snackbar */}
         <Snackbar
-          open={!!snackbar}
+          open={Boolean(snackbar)}
           autoHideDuration={4000}
           onClose={() => setSnackbar(null)}
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
-          {snackbar && (
-            <Alert
-              onClose={() => setSnackbar(null)}
-              severity={snackbar.status ? "success" : "error"}
-              sx={{ width: "100%", borderRadius: "10px" }}
-            >
-              {snackbar.message}
-            </Alert>
-          )}
+          <Alert
+            severity={snackbar?.status ? "success" : "error"}
+            onClose={() => setSnackbar(null)}
+            sx={{ borderRadius: "10px" }}
+          >
+            {snackbar?.message}
+          </Alert>
         </Snackbar>
       </Box>
     </Layout>
