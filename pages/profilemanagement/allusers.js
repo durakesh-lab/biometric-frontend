@@ -34,7 +34,8 @@ import {
   Alert,
   Fab,
   DialogContentText,
-  Chip
+  Chip,
+  useMediaQuery
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -187,6 +188,7 @@ const checkEmployeeCodeUnique = makeDebouncedUniqueCheck(fetchEmployeeCodeUnique
 const StaffListPage = () => {
   // State for companies
   let router = useRouter()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
@@ -1516,15 +1518,41 @@ const StaffListPage = () => {
                 </Box>
 
                 {/* Pagination */}
-                <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} sx={{ px: 2, pb: 2 }}>
-                  <Box display="flex" justifyContent="flex-start" alignItems="center">
-                    <FormControl size="small" sx={{ minWidth: 120 }}>
-                      <InputLabel>Rows per page</InputLabel>
+                <Box
+                  sx={{
+                    mt: 2,
+                    px: 2,
+                    pb: 2,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: { xs: 'stretch', md: 'center' },
+                    flexDirection: { xs: 'column', md: 'row' },
+                    gap: 2,
+                    borderTop: '1px solid #E5E7EB',
+                    paddingTop: '16px',
+                    backgroundColor: '#FFFFFF',
+                  }}
+                >
+                  <Box sx={{ width: { xs: '100%', md: 'auto' } }}>
+                    <Typography variant="caption" sx={{ display: 'block', mb: 0.75, color: 'text.secondary' }}>
+                      Rows per page
+                    </Typography>
+                    <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 140 } }}>
                       <Select
                         value={pagination.page_size}
-                        label="Rows per page"
                         onChange={handlePageSizeChange}
-                        sx={{ color: 'text.secondary' }}
+                        sx={{
+                          bgcolor: '#fff',
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#D1D5DB',
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#0E9F6E',
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#0E9F6E',
+                          },
+                        }}
                       >
                         {[5, 10, 25, 50, 100].map((size) => (
                           <MenuItem key={size} value={size}>
@@ -1537,55 +1565,88 @@ const StaffListPage = () => {
 
                   <Box
                     sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      width: { xs: '100%', md: 'auto' },
                       '& .pagination': {
                         display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexWrap: 'wrap',
+                        gap: 1,
                         listStyle: 'none',
                         padding: 0,
                         margin: 0,
-                        gap: '4px',
-                        alignItems: 'center',
                       },
                       '& .pagination li a': {
-                        padding: '6px 12px',
-                        border: '1px solid #E5E7EB',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: theme.typography.body2.fontSize,
+                        minWidth: 38,
+                        height: 38,
+                        padding: '0 12px',
+                        borderRadius: '10px',
+                        border: '1px solid #D1D5DB',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         color: theme.palette.text.primary,
+                        backgroundColor: '#FFFFFF',
                         textDecoration: 'none',
-                        display: 'inline-block',
+                        transition: 'all 0.2s ease',
+                      },
+                      '& .pagination li a:hover': {
+                        borderColor: '#0E9F6E',
+                        color: '#0E9F6E',
                       },
                       '& .pagination li.selected a': {
                         backgroundColor: theme.palette.primary.main,
-                        color: theme.palette.primary.contrastText,
                         borderColor: theme.palette.primary.main,
-                        fontWeight: 500,
-                        fontSize: theme.typography.fontSize,
+                        color: theme.palette.primary.contrastText,
+                        boxShadow: '0 8px 18px rgba(14, 159, 110, 0.18)',
                       },
                       '& .pagination li.disabled a': {
-                        opacity: 0.5,
+                        opacity: 0.45,
                         cursor: 'not-allowed',
-                      }
+                        backgroundColor: '#F9FAFB',
+                      },
                     }}
                   >
                     <ReactPaginate
                       previousLabel={'Previous'}
                       nextLabel={'Next'}
                       breakLabel={'...'}
-                      pageCount={pagination.total_pages}
-                      marginPagesDisplayed={2}
-                      pageRangeDisplayed={3}
+                      breakClassName={'break-me'}
+                      pageCount={Math.max(pagination.total_pages, 1)}
+                      marginPagesDisplayed={isMobile ? 1 : 2}
+                      pageRangeDisplayed={isMobile ? 1 : 3}
                       onPageChange={({ selected }) => handlePageChange(selected + 1)}
                       containerClassName={'pagination'}
                       activeClassName={'selected'}
                       previousClassName={'previous'}
                       nextClassName={'next'}
                       disabledClassName={'disabled'}
-                      forcePage={pagination.page - 1}
+                      forcePage={Math.max(Math.min(pagination.page - 1, pagination.total_pages - 1), 0)}
+                      pageClassName={'page-item'}
+                      pageLinkClassName={'page-link'}
+                      previousLinkClassName={'page-link'}
+                      nextLinkClassName={'page-link'}
                     />
                   </Box>
 
-                  <Box sx={{ width: 120 }} />
+                  <Box
+                    sx={{
+                      minWidth: { xs: '100%', md: 160 },
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: { xs: 'flex-start', md: 'flex-end' },
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                      Page {pagination.page} of {pagination.total_pages}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Total {pagination.count} employees
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
 

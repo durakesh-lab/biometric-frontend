@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -18,7 +18,6 @@ import {
   DialogActions,
   TextField,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   Grid,
@@ -26,11 +25,13 @@ import {
   Alert,
   CircularProgress,
   Chip,
+  useMediaQuery,
 } from "@mui/material";
 import BoltIcon from "@mui/icons-material/Bolt";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import Layout from "../../components/Layout/Layout";
+import ReactPaginate from "react-paginate";
+import Layout, { theme } from "../../components/Layout/Layout";
 import axios from "axios";
 
 const EMPTY = {
@@ -44,6 +45,13 @@ export default function DevicesPage() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState(null);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"), { noSsr: true });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: 10,
+    total_pages: 1,
+    count: 0,
+  });
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -56,31 +64,40 @@ export default function DevicesPage() {
   const [wdmsPass, setWdmsPass] = useState("");
   const [fetchingToken, setFetchingToken] = useState(false);
 
-  const token = () => (typeof window !== "undefined" ? localStorage.getItem("biometric_token") : null);
-  const auth = () => ({ headers: { Authorization: token() } });
+  const token = useCallback(() => (typeof window !== "undefined" ? localStorage.getItem("biometric_token") : null), []);
+  const auth = useCallback(() => ({ headers: { Authorization: token() } }), [token]);
 
-  const fetchDevices = async () => {
+  const fetchDevices = useCallback(async (page = 1, pageSize = 10) => {
     try {
       setLoading(true);
+      const safePageSize = Math.max(Number(pageSize) || 10, 1);
       const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/devices/list`, {}, {
         ...auth(),
-        params: { page: 1, page_size: 100 },
+        params: { page, page_size: safePageSize },
       });
-      setDevices(res.data?.data || []);
+      const nextDevices = res.data?.data || [];
+      const totalCount = Number(res.data?.count || 0);
+      const totalPages = Math.max(Number(res.data?.total_pages) || Math.ceil(totalCount / safePageSize) || 1, 1);
+
+      setDevices(nextDevices);
+      setPagination((prev) => ({
+        ...prev,
+        page,
+        page_size: safePageSize,
+        total_pages: totalPages,
+        count: totalCount,
+      }));
     } catch (e) {
       console.error("Error loading devices:", e);
       setSnackbar({ status: false, message: "Could not load devices" });
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchCompanies = async () => { };
-  const fetchBranches = async () => { };
+  }, [auth]);
 
   useEffect(() => {
-    fetchDevices();
-  }, []);
+    fetchDevices(1, 10);
+  }, [fetchDevices]);
 
   const openAdd = () => {
     setEditingId(null);
@@ -180,7 +197,7 @@ export default function DevicesPage() {
         setSnackbar({ status: true, message: "Device registered" });
       }
       setModalOpen(false);
-      fetchDevices();
+      fetchDevices(pagination.page, pagination.page_size);
     } catch (e) {
       setSnackbar({ status: false, message: e.response?.data?.message || "Could not save device" });
     } finally {
@@ -192,7 +209,7 @@ export default function DevicesPage() {
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_BASE_URL}/devices/${id}`, auth());
       setSnackbar({ status: true, message: "Device deleted" });
-      fetchDevices();
+      fetchDevices(pagination.page, pagination.page_size);
     } catch (e) {
       setSnackbar({ status: false, message: "Could not delete device" });
     }
@@ -202,7 +219,7 @@ export default function DevicesPage() {
     try {
       const res = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/devices/${id}/test`, {}, auth());
       setSnackbar({ status: res.data.ok, message: res.data.message });
-      fetchDevices();
+      fetchDevices(pagination.page, pagination.page_size);
     } catch (e) {
       setSnackbar({ status: false, message: "Test failed" });
     }
@@ -219,6 +236,17 @@ export default function DevicesPage() {
       }}
     />
   );
+
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+    fetchDevices(newPage, pagination.page_size);
+  };
+
+  const handlePageSizeChange = (event) => {
+    const pageSize = Number(event.target.value);
+    setPagination((prev) => ({ ...prev, page: 1, page_size: pageSize }));
+    fetchDevices(1, pageSize);
+  };
 
   return (
     <Layout>
@@ -258,10 +286,10 @@ export default function DevicesPage() {
               </TableHead>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6 }}><CircularProgress size={36} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6 }}><CircularProgress size={36} /></TableCell></TableRow>
                 ) : devices.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                    No devices registered yet — click “Register Device”.
+                  <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                    {"No devices registered yet - click \"Register Device\"."}
                   </TableCell></TableRow>
                 ) : (
                   devices.map((d) => (
@@ -296,6 +324,136 @@ export default function DevicesPage() {
             </Table>
           </TableContainer>
         </Paper>
+
+        <Box
+          sx={{
+            mt: 2,
+            p: { xs: 1.5, sm: 2 },
+            border: "1px solid #E5E7EB",
+            borderRadius: "12px",
+            backgroundColor: "#FFFFFF",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "stretch", md: "center" },
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+          }}
+        >
+          <Box sx={{ width: { xs: "100%", md: "auto" } }}>
+            <Typography variant="caption" sx={{ display: "block", mb: 0.75, color: "text.secondary" }}>
+              Rows per page
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 140 } }}>
+              <Select
+                value={pagination.page_size}
+                onChange={handlePageSizeChange}
+                sx={{
+                  bgcolor: "#fff",
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#D1D5DB",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#0E9F6E",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#0E9F6E",
+                  },
+                }}
+              >
+                {[5, 10, 25, 50, 100].map((size) => (
+                  <MenuItem key={size} value={size}>
+                    {size}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              width: { xs: "100%", md: "auto" },
+              "& .pagination": {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexWrap: "wrap",
+                gap: 1,
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+              },
+              "& .pagination li a": {
+                minWidth: 38,
+                height: 38,
+                padding: "0 12px",
+                borderRadius: "10px",
+                border: "1px solid #D1D5DB",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: theme.palette.text.primary,
+                backgroundColor: "#FFFFFF",
+                textDecoration: "none",
+                transition: "all 0.2s ease",
+              },
+              "& .pagination li a:hover": {
+                borderColor: "#0E9F6E",
+                color: "#0E9F6E",
+              },
+              "& .pagination li.selected a": {
+                backgroundColor: theme.palette.primary.main,
+                borderColor: theme.palette.primary.main,
+                color: theme.palette.primary.contrastText,
+                boxShadow: "0 8px 18px rgba(14, 159, 110, 0.18)",
+              },
+              "& .pagination li.disabled a": {
+                opacity: 0.45,
+                cursor: "not-allowed",
+                backgroundColor: "#F9FAFB",
+              },
+            }}
+          >
+            <ReactPaginate
+              previousLabel={"Previous"}
+              nextLabel={"Next"}
+              breakLabel={"..."}
+              breakClassName={"break-me"}
+              pageCount={Math.max(pagination.total_pages, 1)}
+              marginPagesDisplayed={isMobile ? 1 : 2}
+              pageRangeDisplayed={isMobile ? 1 : 3}
+              onPageChange={({ selected }) => handlePageChange(selected + 1)}
+              containerClassName={"pagination"}
+              activeClassName={"selected"}
+              previousClassName={"previous"}
+              nextClassName={"next"}
+              disabledClassName={"disabled"}
+              forcePage={Math.max(Math.min(pagination.page - 1, pagination.total_pages - 1), 0)}
+              pageClassName={"page-item"}
+              pageLinkClassName={"page-link"}
+              previousLinkClassName={"page-link"}
+              nextLinkClassName={"page-link"}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: { xs: "100%", md: 160 },
+              display: "flex",
+              flexDirection: "column",
+              alignItems: { xs: "flex-start", md: "flex-end" },
+              justifyContent: "center",
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+              Page {pagination.page} of {pagination.total_pages}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              Total {pagination.count} devices
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
       {/* Register / Edit device modal */}
@@ -322,7 +480,7 @@ export default function DevicesPage() {
                   🔑 Auto-fetch Token Helper
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 2 }}>
-                  If you don't know your token, enter your EasyWDMS portal username & password to fetch it automatically.
+                  If you don&apos;t know your token, enter your EasyWDMS portal username & password to fetch it automatically.
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={4}>

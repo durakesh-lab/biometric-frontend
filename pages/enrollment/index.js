@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -21,12 +21,17 @@ import {
   Alert,
   CircularProgress,
   Checkbox,
+  FormControl,
   FormGroup,
   FormControlLabel,
+  Select,
+  MenuItem,
   Stack,
+  useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import Layout from "../../components/Layout/Layout";
+import ReactPaginate from "react-paginate";
+import Layout, { theme } from "../../components/Layout/Layout";
 import axios from "axios";
 
 export default function EnrollmentPage() {
@@ -36,6 +41,11 @@ export default function EnrollmentPage() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all"); // all | pending | linked
   const [snackbar, setSnackbar] = useState(null);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"), { noSsr: true });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: 5,
+  });
 
   // Link dialog state
   const [linkOpen, setLinkOpen] = useState(false);
@@ -44,9 +54,9 @@ export default function EnrollmentPage() {
   const [selectedDevices, setSelectedDevices] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  const token = () => (typeof window !== "undefined" ? localStorage.getItem("biometric_token") : null);
+  const token = useCallback(() => (typeof window !== "undefined" ? localStorage.getItem("biometric_token") : null), []);
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.post(
@@ -61,9 +71,9 @@ export default function EnrollmentPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const fetchDevices = async () => {
+  const fetchDevices = useCallback(async () => {
     try {
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_BASE_URL}/devices/assignment-list`,
@@ -83,12 +93,12 @@ export default function EnrollmentPage() {
         console.error("Could not fetch devices:", err);
       }
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchEmployees();
     fetchDevices();
-  }, []);
+  }, [fetchEmployees, fetchDevices]);
 
   const counts = useMemo(() => {
     const linked = employees.filter((e) => e.deviceUserId || (e.deviceLinks && e.deviceLinks.length > 0)).length;
@@ -109,6 +119,12 @@ export default function EnrollmentPage() {
     }
     return list;
   }, [employees, tab, search]);
+
+  const totalPages = Math.max(Math.ceil(rows.length / pagination.page_size), 1);
+  const pagedRows = useMemo(() => {
+    const start = (pagination.page - 1) * pagination.page_size;
+    return rows.slice(start, start + pagination.page_size);
+  }, [rows, pagination.page, pagination.page_size]);
 
   const openLink = (emp) => {
     setTarget(emp);
@@ -163,7 +179,10 @@ export default function EnrollmentPage() {
   const TabChip = ({ id, label, count }) => (
     <Chip
       label={`${label} ${count}`}
-      onClick={() => setTab(id)}
+      onClick={() => {
+        setTab(id);
+        setPagination((prev) => ({ ...prev, page: 1 }));
+      }}
       variant={tab === id ? "filled" : "outlined"}
       sx={{
         fontWeight: 600,
@@ -174,6 +193,20 @@ export default function EnrollmentPage() {
       }}
     />
   );
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+  };
+
+  const handlePageSizeChange = (event) => {
+    const pageSize = Number(event.target.value);
+    setPagination({ page: 1, page_size: pageSize });
+  };
 
   return (
     <Layout>
@@ -209,7 +242,7 @@ export default function EnrollmentPage() {
               size="small"
               placeholder="Search name / email / device ID…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={handleSearchChange}
               sx={{ width: 320, ml: "auto", "& .MuiOutlinedInput-root": { borderRadius: "8px" } }}
               InputProps={{
                 startAdornment: (
@@ -242,18 +275,18 @@ export default function EnrollmentPage() {
                       <CircularProgress size={36} />
                     </TableCell>
                   </TableRow>
-                ) : rows.length === 0 ? (
+                ) : pagedRows.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
                       No employees found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rows.map((e, i) => {
+                  pagedRows.map((e, i) => {
                     const linkedDevicesList = e.linkedDevices || [];
                     return (
                       <TableRow key={e._id} hover>
-                        <TableCell>{i + 1}</TableCell>
+                        <TableCell>{(pagination.page - 1) * pagination.page_size + i + 1}</TableCell>
                         <TableCell>{`${e.firstName || ""} ${e.lastName || ""}`.trim() || "—"}</TableCell>
                         <TableCell>{e.email || "—"}</TableCell>
                         <TableCell>{e.branch_name || "—"}</TableCell>
@@ -307,6 +340,136 @@ export default function EnrollmentPage() {
             </Table>
           </TableContainer>
         </Paper>
+
+        <Box
+          sx={{
+            mt: 2,
+            p: { xs: 1.5, sm: 2 },
+            border: "1px solid #E5E7EB",
+            borderRadius: "12px",
+            backgroundColor: "#FFFFFF",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "stretch", md: "center" },
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+          }}
+        >
+          <Box sx={{ width: { xs: "100%", md: "auto" } }}>
+            <Typography variant="caption" sx={{ display: "block", mb: 0.75, color: "text.secondary" }}>
+              Rows per page
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 140 } }}>
+              <Select
+                value={pagination.page_size}
+                onChange={handlePageSizeChange}
+                sx={{
+                  bgcolor: "#fff",
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#D1D5DB",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#0E9F6E",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#0E9F6E",
+                  },
+                }}
+              >
+                {[5, 10, 25, 50, 100].map((size) => (
+                  <MenuItem key={size} value={size}>
+                    {size}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              width: { xs: "100%", md: "auto" },
+              "& .pagination": {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexWrap: "wrap",
+                gap: 1,
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+              },
+              "& .pagination li a": {
+                minWidth: 38,
+                height: 38,
+                padding: "0 12px",
+                borderRadius: "10px",
+                border: "1px solid #D1D5DB",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: theme.palette.text.primary,
+                backgroundColor: "#FFFFFF",
+                textDecoration: "none",
+                transition: "all 0.2s ease",
+              },
+              "& .pagination li a:hover": {
+                borderColor: "#0E9F6E",
+                color: "#0E9F6E",
+              },
+              "& .pagination li.selected a": {
+                backgroundColor: theme.palette.primary.main,
+                borderColor: theme.palette.primary.main,
+                color: theme.palette.primary.contrastText,
+                boxShadow: "0 8px 18px rgba(14, 159, 110, 0.18)",
+              },
+              "& .pagination li.disabled a": {
+                opacity: 0.45,
+                cursor: "not-allowed",
+                backgroundColor: "#F9FAFB",
+              },
+            }}
+          >
+            <ReactPaginate
+              previousLabel={"Previous"}
+              nextLabel={"Next"}
+              breakLabel={"..."}
+              breakClassName={"break-me"}
+              pageCount={totalPages}
+              marginPagesDisplayed={isMobile ? 1 : 2}
+              pageRangeDisplayed={isMobile ? 1 : 3}
+              onPageChange={({ selected }) => handlePageChange(selected + 1)}
+              containerClassName={"pagination"}
+              activeClassName={"selected"}
+              previousClassName={"previous"}
+              nextClassName={"next"}
+              disabledClassName={"disabled"}
+              forcePage={Math.max(Math.min(pagination.page - 1, totalPages - 1), 0)}
+              pageClassName={"page-item"}
+              pageLinkClassName={"page-link"}
+              previousLinkClassName={"page-link"}
+              nextLinkClassName={"page-link"}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: { xs: "100%", md: 160 },
+              display: "flex",
+              flexDirection: "column",
+              alignItems: { xs: "flex-start", md: "flex-end" },
+              justifyContent: "center",
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+              Page {pagination.page} of {totalPages}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              Total {rows.length} employees
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
       {/* Link device ID dialog */}
@@ -316,7 +479,7 @@ export default function EnrollmentPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ bgcolor: "#FFF7ED", color: "#9A3412", p: 1.5, borderRadius: "8px", mb: 2.5, fontSize: 13 }}>
-            ⚠️ The finger/face template is registered on the <b>biometric terminal</b>. Enter the person's
+            ⚠️ The finger/face template is registered on the <b>biometric terminal</b>. Enter the person&apos;s
             <b> Device User ID (emp_code)</b> and select all hardware devices where this person is authorized.
           </Box>
           <TextField
