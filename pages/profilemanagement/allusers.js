@@ -72,6 +72,7 @@ import MyComponent from '../../components/common/deletepopup';
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import ViewStaffModal from '../../components/Dashboard/viewstaff';
+import LinkedDevicesModal from '../../components/Employee/linkeddevicesmodal';
 import { Download as DownloadIcon } from '@mui/icons-material';
 import { Upload as UploadIcon } from '@mui/icons-material';
 import { useRouter } from 'next/router';
@@ -280,6 +281,20 @@ const StaffListPage = () => {
   // View modal state
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedStaffView, setSelectedStaffView] = useState({});
+
+  // Linked devices modal state
+  const [linkedDevicesModalOpen, setLinkedDevicesModalOpen] = useState(false);
+  const [selectedLinkedDevicesStaff, setSelectedLinkedDevicesStaff] = useState(null);
+
+  const handleOpenLinkedDevices = (staffMember) => {
+    setSelectedLinkedDevicesStaff(staffMember);
+    setLinkedDevicesModalOpen(true);
+  };
+
+  const handleCloseLinkedDevices = () => {
+    setLinkedDevicesModalOpen(false);
+    setSelectedLinkedDevicesStaff(null);
+  };
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
@@ -1149,7 +1164,20 @@ const StaffListPage = () => {
               </Button> */}
 
               <Button
-                onClick={() => {
+                onClick={async () => {
+                  let token = localStorage.getItem("biometric_token");
+                  let nextCode = "";
+                  try {
+                    const res = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/employees/next-device-user-id`, {
+                      headers: { Authorization: token }
+                    });
+                    if (res.data?.nextDeviceUserId) {
+                      nextCode = res.data.nextDeviceUserId;
+                    }
+                  } catch (err) {
+                    console.error("Error fetching next device user ID:", err);
+                  }
+
                   addFormSubmittedRef.current = false;
                   setNewStaff({
                     firstName: '',
@@ -1158,7 +1186,7 @@ const StaffListPage = () => {
                     mobile: "",
                     email: '',
                     employeeCode: '',
-                    deviceUserId: '',
+                    deviceUserId: nextCode,
                     active_status: 'Active',
                     joining_date: '',
                     date_of_birth: '',
@@ -1427,7 +1455,7 @@ const StaffListPage = () => {
                                         fontWeight: 600,
                                       }}
                                     >
-                                      #{staffMember.deviceUserId}
+                                      {staffMember.deviceUserId}
                                     </Box>
                                   ) : (
                                     <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
@@ -1437,17 +1465,34 @@ const StaffListPage = () => {
                                 </TableCell>
                                 <TableCell align="center">
                                   {staffMember.linkedDevices && staffMember.linkedDevices.length > 0 ? (
-                                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
-                                      {staffMember.linkedDevices.map((dev) => (
-                                        <Chip
-                                          key={dev._id}
-                                          label={dev.name || dev.serialNumber}
-                                          size="small"
-                                          variant="outlined"
-                                          sx={{ borderColor: '#10B981', color: '#047857', fontSize: '11px', height: '22px' }}
-                                        />
-                                      ))}
-                                    </Box>
+                                    <Tooltip title={`Click to view ${staffMember.linkedDevices.length} linked device${staffMember.linkedDevices.length > 1 ? 's' : ''}`}>
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<ViewIcon sx={{ fontSize: '15px !important' }} />}
+                                        onClick={() => handleOpenLinkedDevices(staffMember)}
+                                        sx={{
+                                          borderColor: '#10B981',
+                                          color: '#047857',
+                                          backgroundColor: '#DEF7EC',
+                                          fontSize: '11px',
+                                          fontWeight: 600,
+                                          height: '24px',
+                                          borderRadius: '12px',
+                                          px: 1.25,
+                                          textTransform: 'none',
+                                          whiteSpace: 'nowrap',
+                                          boxShadow: 'none',
+                                          '&:hover': {
+                                            borderColor: '#059669',
+                                            backgroundColor: '#BCF0DA',
+                                            boxShadow: 'none',
+                                          }
+                                        }}
+                                      >
+                                        View ({staffMember.linkedDevices.length})
+                                      </Button>
+                                    </Tooltip>
                                   ) : (
                                     <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
                                       None
@@ -1926,7 +1971,7 @@ const StaffListPage = () => {
                                                               />
                                                               <Chip
                                                                 size="small"
-                                                                label={employee.deviceUserId ? `Device #${employee.deviceUserId}` : 'Not linked'}
+                                                                label={employee.deviceUserId ? `Device ${employee.deviceUserId}` : 'Not linked'}
                                                                 sx={{
                                                                   bgcolor: employee.deviceUserId ? '#DEF7EC' : '#F3F4F6',
                                                                   color: employee.deviceUserId ? '#03543F' : '#6B7280',
@@ -2172,6 +2217,13 @@ const StaffListPage = () => {
           staff={selectedStaffView}
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
+        />
+
+        {/* Linked Devices Modal */}
+        <LinkedDevicesModal
+          staff={selectedLinkedDevicesStaff}
+          open={linkedDevicesModalOpen}
+          onClose={handleCloseLinkedDevices}
         />
 
         {/* Delete Confirmation Popup */}

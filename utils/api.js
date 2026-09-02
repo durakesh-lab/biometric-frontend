@@ -1,30 +1,13 @@
-// Shared API/auth layer (Day 9).
-// Configures the GLOBAL axios instance so EVERY existing `import axios from 'axios'`
-// call is fixed at once — no need to edit 30 files:
-//   1. Request interceptor → ensures Authorization is sent as `Bearer <token>`
-//      (backend's JwtStrategy uses fromAuthHeaderAsBearerToken()).
-//   2. Response interceptor → on 401, clear the token and redirect to /login.
-// Also exports a preconfigured `api` instance (baseURL set) for new code to use.
 import axios from 'axios';
 
-const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:7000';
 
-function normalizeAuthHeader(config) {
-  // Prefer an explicitly-set header; otherwise attach the stored token.
-  let token =
-    (config.headers && (config.headers.Authorization || config.headers.authorization)) || null;
-  if (!token && typeof window !== 'undefined') {
-    token = localStorage.getItem('biometric_token');
-  }
-  if (token) {
-    // Add the Bearer prefix if the caller passed a raw token.
-    const value = String(token).startsWith('Bearer ') ? String(token) : `Bearer ${token}`;
-    config.headers = config.headers || {};
-    config.headers.Authorization = value;
-  }
-  return config;
-}
+const api = axios.create({
+  baseURL: BASE_URL,
+  withCredentials: true,
+});
 
+// Flag and queue to handle concurrent requests while token is refreshing
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -39,15 +22,43 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-async function handle401(error) {
+// Attach interceptor to default global axios instance used across all page components
+axios.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('biometric_token');
+      if (token) {
+        config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ── Request Interceptor: Attach Access Token ──────────────────────
+api.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('biometric_token');
+      if (token) {
+        config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Shared 401 response handler for auto-refresh
+const handle401Error = async (error) => {
   const originalRequest = error.config;
 
-  if (
-    typeof window !== 'undefined' &&
-    error?.response?.status === 401 &&
-    !originalRequest._retry &&
-    !window.location.pathname.includes('/login')
-  ) {
+  if (error.response?.status === 401 && !originalRequest._retry) {
+    if (typeof window === 'undefined') {
+      return Promise.reject(error);
+    }
+
     if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
       localStorage.removeItem('biometric_token');
       localStorage.removeItem('biometric_refresh_token');
@@ -56,8 +67,8 @@ async function handle401(error) {
     }
 
     originalRequest._retry = true;
-    const refreshToken = localStorage.getItem('biometric_refresh_token');
 
+    const refreshToken = localStorage.getItem('biometric_refresh_token');
     if (!refreshToken) {
       localStorage.removeItem('biometric_token');
       localStorage.removeItem('biometric_refresh_token');
@@ -80,7 +91,7 @@ async function handle401(error) {
 
     try {
       const { data } = await axios.post(
-        `${BASE}/auth/refresh`,
+        `${BASE_URL}/auth/refresh`,
         { refresh_token: refreshToken },
         { withCredentials: true }
       );
@@ -91,8 +102,10 @@ async function handle401(error) {
       if (newAccessToken) {
         localStorage.setItem('biometric_token', newAccessToken);
         axios.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+        api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
       }
+
       if (newRefreshToken) {
         localStorage.setItem('biometric_refresh_token', newRefreshToken);
       }
@@ -109,25 +122,12 @@ async function handle401(error) {
       isRefreshing = false;
     }
   }
+
   return Promise.reject(error);
-}
+};
 
-let installed = false;
-export function installAxiosInterceptors() {
-  if (installed) return;
-  installed = true;
-  // Patch the GLOBAL axios used everywhere in the app.
-  axios.interceptors.request.use(normalizeAuthHeader);
-  axios.interceptors.response.use((r) => r, handle401);
-}
-
-// Call immediately on import to ensure the global axios instance is patched
-// before any child components mount and execute requests.
-installAxiosInterceptors();
-
-// Preconfigured instance for new code (baseURL + same interceptors).
-export const api = axios.create({ baseURL: BASE });
-api.interceptors.request.use(normalizeAuthHeader);
-api.interceptors.response.use((r) => r, handle401);
+// ── Response Interceptors: Silent Auto-Refresh on 401 Unauthorized ─
+axios.interceptors.response.use((response) => response, handle401Error);
+api.interceptors.response.use((response) => response, handle401Error);
 
 export default api;

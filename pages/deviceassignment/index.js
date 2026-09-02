@@ -58,7 +58,6 @@ export default function DeviceAssignmentPage() {
   const [selectedBranch, setSelectedBranch] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [locationText, setLocationText] = useState("");
-  const [defaultPunchType, setDefaultPunchType] = useState("auto");
 
   // Cascading dropdown options
   const [companies, setCompanies] = useState([]);
@@ -194,7 +193,6 @@ export default function DeviceAssignmentPage() {
     setSelectedBranch(brId);
     setSelectedDept(dpId);
     setLocationText(device.location || "");
-    setDefaultPunchType(device.defaultPunchType || "auto");
 
     setModalOpen(true);
 
@@ -252,12 +250,11 @@ export default function DeviceAssignmentPage() {
         branchId: selectedBranch || null,
         deptId: selectedDept || null,
         location: locationText || null,
-        defaultPunchType: defaultPunchType,
       };
 
       // Local state update for immediate UI preview
       setDevices((prev) =>
-        prev.map((d) => (d._id === editingDevice._id ? { ...d, ...payload, defaultPunchType: defaultPunchType } : d))
+        prev.map((d) => (d._id === editingDevice._id ? { ...d, ...payload } : d))
       );
 
       try {
@@ -308,7 +305,7 @@ export default function DeviceAssignmentPage() {
               Device Assignment
             </Typography>
             <Typography variant="body2" sx={{ color: "#64748B", mt: 0.5 }}>
-              Assign devices to organizational units, physical locations, and punch modes (Dedicated In/Out).
+              Assign devices to organizational units and physical locations.
             </Typography>
           </Box>
 
@@ -317,7 +314,7 @@ export default function DeviceAssignmentPage() {
               size="small"
               placeholder="Search assignment..."
               value={search}
-              onChange={handleSearchChange}
+              onChange={(e) => setSearch(e.target.value)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -352,7 +349,6 @@ export default function DeviceAssignmentPage() {
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Device Name</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Punch Mode</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Company</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Branch</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "#475569", py: 1.8 }}>Department</TableCell>
@@ -363,7 +359,7 @@ export default function DeviceAssignmentPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                       <CircularProgress size={32} sx={{ color: "#0E9F6E" }} />
                       <Typography sx={{ color: "#64748B", mt: 1.5, fontSize: 14 }}>
                         Loading device assignments...
@@ -372,7 +368,7 @@ export default function DeviceAssignmentPage() {
                   </TableRow>
                 ) : devices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                       <Typography sx={{ color: "#64748B", fontSize: 14 }}>
                         No device assignments found.
                       </Typography>
@@ -394,34 +390,6 @@ export default function DeviceAssignmentPage() {
                             backgroundColor: d.status === "Online" ? "rgba(14, 159, 110, 0.1)" : "#F1F5F9",
                             color: d.status === "Online" ? "#0E9F6E" : "#64748B",
                             border: d.status === "Online" ? "1px solid rgba(14, 159, 110, 0.2)" : "1px solid #E2E8F0",
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={
-                            d.defaultPunchType === "in"
-                              ? "Dedicated IN"
-                              : d.defaultPunchType === "out"
-                                ? "Dedicated OUT"
-                                : "Auto (Dynamic)"
-                          }
-                          size="small"
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 11,
-                            backgroundColor:
-                              d.defaultPunchType === "in"
-                                ? "#DEF7EC"
-                                : d.defaultPunchType === "out"
-                                  ? "#FDE8E8"
-                                  : "#E0F2FE",
-                            color:
-                              d.defaultPunchType === "in"
-                                ? "#03543F"
-                                : d.defaultPunchType === "out"
-                                  ? "#9B1C1C"
-                                  : "#0369A1",
                           }}
                         />
                       </TableCell>
@@ -605,30 +573,6 @@ export default function DeviceAssignmentPage() {
           </DialogTitle>
           <DialogContent dividers sx={{ borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0", py: 3 }}>
             <Grid container spacing={2.5}>
-              {/* Device Punch Mode (IN / OUT / AUTO) */}
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="select-punch-mode-label">Device Punch Mode</InputLabel>
-                  <Select
-                    labelId="select-punch-mode-label"
-                    value={defaultPunchType}
-                    label="Device Punch Mode"
-                    onChange={(e) => setDefaultPunchType(e.target.value)}
-                    sx={{ borderRadius: "8px" }}
-                  >
-                    <MenuItem value="auto">
-                      <b>Auto (Dynamic)</b> — 1st punch = IN, 2nd punch = OUT
-                    </MenuItem>
-                    <MenuItem value="in">
-                      <b>Dedicated Check-In (IN)</b> — All punches from this device = IN
-                    </MenuItem>
-                    <MenuItem value="out">
-                      <b>Dedicated Check-Out (OUT)</b> — All punches from this device = OUT
-                    </MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
               {/* Company Dropdown (Required) */}
               <Grid item xs={12}>
                 <FormControl fullWidth size="small" required>

@@ -47,19 +47,19 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      console.log(process.env.NEXT_PUBLIC_BASE_URL,"9876555555555555555555")
+      console.log(process.env.NEXT_PUBLIC_BASE_URL)
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username:email, password
+          username: email, password
         }),
       });
 
       const data = await response.json();
-      
+
       // Handle GraphQL errors
       if (data.errors) {
         return rejectWithValue(data.errors[0].message);
@@ -241,12 +241,12 @@ export const createcompany = createAsyncThunk(
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/company`, {
         method: 'POST',
-        headers:{
-          Authorization:getAuthHeader(),
-          'Content-Type':"application/json"
+        headers: {
+          Authorization: getAuthHeader(),
+          'Content-Type': "application/json"
         },
         body: JSON.stringify(obj),
-        
+
       });
       const data = await parseApiResponse(response);
       return data;
@@ -257,16 +257,16 @@ export const createcompany = createAsyncThunk(
 );
 export const editDepartmentAction = createAsyncThunk(
   "auth/editDepartment",
-  async (obj , { rejectWithValue }) => {
+  async (obj, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/department/`+obj.id, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/department/` + obj.id, {
         method: 'PUT',
-        headers:{
-          Authorization:getAuthHeader(),
-          'Content-Type':"application/json"
+        headers: {
+          Authorization: getAuthHeader(),
+          'Content-Type': "application/json"
         },
         body: JSON.stringify(obj),
-        
+
       });
       const data = await parseApiResponse(response);
       return data;
@@ -277,18 +277,18 @@ export const editDepartmentAction = createAsyncThunk(
 );
 export const editStaffAction = createAsyncThunk(
   "auth/editStaffAction",
-  async (obj , { rejectWithValue }) => {
+  async (obj, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/`+obj.id, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/users/edituser/` + obj.id, {
         method: 'POST',
-        headers:{
-          Authorization:getAuthHeader(),
-          'Content-Type':"application/json"
+        headers: {
+          Authorization: getAuthHeader(),
+          'Content-Type': "application/json"
         },
         body: JSON.stringify(obj),
-        
+
       });
-    
+
       const data = await parseApiResponse(response);
       return data;
     } catch (error) {
@@ -298,16 +298,16 @@ export const editStaffAction = createAsyncThunk(
 );
 export const editCompanyAction = createAsyncThunk(
   "auth/editCompanyAction",
-  async (obj , { rejectWithValue }) => {
+  async (obj, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/company/`+obj.id, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/company/` + obj.id, {
         method: 'PUT',
-        headers:{
-          Authorization:getAuthHeader(),
-          'Content-Type':"application/json"
+        headers: {
+          Authorization: getAuthHeader(),
+          'Content-Type': "application/json"
         },
         body: JSON.stringify(obj),
-        
+
       });
       const data = await parseApiResponse(response);
       return data;
@@ -318,16 +318,16 @@ export const editCompanyAction = createAsyncThunk(
 );
 export const editBranchAction = createAsyncThunk(
   "auth/editBranchAction",
-  async (obj , { rejectWithValue }) => {
+  async (obj, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/`+obj.id, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/branch/` + obj.id, {
         method: 'PUT',
-        headers:{
-          Authorization:getAuthHeader(),
-          'Content-Type':"application/json"
+        headers: {
+          Authorization: getAuthHeader(),
+          'Content-Type': "application/json"
         },
         body: JSON.stringify(obj),
-        
+
       });
       const data = await parseApiResponse(response);
       return data;
@@ -402,29 +402,37 @@ const authSlice = createSlice({
     token: null,
     loading: false,
     error: null,
-    confirnDelete:false,
-    getPositionListData:[],
-    getDepartmentListData:[],
-    createdDepartmentData:{},
-    createdPositionData:{},
-    createdbranchData:{},
-    createdcompanyData:{},
-    getBranchListData:[],
-    
+    confirnDelete: false,
+    getPositionListData: [],
+    getDepartmentListData: [],
+    createdDepartmentData: {},
+    createdPositionData: {},
+    createdbranchData: {},
+    createdcompanyData: {},
+    getBranchListData: [],
+
   },
   reducers: {
     logout: (state) => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('biometric_token');
+        localStorage.removeItem('biometric_refresh_token');
+      }
       state.token = null;
       state.loading = false;
       state.error = null;
     },
-    
-      onLogout:(state,data)=>{
-          return {...state,token:null}
-      },
-      confirnDeleteAction:(state,data)=>{
-      
-        return {...state,confirnDelete:data.payload}
+
+    onLogout: (state, data) => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('biometric_token');
+        localStorage.removeItem('biometric_refresh_token');
+      }
+      return { ...state, token: null };
+    },
+    confirnDeleteAction: (state, data) => {
+
+      return { ...state, confirnDelete: data.payload }
     },
   },
   extraReducers: (builder) => {
@@ -434,16 +442,16 @@ const authSlice = createSlice({
       state.errorlogin = null;
     });
     builder.addCase(loginUser.fulfilled, (state, action) => {
-      if(action.payload.error){
+      if (action.payload.error) {
         state.loading = false;
         state.errorlogin = action.payload.message;
       }
-      else{
+      else {
         state.loading = true;
         state.token = action.payload; // token from userLogin
         state.errorlogin = null;
       }
-  
+
     });
     builder.addCase(loginUser.rejected, (state, action) => {
 
@@ -487,176 +495,176 @@ const authSlice = createSlice({
     });
     */
 
-        /*
-        // get position list
-        builder.addCase(getPositionList.pending, (state) => {
-          state.loading = true;
-          state.error = null;
-          state.getPositionListData=null
-        });
-        builder.addCase(getPositionList.fulfilled, (state, action) => {
-          // console.log({state, action})
-          state.loading = false;
-          state.getPositionListData = action.payload.data // token from userRegister
-          state.error = null;
-        });
-        builder.addCase(getPositionList.rejected, (state, action) => {
-          state.loading = false;
-          state.getPositionListData=null
-          state.error = action.payload || action.error.message;
-        });
+    /*
+    // get position list
+    builder.addCase(getPositionList.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.getPositionListData=null
+    });
+    builder.addCase(getPositionList.fulfilled, (state, action) => {
+      // console.log({state, action})
+      state.loading = false;
+      state.getPositionListData = action.payload.data // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(getPositionList.rejected, (state, action) => {
+      state.loading = false;
+      state.getPositionListData=null
+      state.error = action.payload || action.error.message;
+    });
 
-        // get branch data
-        builder.addCase(getbranchList.pending, (state) => {
-          state.loading = true;
-          state.error = null;
-          state.getBranchListData=null
-        });
-        builder.addCase(getbranchList.fulfilled, (state, action) => {
-          // console.log({state, action})
-          state.loading = false;
-          state.getBranchListData = action.payload.data // token from userRegister
-          state.error = null;
-        });
-        builder.addCase(getbranchList.rejected, (state, action) => {
-          state.loading = false;
-          state.getBranchListData=null
-          state.error = action.payload || action.error.message;
-        });
+    // get branch data
+    builder.addCase(getbranchList.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.getBranchListData=null
+    });
+    builder.addCase(getbranchList.fulfilled, (state, action) => {
+      // console.log({state, action})
+      state.loading = false;
+      state.getBranchListData = action.payload.data // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(getbranchList.rejected, (state, action) => {
+      state.loading = false;
+      state.getBranchListData=null
+      state.error = action.payload || action.error.message;
+    });
 
-        // get getDepartmentList list
-        builder.addCase(getDepartmentList.pending, (state) => {
-          state.loading = true;
-          state.error = null;
-          state.getDepartmentListData=null
-        });
-        builder.addCase(getDepartmentList.fulfilled, (state, action) => {
-          console.log({state, action})
-          state.loading = false;
-          state.getDepartmentListData = action.payload.data // token from userRegister
-          state.error = null;
-        });
-        builder.addCase(getDepartmentList.rejected, (state, action) => {
-          state.loading = false;
-          state.getDepartmentListData=null
-          state.error = action.payload || action.error.message;
-        });
-        */
-        builder.addCase(editDepartmentAction.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.editDepartmentData=null
-                });
-                builder.addCase(editDepartmentAction.fulfilled, (state, action) => {
-                  console.log({state, action})
-                  state.loading = false;
-                  state.editDepartmentData = action.payload.data // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(editDepartmentAction.rejected, (state, action) => {
-                  state.loading = false;
-                  state.editDepartmentData=null
-                  state.error = action.payload || action.error.message;
-                });
-                /*
-                builder.addCase(createDepartment.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.createdDepartmentData=null
-                });
-                builder.addCase(createDepartment.fulfilled, (state, action) => {
-                  state.loading = false;
-                  state.createdDepartmentData = action.payload // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(createDepartment.rejected, (state, action) => {
-                  state.loading = false;
-                  state.createdDepartmentData=null
-                  state.error = action.payload || action.error.message;
-                });
-                */
-                /*
-                builder.addCase(createPosition.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.createdPositionData=null
-                });
-                builder.addCase(createPosition.fulfilled, (state, action) => {
-                  state.loading = false;
-                  state.createdPositionData = action.payload // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(createPosition.rejected, (state, action) => {
-                  state.loading = false;
-                  state.createdPositionData=null
-                  state.error = action.payload || action.error.message;
-                });
-                */
-                /*
-                builder.addCase(createbranch.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.createdbranchData=null
-                });
-                builder.addCase(createbranch.fulfilled, (state, action) => {
-                  state.loading = false;
-                  state.createdbranchData = action.payload // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(createbranch.rejected, (state, action) => {
-                  state.loading = false;
-                  state.createdbranchData=null
-                  state.error = action.payload || action.error.message;
-                });
-                */
-                builder.addCase(createcompany.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.createdcompanyData=null
-                });
-                builder.addCase(createcompany.fulfilled, (state, action) => {
-                  state.loading = false;
-                  state.createdcompanyData = action.payload // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(createcompany.rejected, (state, action) => {
-                  state.loading = false;
-                  state.createdcompanyData=null
-                  state.error = action.payload || action.error.message;
-                });
-                builder.addCase(editBranchAction.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.editBranchData=null
-                });
-                builder.addCase(editBranchAction.fulfilled, (state, action) => {
-                  console.log({state, action})
-                  state.loading = false;
-                  state.editBranchData = action.payload.data // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(editBranchAction.rejected, (state, action) => {
-                  state.loading = false;
-                  state.editBranchData=null
-                  state.error = action.payload || action.error.message;
-                });
-                builder.addCase(editCompanyAction.pending, (state) => {
-                  state.loading = true;
-                  state.error = null;
-                  state.editCompanyData=null
-                });
-                builder.addCase(editCompanyAction.fulfilled, (state, action) => {
-                  state.loading = false;
-                  state.editCompanyData = action.payload // token from userRegister
-                  state.error = null;
-                });
-                builder.addCase(editCompanyAction.rejected, (state, action) => {
-                  state.loading = false;
-                  state.editCompanyData=null
-                  state.error = action.payload || action.error.message;
-                });
-                
-        
+    // get getDepartmentList list
+    builder.addCase(getDepartmentList.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.getDepartmentListData=null
+    });
+    builder.addCase(getDepartmentList.fulfilled, (state, action) => {
+      console.log({state, action})
+      state.loading = false;
+      state.getDepartmentListData = action.payload.data // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(getDepartmentList.rejected, (state, action) => {
+      state.loading = false;
+      state.getDepartmentListData=null
+      state.error = action.payload || action.error.message;
+    });
+    */
+    builder.addCase(editDepartmentAction.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.editDepartmentData = null
+    });
+    builder.addCase(editDepartmentAction.fulfilled, (state, action) => {
+      console.log({ state, action })
+      state.loading = false;
+      state.editDepartmentData = action.payload.data // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(editDepartmentAction.rejected, (state, action) => {
+      state.loading = false;
+      state.editDepartmentData = null
+      state.error = action.payload || action.error.message;
+    });
+    /*
+    builder.addCase(createDepartment.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.createdDepartmentData=null
+    });
+    builder.addCase(createDepartment.fulfilled, (state, action) => {
+      state.loading = false;
+      state.createdDepartmentData = action.payload // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(createDepartment.rejected, (state, action) => {
+      state.loading = false;
+      state.createdDepartmentData=null
+      state.error = action.payload || action.error.message;
+    });
+    */
+    /*
+    builder.addCase(createPosition.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.createdPositionData=null
+    });
+    builder.addCase(createPosition.fulfilled, (state, action) => {
+      state.loading = false;
+      state.createdPositionData = action.payload // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(createPosition.rejected, (state, action) => {
+      state.loading = false;
+      state.createdPositionData=null
+      state.error = action.payload || action.error.message;
+    });
+    */
+    /*
+    builder.addCase(createbranch.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.createdbranchData=null
+    });
+    builder.addCase(createbranch.fulfilled, (state, action) => {
+      state.loading = false;
+      state.createdbranchData = action.payload // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(createbranch.rejected, (state, action) => {
+      state.loading = false;
+      state.createdbranchData=null
+      state.error = action.payload || action.error.message;
+    });
+    */
+    builder.addCase(createcompany.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.createdcompanyData = null
+    });
+    builder.addCase(createcompany.fulfilled, (state, action) => {
+      state.loading = false;
+      state.createdcompanyData = action.payload // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(createcompany.rejected, (state, action) => {
+      state.loading = false;
+      state.createdcompanyData = null
+      state.error = action.payload || action.error.message;
+    });
+    builder.addCase(editBranchAction.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.editBranchData = null
+    });
+    builder.addCase(editBranchAction.fulfilled, (state, action) => {
+      console.log({ state, action })
+      state.loading = false;
+      state.editBranchData = action.payload.data // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(editBranchAction.rejected, (state, action) => {
+      state.loading = false;
+      state.editBranchData = null
+      state.error = action.payload || action.error.message;
+    });
+    builder.addCase(editCompanyAction.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      state.editCompanyData = null
+    });
+    builder.addCase(editCompanyAction.fulfilled, (state, action) => {
+      state.loading = false;
+      state.editCompanyData = action.payload // token from userRegister
+      state.error = null;
+    });
+    builder.addCase(editCompanyAction.rejected, (state, action) => {
+      state.loading = false;
+      state.editCompanyData = null
+      state.error = action.payload || action.error.message;
+    });
+
+
   }
 });
 
@@ -680,28 +688,28 @@ export const getPermissionbyRole = createAsyncThunk(
 );
 */
 
-let userSlice=createSlice({
-  name:"users",
-  initialState:{
-   edituserdata:{},
-   opencompanybranch:false,
-   zindexheadervalue:null
+let userSlice = createSlice({
+  name: "users",
+  initialState: {
+    edituserdata: {},
+    opencompanybranch: false,
+    zindexheadervalue: null
   },
-  reducers:{
-          SelectCompanyBranchGlobal:(state,data)=>{
-      
-        return {...state,opencompanybranch:data.payload}
+  reducers: {
+    SelectCompanyBranchGlobal: (state, data) => {
+
+      return { ...state, opencompanybranch: data.payload }
     },
-      zindexheader:(state,data)=>{
-      
-        return {...state,zindexheadervalue:data.payload}
+    zindexheader: (state, data) => {
+
+      return { ...state, zindexheadervalue: data.payload }
     },
   },
-  extraReducers:(builder)=>{
+  extraReducers: (builder) => {
     builder.addCase(editStaffAction.pending, (state) => {
       state.loading = true;
       state.error = null;
-      state.edituserdata=null
+      state.edituserdata = null
     });
     builder.addCase(editStaffAction.fulfilled, (state, action) => {
       state.loading = false;
@@ -710,7 +718,7 @@ let userSlice=createSlice({
     });
     builder.addCase(editStaffAction.rejected, (state, action) => {
       state.loading = false;
-      state.edituserdata=null
+      state.edituserdata = null
       state.error = action.payload || action.error.message;
     });
     /*
@@ -735,9 +743,9 @@ let userSlice=createSlice({
     */
   }
 })
-export const { logout,onLogout ,confirnDeleteAction} = authSlice.actions;
-export const { SelectCompanyBranchGlobal,zindexheader} = userSlice.actions;
+export const { logout, onLogout, confirnDeleteAction } = authSlice.actions;
+export const { SelectCompanyBranchGlobal, zindexheader } = userSlice.actions;
 
 export default authSlice.reducer;
-const userSliceReducer=userSlice.reducer
-export  {userSliceReducer}
+const userSliceReducer = userSlice.reducer
+export { userSliceReducer }

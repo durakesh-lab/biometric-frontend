@@ -59,6 +59,9 @@ export default function Login() {
   useEffect(() => {
     if (token?.access_token && !token?.multifactorauth) {
       localStorage.setItem('biometric_token', token.access_token);
+      if (token?.refresh_token) {
+        localStorage.setItem('biometric_refresh_token', token.refresh_token);
+      }
       router.push({
         pathname: '/dashboard',
         query: { from: 'login' },
@@ -125,6 +128,9 @@ export default function Login() {
 
       if (verification?.status && verification?.access_token) {
         localStorage.setItem('biometric_token', verification.access_token);
+        if (verification?.refresh_token) {
+          localStorage.setItem('biometric_refresh_token', verification.refresh_token);
+        }
         router.push({
           pathname: '/dashboard',
           query: { from: 'login' },

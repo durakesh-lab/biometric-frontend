@@ -62,8 +62,9 @@ export default function Layout({ children }) {
           component="main"
           sx={{
             flexGrow: 1,
-            width: { sm: `calc(100% - ${drawerWidth}px)` },
-            ml: { sm: `${drawerWidth}px` },
+            width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+            ml: { xs: 0, md: `${drawerWidth}px` },
+            minWidth: 0,
             overflowX: "hidden",
           }}
         >

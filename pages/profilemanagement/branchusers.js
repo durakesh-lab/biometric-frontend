@@ -1047,7 +1047,7 @@ const [showPassword, setShowPassword] = useState(false);
                                       fontWeight: 600,
                                     }}
                                   >
-                                    #{staffMember.deviceUserId}
+                                    {staffMember.deviceUserId}
                                   </Box>
                                 ) : (
                                   <Typography variant="caption" sx={{ color: '#9CA3AF' }}>

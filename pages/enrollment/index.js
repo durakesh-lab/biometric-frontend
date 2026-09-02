@@ -27,11 +27,14 @@ import {
   Select,
   MenuItem,
   Stack,
+  Tooltip,
   useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import { Visibility as ViewIcon } from "@mui/icons-material";
 import ReactPaginate from "react-paginate";
 import Layout, { theme } from "../../components/Layout/Layout";
+import LinkedDevicesModal from "../../components/Employee/linkeddevicesmodal";
 import axios from "axios";
 
 export default function EnrollmentPage() {
@@ -53,6 +56,20 @@ export default function EnrollmentPage() {
   const [empCode, setEmpCode] = useState("");
   const [selectedDevices, setSelectedDevices] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  // View linked devices modal state
+  const [viewDevicesModalOpen, setViewDevicesModalOpen] = useState(false);
+  const [selectedStaffForDevices, setSelectedStaffForDevices] = useState(null);
+
+  const handleOpenViewDevices = (emp) => {
+    setSelectedStaffForDevices(emp);
+    setViewDevicesModalOpen(true);
+  };
+
+  const handleCloseViewDevices = () => {
+    setViewDevicesModalOpen(false);
+    setSelectedStaffForDevices(null);
+  };
 
   const token = useCallback(() => (typeof window !== "undefined" ? localStorage.getItem("biometric_token") : null), []);
 
@@ -152,7 +169,7 @@ export default function EnrollmentPage() {
     if (clash) {
       setSnackbar({
         status: false,
-        message: `Device User ID #${empCode} is already assigned to ${clash.firstName || ""} ${clash.lastName || ""}`.trim(),
+        message: `Device User ID ${empCode} is already assigned to ${clash.firstName || ""} ${clash.lastName || ""}`.trim(),
       });
       return;
     }
@@ -292,7 +309,7 @@ export default function EnrollmentPage() {
                         <TableCell>{e.branch_name || "—"}</TableCell>
                         <TableCell align="center">
                           {e.deviceUserId ? (
-                            <Chip label={`#${e.deviceUserId}`} size="small"
+                            <Chip label={`${e.deviceUserId}`} size="small"
                               sx={{ backgroundColor: "#DEF7EC", color: "#03543F", fontWeight: 600 }} />
                           ) : (
                             <Chip label="Not assigned" size="small"
@@ -301,17 +318,34 @@ export default function EnrollmentPage() {
                         </TableCell>
                         <TableCell align="center">
                           {linkedDevicesList.length > 0 ? (
-                            <Stack direction="row" spacing={0.5} justifyContent="center" flexWrap="wrap" useFlexGap>
-                              {linkedDevicesList.map((dev) => (
-                                <Chip
-                                  key={dev._id}
-                                  label={dev.name || dev.serialNumber}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ borderColor: "#10B981", color: "#047857", fontWeight: 500 }}
-                                />
-                              ))}
-                            </Stack>
+                            <Tooltip title={`Click to view ${linkedDevicesList.length} linked device${linkedDevicesList.length > 1 ? 's' : ''}`}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<ViewIcon sx={{ fontSize: "15px !important" }} />}
+                                onClick={() => handleOpenViewDevices(e)}
+                                sx={{
+                                  borderColor: "#10B981",
+                                  color: "#047857",
+                                  backgroundColor: "#DEF7EC",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  height: "24px",
+                                  borderRadius: "12px",
+                                  px: 1.25,
+                                  textTransform: "none",
+                                  whiteSpace: "nowrap",
+                                  boxShadow: "none",
+                                  "&:hover": {
+                                    borderColor: "#059669",
+                                    backgroundColor: "#BCF0DA",
+                                    boxShadow: "none",
+                                  },
+                                }}
+                              >
+                                View ({linkedDevicesList.length})
+                              </Button>
+                            </Tooltip>
                           ) : (
                             <Chip label="No devices" size="small" variant="outlined" sx={{ color: "#9CA3AF" }} />
                           )}
@@ -543,6 +577,13 @@ export default function EnrollmentPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Linked Devices Modal */}
+      <LinkedDevicesModal
+        staff={selectedStaffForDevices}
+        open={viewDevicesModalOpen}
+        onClose={handleCloseViewDevices}
+      />
 
       <Snackbar
         open={Boolean(snackbar)}

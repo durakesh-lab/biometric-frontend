@@ -25,9 +25,14 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  ClickAwayListener,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import SyncIcon from "@mui/icons-material/Sync";
 import EditIcon from "@mui/icons-material/Edit";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import ReactPaginate from "react-paginate";
 import Layout from "../../components/Layout/Layout";
 import axios from "axios";
 
@@ -47,6 +52,9 @@ const format24h = (dateInput) => {
 };
 
 export default function AttendancePage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [rows, setRows] = useState([]);
   const [stats, setStats] = useState({ present: 0, absent: 0, records: 0, totalEmployees: 0 });
   const [loading, setLoading] = useState(true);
@@ -54,6 +62,15 @@ export default function AttendancePage() {
   const [companies, setCompanies] = useState([]);
   const [snackbar, setSnackbar] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [activeTooltipId, setActiveTooltipId] = useState(null);
+  const [hoveredTooltipId, setHoveredTooltipId] = useState(null);
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: 10,
+    total: 0,
+    total_pages: 1,
+  });
 
   const [filters, setFilters] = useState({ from: today(), to: today(), company: "", branch: "", search: "" });
 
@@ -73,20 +90,41 @@ export default function AttendancePage() {
     } catch (e) { console.error("stats error", e); }
   };
 
-  const fetchList = async () => {
+  const fetchList = async (page = pagination.page, pageSize = pagination.page_size) => {
     try {
       setLoading(true);
       const res = await axios.post(`${BASE}/attendance/list`, { branchId: filters.branch, companyId: filters.company }, {
         ...auth(),
-        params: { from: filters.from, to: filters.to, search: filters.search, page: 1, page_size: 200 },
+        params: {
+          from: filters.from,
+          to: filters.to,
+          search: filters.search,
+          page,
+          page_size: pageSize,
+        },
       });
       setRows(res.data?.data || []);
+      setPagination({
+        page: res.data?.page || page,
+        page_size: res.data?.page_size || pageSize,
+        total: res.data?.count || 0,
+        total_pages: res.data?.total_pages || 1,
+      });
     } catch (e) {
       console.error("list error", e);
       setSnackbar({ status: false, message: "Could not load attendance" });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    fetchList(newPage, pagination.page_size);
+  };
+
+  const handlePageSizeChange = (e) => {
+    const newSize = parseInt(e.target.value, 10);
+    fetchList(1, newSize);
   };
 
   const fetchCompanies = async () => {
@@ -107,17 +145,25 @@ export default function AttendancePage() {
     } catch (e) { console.error("branches error", e); }
   };
 
+  const syncMountedRef = React.useRef(false);
+
+  // 1. Initial page load (runs ONCE on mount) — fetch companies & sync live hardware punches with toast notification
   useEffect(() => {
     fetchCompanies();
+    if (!syncMountedRef.current) {
+      syncMountedRef.current = true;
+      handleSync();
+    }
   }, []);
 
   useEffect(() => {
     fetchBranches(filters.company);
   }, [filters.company]);
 
+  // 2. Filter changes (date, company, branch, search) — query MongoDB instantly on page 1
   useEffect(() => {
     fetchStats();
-    fetchList();
+    fetchList(1, pagination.page_size);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
@@ -135,6 +181,7 @@ export default function AttendancePage() {
       fetchStats();
       fetchList();
     } catch (e) {
+      console.error("Sync error:", e);
       setSnackbar({ status: false, message: "Sync failed" });
     } finally {
       setSyncing(false);
@@ -154,33 +201,20 @@ export default function AttendancePage() {
 
   const saveEdit = async () => {
     if (!editTarget) return;
+    if (!editForm.editNote || !editForm.editNote.trim()) {
+      setSnackbar({ status: false, message: "Edit Reason / Note is required for manual correction" });
+      return;
+    }
     try {
-      // Local state update for instant UI preview
-      setRows((prev) =>
-        prev.map((r) =>
-          r._id === editTarget._id
-            ? {
-              ...r,
-              type: editForm.type,
-              timestamp: editForm.timestamp ? new Date(editForm.timestamp).toISOString() : r.timestamp,
-              editNote: editForm.editNote,
-              isManualEdit: true,
-            }
-            : r
-        )
-      );
-
-      // Attempt API call if endpoint exists
-      try {
-        await axios.put(`${BASE}/attendance/${editTarget._id}`, editForm, auth());
-      } catch (err) {
-        // Ignored in UI-preview phase
-      }
-
+      await axios.put(`${BASE}/attendance/${editTarget._id}`, editForm, auth());
       setSnackbar({ status: true, message: `Updated attendance record for ${editTarget.employeeName || "employee"}` });
       setEditOpen(false);
+      fetchStats();
+      fetchList();
     } catch (e) {
-      setSnackbar({ status: false, message: "Could not update attendance record" });
+      console.error("Attendance edit error:", e);
+      const msg = e.response?.data?.message || "Could not update attendance record";
+      setSnackbar({ status: false, message: Array.isArray(msg) ? msg.join(", ") : msg });
     }
   };
 
@@ -203,7 +237,7 @@ export default function AttendancePage() {
             </Typography>
           </Box>
           <Box display="flex" gap={1.5} flexWrap="wrap">
-            <Button variant="contained" startIcon={<SyncIcon />} onClick={handleSync} disabled={syncing}
+            <Button variant="contained" startIcon={<SyncIcon />} onClick={() => handleSync()} disabled={syncing}
               sx={{ textTransform: "none", backgroundColor: "#0E9F6E", fontWeight: 600, "&:hover": { backgroundColor: "#047857" } }}>
               {syncing ? "Syncing…" : "Sync now"}
             </Button>
@@ -239,8 +273,17 @@ export default function AttendancePage() {
                 {branches.map((b) => <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>)}
               </Select>
             </FormControl>
+            <FormControl size="small" sx={{ minWidth: 165 }}>
+              <InputLabel>Shift</InputLabel>
+              <Select label="Shift" value={filters.shift || ""} onChange={(e) => setFilter("shift", e.target.value)}>
+                <MenuItem value="">All Shifts</MenuItem>
+                <MenuItem value="morning">Morning Shift (8 AM - 4 PM)</MenuItem>
+                <MenuItem value="afternoon">Afternoon Shift (1 PM - 9 PM)</MenuItem>
+                <MenuItem value="night">Night Shift (9 PM - 5 AM)</MenuItem>
+              </Select>
+            </FormControl>
             <TextField size="small" placeholder="Search employee…" value={filters.search}
-              onChange={(e) => setFilter("search", e.target.value)} sx={{ ml: "auto", width: 260 }} />
+              onChange={(e) => setFilter("search", e.target.value)} sx={{ ml: "auto", width: 220 }} />
           </Box>
 
           {/* Table */}
@@ -254,13 +297,14 @@ export default function AttendancePage() {
                   <TableCell>Device</TableCell>
                   <TableCell>Branch</TableCell>
                   <TableCell align="center">Action</TableCell>
+                  <TableCell align="center">Info</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6 }}><CircularProgress size={36} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6 }}><CircularProgress size={36} /></TableCell></TableRow>
                 ) : rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                  <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
                     No attendance for this range. Use “Sync now” (real device).
                   </TableCell></TableRow>
                 ) : (
@@ -268,14 +312,7 @@ export default function AttendancePage() {
                     <TableRow key={r._id} hover>
                       <TableCell>{r.employeeName || "—"}</TableCell>
                       <TableCell>
-                        <Box>
-                          <Typography variant="body2">{format24h(r.timestamp)}</Typography>
-                          {r.editNote && (
-                            <Typography variant="caption" sx={{ color: "#D97706", fontStyle: "italic", display: "block" }}>
-                              Note: {r.editNote}
-                            </Typography>
-                          )}
-                        </Box>
+                        <Typography variant="body2">{format24h(r.timestamp)}</Typography>
                       </TableCell>
                       <TableCell align="center">
                         <Chip
@@ -283,8 +320,19 @@ export default function AttendancePage() {
                           size="small"
                           sx={{
                             fontWeight: 700,
-                            backgroundColor: r.type === "out" ? "#FDE8E8" : "#DEF7EC",
-                            color: r.type === "out" ? "#9B1C1C" : "#03543F",
+                            backgroundColor: (r.isManualEdit || r.editNote)
+                              ? "#FEF08A"
+                              : r.type === "out"
+                              ? "#FDE8E8"
+                              : "#DEF7EC",
+                            color: (r.isManualEdit || r.editNote)
+                              ? "#78350F"
+                              : r.type === "out"
+                              ? "#9B1C1C"
+                              : "#03543F",
+                            border: (r.isManualEdit || r.editNote)
+                              ? "1px solid #F59E0B"
+                              : "none",
                           }}
                         />
                       </TableCell>
@@ -297,6 +345,76 @@ export default function AttendancePage() {
                           </IconButton>
                         </Tooltip>
                       </TableCell>
+                      <TableCell align="center">
+                        {r.isManualEdit || r.editNote ? (
+                          <ClickAwayListener onClickAway={() => { setActiveTooltipId(null); setHoveredTooltipId(null); }}>
+                            <span>
+                              <Tooltip
+                                arrow
+                                placement="top"
+                                open={activeTooltipId === r._id || hoveredTooltipId === r._id}
+                                onClose={() => { setActiveTooltipId(null); setHoveredTooltipId(null); }}
+                                disableFocusListener
+                                enterTouchDelay={0}
+                                leaveTouchDelay={5000}
+                                componentsProps={{
+                                  tooltip: {
+                                    sx: {
+                                      bgcolor: "#1F2937",
+                                      color: "#F9FAFB",
+                                      p: 1.5,
+                                      borderRadius: "8px",
+                                      boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
+                                      fontSize: "12px",
+                                      maxWidth: 280,
+                                      zIndex: 9999,
+                                    },
+                                  },
+                                  arrow: {
+                                    sx: {
+                                      color: "#1F2937",
+                                    },
+                                  },
+                                }}
+                                title={
+                                  <Box sx={{ fontSize: "12px", lineHeight: 1.6, textAlign: "left", wordBreak: "break-all", overflowWrap: "anywhere" }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, display: "block", wordBreak: "break-all" }}>
+                                      Edited By: <span style={{ fontWeight: 400 }}>{r.editedBy || "Super Admin"}</span>
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, display: "block", wordBreak: "break-all" }}>
+                                      Timestamp: <span style={{ fontWeight: 400 }}>{format24h(r.editedAt || r.updatedAt)}</span>
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, display: "block", wordBreak: "break-all" }}>
+                                      Action: <span style={{ fontWeight: 400 }}>UPDATE</span>
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, display: "block", wordBreak: "break-all" }}>
+                                      Details: <span style={{ fontWeight: 400 }}>Manual Punch Correction ({r.type ? r.type.toUpperCase() : "IN"})</span>
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, display: "block", wordBreak: "break-all" }}>
+                                      Reason: <span style={{ fontStyle: "italic", fontWeight: 400 }}>"{r.editNote}"</span>
+                                    </Typography>
+                                  </Box>
+                                }
+                              >
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveTooltipId((prev) => (prev === r._id ? null : r._id));
+                                  }}
+                                  onMouseEnter={() => setHoveredTooltipId(r._id)}
+                                  onMouseLeave={() => setHoveredTooltipId(null)}
+                                  sx={{ color: "#3B82F6", p: 0.25 }}
+                                >
+                                  <InfoOutlinedIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </span>
+                          </ClickAwayListener>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -304,6 +422,137 @@ export default function AttendancePage() {
             </Table>
           </TableContainer>
         </Paper>
+
+        {/* Pagination Section matching Device Assignment / Devices module */}
+        <Box
+          sx={{
+            mt: 2,
+            p: { xs: 1.5, sm: 2 },
+            border: "1px solid #E5E7EB",
+            borderRadius: "8px",
+            backgroundColor: "#FFFFFF",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "stretch", md: "center" },
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+          }}
+        >
+          <Box sx={{ width: { xs: "100%", md: "auto" } }}>
+            <Typography variant="caption" sx={{ display: "block", mb: 0.75, color: "#64748B" }}>
+              Rows per page
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 140 } }}>
+              <Select
+                value={pagination.page_size}
+                onChange={handlePageSizeChange}
+                sx={{
+                  bgcolor: "#fff",
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#D1D5DB",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#0E9F6E",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#0E9F6E",
+                  },
+                }}
+              >
+                {[5, 10, 20, 50, 100].map((size) => (
+                  <MenuItem key={size} value={size}>
+                    {size}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              width: { xs: "100%", md: "auto" },
+              "& .pagination": {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexWrap: "wrap",
+                gap: 1,
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+              },
+              "& .pagination li a": {
+                minWidth: 38,
+                height: 38,
+                padding: "0 12px",
+                borderRadius: "10px",
+                border: "1px solid #D1D5DB",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: theme.palette.text.primary,
+                backgroundColor: "#FFFFFF",
+                textDecoration: "none",
+                transition: "all 0.2s ease",
+              },
+              "& .pagination li a:hover": {
+                borderColor: "#0E9F6E",
+                color: "#0E9F6E",
+              },
+              "& .pagination li.selected a": {
+                backgroundColor: "#0E9F6E",
+                borderColor: "#0E9F6E",
+                color: "#FFFFFF",
+                boxShadow: "0 8px 18px rgba(14, 159, 110, 0.18)",
+              },
+              "& .pagination li.disabled a": {
+                opacity: 0.45,
+                cursor: "not-allowed",
+                backgroundColor: "#F9FAFB",
+              },
+            }}
+          >
+            <ReactPaginate
+              previousLabel={"Previous"}
+              nextLabel={"Next"}
+              breakLabel={"..."}
+              breakClassName={"break-me"}
+              pageCount={Math.max(pagination.total_pages, 1)}
+              marginPagesDisplayed={isMobile ? 1 : 2}
+              pageRangeDisplayed={isMobile ? 1 : 3}
+              onPageChange={({ selected }) => handlePageChange(selected + 1)}
+              containerClassName={"pagination"}
+              activeClassName={"selected"}
+              previousClassName={"previous"}
+              nextClassName={"next"}
+              disabledClassName={"disabled"}
+              forcePage={Math.max(Math.min(pagination.page - 1, pagination.total_pages - 1), 0)}
+              pageClassName={"page-item"}
+              pageLinkClassName={"page-link"}
+              previousLinkClassName={"page-link"}
+              nextLinkClassName={"page-link"}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              minWidth: { xs: "100%", md: 160 },
+              display: "flex",
+              flexDirection: "column",
+              alignItems: { xs: "flex-start", md: "flex-end" },
+              justifyContent: "center",
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "#1F2937" }}>
+              Page {pagination.page} of {Math.max(pagination.total_pages, 1)}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#6B7280" }}>
+              Total {pagination.total} records
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
       {/* HR Edit Punch Dialog */}
@@ -329,13 +578,16 @@ export default function AttendancePage() {
           </FormControl>
 
           <TextField
+            required
             fullWidth
             multiline
             rows={2}
-            label="Edit Reason / Note"
+            label="Edit Reason / Note *"
             placeholder="e.g. Approved emergency early leave at 10:30 AM"
             value={editForm.editNote}
             onChange={(e) => setEditForm((f) => ({ ...f, editNote: e.target.value }))}
+            error={!editForm.editNote?.trim()}
+            helperText={!editForm.editNote?.trim() ? "Reason is required for manual correction" : ""}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

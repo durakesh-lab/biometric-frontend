@@ -274,7 +274,7 @@ const ViewStaffModal = ({ staff, open, onClose }) => {
                   <FieldRow
                     icon={<CodeIcon />}
                     label="Device User ID"
-                    value={staff.deviceUserId ? `#${staff.deviceUserId}` : "Not linked"}
+                    value={staff.deviceUserId ? `${staff.deviceUserId}` : "Not linked"}
                   />
                   <FieldRow
                     icon={<CodeIcon />}

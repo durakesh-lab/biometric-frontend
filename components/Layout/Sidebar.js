@@ -102,6 +102,7 @@ const menuGroups = [
     items: [
       { label: "Devices", icon: "📟", color: "#0EA5E9", link: "/devices", permissionKey: "devices" },
       { label: "Device Assignment", icon: "📌", color: "#8B5CF6", link: "/deviceassignment", permissionKey: "device-assignment" },
+      // { label: "Shifts & Groups", icon: "⏰", color: "#10B981", link: "/shiftsandgroups" },
       { label: "Attendance", icon: "🕒", color: "#F97316", link: "/attendance" },
       { label: "Enrollment", icon: "📝", color: "#EC4899", link: "/enrollment" },
     ],
@@ -148,12 +149,12 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
 
   // ── shared nav content (rendered in both mobile + desktop drawers) ──
   const navContent = (
-    <Box 
-      sx={{ 
-        display: "flex", 
-        flexDirection: "column", 
-        height: "100%", 
-        overflowY: "auto", 
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflowY: "auto",
         pt: 2,
         backgroundColor: "#FFFFFF",
         "&::-webkit-scrollbar": {
@@ -201,22 +202,22 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
                         py: 1,
                         borderRadius: "10px",
                         color: isActive ? "#0b7d57" : "#475569",
-                        backgroundColor: isActive 
-                          ? "rgba(14, 159, 110, 0.06)" 
+                        backgroundColor: isActive
+                          ? "rgba(14, 159, 110, 0.06)"
                           : (isOpen ? "#F8FAFC" : "transparent"),
-                        border: isActive 
-                          ? "1px solid rgba(14, 159, 110, 0.15)" 
+                        border: isActive
+                          ? "1px solid rgba(14, 159, 110, 0.15)"
                           : (isOpen ? "1px solid #E2E8F0" : "1px solid transparent"),
                         boxShadow: isActive ? "0px 2px 8px rgba(14, 159, 110, 0.02)" : "none",
                         position: "relative",
                         transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                        "&:hover": { 
-                          backgroundColor: isActive 
-                            ? "rgba(14, 159, 110, 0.1)" 
-                            : "#F8FAFC", 
+                        "&:hover": {
+                          backgroundColor: isActive
+                            ? "rgba(14, 159, 110, 0.1)"
+                            : "#F8FAFC",
                           color: isActive ? "#0b7d57" : "#0F172A",
-                          border: isActive 
-                            ? "1px solid rgba(14, 159, 110, 0.2)" 
+                          border: isActive
+                            ? "1px solid rgba(14, 159, 110, 0.2)"
                             : "1px solid #E2E8F0",
                           "& .menu-label": {
                             transform: "translateX(3px)",
@@ -250,7 +251,7 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
                       {item.icon && (
                         <ListItemIcon
                           className="menu-icon"
-                          sx={{ 
+                          sx={{
                             minWidth: "auto",
                             mr: 1.5,
                             display: "flex",
@@ -297,15 +298,15 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
 
                   {hasSubItems && (
                     <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                      <List 
-                        component="div" 
-                        disablePadding 
-                        sx={{ 
-                          position: "relative", 
-                          pl: 3, 
-                          ml: 4.75, 
+                      <List
+                        component="div"
+                        disablePadding
+                        sx={{
+                          position: "relative",
+                          pl: 3,
+                          ml: 4.75,
                           mb: 0.5,
-                          borderLeft: "1px dashed #CBD5E1" 
+                          borderLeft: "1px dashed #CBD5E1"
                         }}
                       >
                         {item.subItems.map((sub) => {
@@ -324,7 +325,7 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
                                   boxShadow: subActive ? "0px 2px 6px rgba(0,0,0,0.02)" : "none",
                                   position: "relative",
                                   transition: "all 0.2s ease",
-                                  "&:hover": { 
+                                  "&:hover": {
                                     backgroundColor: subActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.6)",
                                     color: "#0F172A",
                                     border: subActive ? "1px solid #E2E8F0" : "1px solid #F1F5F9",
@@ -394,11 +395,11 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
         >
           Appearance
         </Typography>
-        <Box 
-          sx={{ 
-            display: "flex", 
-            backgroundColor: "#F1F5F9", 
-            p: 0.5, 
+        <Box
+          sx={{
+            display: "flex",
+            backgroundColor: "#F1F5F9",
+            p: 0.5,
             borderRadius: "12px",
             gap: 0.5,
             border: "1px solid #E2E8F0"
@@ -444,11 +445,11 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
       {/* Profile quick access card */}
       <Box sx={{ px: 2, mb: 2, mt: "auto", pt: 1.5, pb: 1, backgroundColor: "#FFFFFF" }}>
         <Divider sx={{ mb: 2, borderColor: "#E2E8F0" }} />
-        
-        <Box 
-          sx={{ 
-            display: "flex", 
-            alignItems: "center", 
+
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
             gap: 1.25,
             p: 1.25,
             borderRadius: "12px",
@@ -462,11 +463,11 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
             }
           }}
         >
-          <Avatar 
-            sx={{ 
-              width: 36, 
-              height: 36, 
-              fontSize: 13, 
+          <Avatar
+            sx={{
+              width: 36,
+              height: 36,
+              fontSize: 13,
               fontWeight: 700,
               background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
               boxShadow: "0px 2px 8px rgba(16, 185, 129, 0.2)"
@@ -502,8 +503,8 @@ export default function Sidebar({ drawerWidth = 240, mobileOpen, handleDrawerTog
         <img
           src="/images/biometric_logo.png"
           alt="Biometric Logo"
-          style={{ 
-            width: 32, 
+          style={{
+            width: 32,
             height: "auto",
             filter: "drop-shadow(0px 2px 8px rgba(16, 185, 129, 0.15))",
             transition: "transform 0.3s ease",

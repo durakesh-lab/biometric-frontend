@@ -45,7 +45,6 @@ export default function Header({ drawerWidth, onDrawerToggle }) {
   let dispatch = useDispatch();
    let selector = useSelector((state)=>{return(state.users.opencompanybranch)});
       let selectorzindex = useSelector((state)=>{return(state.users)});
-console.log(selectorzindex,"??????????????????????")
   const router = useRouter();
   const [anchorElAvatar, setAnchorElAvatar] = useState(null);
   const [userToken, setUserToken] = useState(null);
@@ -124,27 +123,61 @@ console.log(selectorzindex,"??????????????????????")
     <AppBar
       position="fixed"
       sx={{
-        width: { sm: `calc(100% - ${drawerWidth}px)` },
-        ml: { sm: `${drawerWidth}px` },
+        width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+        ml: { xs: 0, md: `${drawerWidth}px` },
         bgcolor: "#fff",
         color: "#374151",
         borderBottom: "1px solid #E5E7EB",
         boxShadow: "none",
-        zIndex:selectorzindex?.zindexheadervalue!=null ? 0: (theme) => theme.zIndex.drawer + 1,
+        zIndex: selectorzindex?.zindexheadervalue != null ? 0 : (theme) => theme.zIndex.drawer + 1,
       }}
     >
       <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {/* LEFT SECTION: Brand + Search */}
-        <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 } }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
             edge="start"
             onClick={onDrawerToggle}
-            sx={{ mr: 2, display: { sm: "none" } }}
+            sx={{ mr: { xs: 0.5, sm: 1 }, display: { md: "none" }, color: "#374151" }}
           >
             <MenuIcon />
           </IconButton>
+
+          {/* Mobile / Tablet Brand Logo & Name (visible when sidebar is hidden) */}
+          <Box
+            sx={{
+              display: { xs: "flex", md: "none" },
+              alignItems: "center",
+              gap: 1.25,
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+            onClick={() => router.push("/dashboard")}
+          >
+            <img
+              src="/images/biometric_logo.png"
+              alt="Biometric Logo"
+              style={{
+                width: 28,
+                height: "auto",
+                filter: "drop-shadow(0px 2px 6px rgba(16, 185, 129, 0.2))",
+              }}
+            />
+            <Typography
+              variant="h6"
+              noWrap
+              sx={{
+                fontWeight: 800,
+                fontSize: { xs: 16, sm: 18 },
+                letterSpacing: "-0.02em",
+                color: "#0F172A",
+              }}
+            >
+              Biometric
+            </Typography>
+          </Box>
 
           <Box sx={{ maxWidth: 300, display: { xs: "none", md: "block" } }}>
             <TextField
