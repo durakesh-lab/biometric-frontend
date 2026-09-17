@@ -102,7 +102,7 @@ const menuGroups = [
     items: [
       { label: "Devices", icon: "📟", color: "#0EA5E9", link: "/devices", permissionKey: "devices" },
       { label: "Device Assignment", icon: "📌", color: "#8B5CF6", link: "/deviceassignment", permissionKey: "device-assignment" },
-      // { label: "Shifts & Groups", icon: "⏰", color: "#10B981", link: "/shiftsandgroups" },
+      { label: "Shifts & Groups", icon: "⏰", color: "#10B981", link: "/shiftsandgroups" },
       { label: "Attendance", icon: "🕒", color: "#F97316", link: "/attendance" },
       { label: "Enrollment", icon: "📝", color: "#EC4899", link: "/enrollment" },
     ],

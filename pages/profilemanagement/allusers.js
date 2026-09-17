@@ -322,8 +322,9 @@ const StaffListPage = () => {
     { id: 'srNo', label: 'SN.', sortable: false },
     { id: 'firstName', label: 'First Name', sortable: true },
     { id: 'lastName', label: 'Last Name', sortable: true },
-    { id: 'email', label: 'Email', sortable: true },
+    { id: 'employeeCode', label: 'Employee ID', sortable: true },
     { id: 'deviceUserId', label: 'Device ID', sortable: false },
+    { id: 'email', label: 'Email', sortable: true },
     { id: 'linkedDevices', label: 'Linked Devices', sortable: false },
     { id: 'active_status', label: 'Status', sortable: true },
     { id: 'company_name', label: 'Company', sortable: true },
@@ -335,6 +336,7 @@ const StaffListPage = () => {
   const sortOptions = [
     { label: 'First Name', value: 'firstName' },
     { label: 'Last Name', value: 'lastName' },
+    { label: 'Employee ID', value: 'employeeCode' },
     { label: 'Email', value: 'email' },
     { label: 'Status', value: 'active_status' },
     { label: 'Company', value: 'company_name' },
@@ -996,10 +998,9 @@ const StaffListPage = () => {
 
       // Create CSV content
       const headers = [
-        "username", "First Name", "Last Name", "email", "Date of Joining", "Date OF Birth",
+        "username", "First Name", "Last Name", "Employee ID", "Device ID", "email", "Date of Joining", "Date OF Birth",
         "Mobile", "Gender", 'active_status', "Department Code",
         "Department Name", "Company Id", "branch Code",
-
       ].join(",");
 
       const rows = staff.map(employee => {
@@ -1007,6 +1008,8 @@ const StaffListPage = () => {
           employee.username || '',
           employee.firstName || '',
           employee.lastName || '',
+          employee.employeeCode || '',
+          employee.deviceUserId || '',
           employee.email || '',
           employee.joining_date || '',
           employee.date_of_birth || '',
@@ -1017,7 +1020,6 @@ const StaffListPage = () => {
           employee.dept_name || '',
           employee.company_Id || '',
           employee.branchCode || '',
-
           '' // Aadhaar No. (not in your data)
         ].map(field => `"${field}"`).join(",");
       });
@@ -1441,7 +1443,17 @@ const StaffListPage = () => {
                                 <TableCell align="center">{getSerialNumber(index)}</TableCell>
                                 <TableCell align="center">{staffMember.firstName}</TableCell>
                                 <TableCell align="center">{staffMember.lastName}</TableCell>
-                                <TableCell align="center">{staffMember.email}</TableCell>
+                                <TableCell align="center">
+                                  {staffMember.employeeCode ? (
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', fontFamily: 'monospace', fontSize: '13px' }}>
+                                      {staffMember.employeeCode}
+                                    </Typography>
+                                  ) : (
+                                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+                                      —
+                                    </Typography>
+                                  )}
+                                </TableCell>
                                 <TableCell align="center">
                                   {staffMember.deviceUserId ? (
                                     <Box
@@ -1452,17 +1464,19 @@ const StaffListPage = () => {
                                         backgroundColor: '#DEF7EC',
                                         color: '#03543F',
                                         fontSize: '12px',
-                                        fontWeight: 600,
+                                        fontWeight: 700,
+                                        fontFamily: 'monospace',
                                       }}
                                     >
                                       {staffMember.deviceUserId}
                                     </Box>
                                   ) : (
                                     <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-                                      Not linked
+                                      —
                                     </Typography>
                                   )}
                                 </TableCell>
+                                <TableCell align="center">{staffMember.email}</TableCell>
                                 <TableCell align="center">
                                   {staffMember.linkedDevices && staffMember.linkedDevices.length > 0 ? (
                                     <Tooltip title={`Click to view ${staffMember.linkedDevices.length} linked device${staffMember.linkedDevices.length > 1 ? 's' : ''}`}>
